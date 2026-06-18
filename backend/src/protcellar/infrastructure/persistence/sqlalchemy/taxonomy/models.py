@@ -3,8 +3,9 @@
 from __future__ import annotations
 
 import uuid
+from datetime import datetime
 
-from sqlalchemy import Boolean, ForeignKey, Integer, String, UniqueConstraint
+from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from protcellar.infrastructure.persistence.sqlalchemy.base import (
@@ -34,6 +35,13 @@ class OrganismModel(Base, EntityModelMixin, WorkspaceIdMixin, VersionMixin):
     is_deleted: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False, index=True)
     source: Mapped[str] = mapped_column(String(16), nullable=False)
     source_version: Mapped[str | None] = mapped_column(String(64), nullable=True)
+
+    # Import provenance (Organism reuses `source` as the provenance source;
+    # ProvenanceMixin not used due to name clash).
+    source_release: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    source_record_id: Mapped[str | None] = mapped_column(String(128), nullable=True, index=True)
+    source_record_checksum: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    imported_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     names: Mapped[list[OrganismNameModel]] = relationship(
         cascade="all, delete-orphan", lazy="selectin", foreign_keys="OrganismNameModel.organism_id"
