@@ -8,9 +8,20 @@ from enum import StrEnum
 # (stored as-is) so GTDB's fixed 7 ranks and NCBI's long tail both fit.
 KNOWN_RANKS: frozenset[str] = frozenset(
     {
-        "superkingdom", "kingdom", "phylum", "class", "order", "family",
-        "genus", "species", "subspecies", "strain", "varietas", "forma",
-        "clade", "no rank",
+        "superkingdom",
+        "kingdom",
+        "phylum",
+        "class",
+        "order",
+        "family",
+        "genus",
+        "species",
+        "subspecies",
+        "strain",
+        "varietas",
+        "forma",
+        "clade",
+        "no rank",
     }
 )
 
