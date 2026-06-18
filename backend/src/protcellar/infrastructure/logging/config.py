@@ -6,6 +6,7 @@ import logging
 import sys
 
 import structlog
+import structlog.typing
 from structlog.processors import CallsiteParameter
 
 from protcellar.infrastructure.logging.processors import redact_sensitive
@@ -36,7 +37,7 @@ def _coerce_level(name: str) -> int:
 def configure_logging(
     settings: LoggingSettings | None = None,
     *,
-    extra_processors: list | None = None,
+    extra_processors: list[structlog.typing.Processor] | None = None,
 ) -> None:
     """Configure structlog with JSON (prod) or console (dev) output.
 
@@ -51,14 +52,14 @@ def configure_logging(
     settings = settings or LoggingSettings()
     json_output = settings.format == "json"
     timestamper = structlog.processors.TimeStamper(fmt="iso", utc=True)
-    extra: list = list(extra_processors or [])
+    extra: list[structlog.typing.Processor] = list(extra_processors or [])
 
     # Base processors shared by the native structlog chain AND the foreign
     # (stdlib) pre-chain, so third-party logs get timestamps, levels, and the
     # SAME redaction as native logs. ``dict_tracebacks`` (JSON only) expands
     # exceptions BEFORE redaction so sensitive values inside tracebacks are
     # scrubbed too; console mode lets ConsoleRenderer format exceptions itself.
-    base: list = [
+    base: list[structlog.typing.Processor] = [
         structlog.contextvars.merge_contextvars,
         structlog.stdlib.add_log_level,
         structlog.stdlib.add_logger_name,
@@ -71,11 +72,11 @@ def configure_logging(
 
     # Foreign (stdlib) records: base + extra hook + redaction. No callsite —
     # a stdlib record's callsite points at logging internals, not user code.
-    foreign_pre_chain: list = [*base, *extra, redact_sensitive]
+    foreign_pre_chain: list[structlog.typing.Processor] = [*base, *extra, redact_sensitive]
 
     # Native structlog records: base + callsite enrichment + extra hook, then
     # redaction LAST (after every processor that can add fields), then bridge.
-    structlog_processors: list = [
+    structlog_processors: list[structlog.typing.Processor] = [
         *base,
         structlog.processors.CallsiteParameterAdder(
             {CallsiteParameter.FUNC_NAME, CallsiteParameter.LINENO}

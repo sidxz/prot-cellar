@@ -3,7 +3,8 @@
 from __future__ import annotations
 
 import re
-from typing import Any
+from collections.abc import Mapping, MutableMapping
+from typing import Any, cast
 
 REDACTED = "***REDACTED***"
 
@@ -28,7 +29,7 @@ def _redact(value: Any) -> Any:
 
 
 def redact_sensitive(
-    _logger: Any, _method_name: str, event_dict: dict[str, Any]
-) -> dict[str, Any]:
+    _logger: Any, _method_name: str, event_dict: MutableMapping[str, Any]
+) -> Mapping[str, Any]:
     """Replace values of sensitive-looking keys with ``REDACTED`` (recursive)."""
-    return _redact(event_dict)
+    return cast(Mapping[str, Any], _redact(event_dict))
