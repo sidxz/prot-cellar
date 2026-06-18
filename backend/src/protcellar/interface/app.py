@@ -29,6 +29,10 @@ def create_app() -> FastAPI:
         container = create_container()
         app.state.container = container
 
+        from protcellar.interface.dependencies._workspace_config import register_workspace_config
+
+        register_workspace_config(container)
+
         # Wire append-only audit as a catch-all domain-event handler
         dispatcher = container[EventDispatcher]
         session_factory = container[async_sessionmaker]
@@ -71,9 +75,9 @@ def create_app() -> FastAPI:
 
     app.include_router(version_router)
 
-    # Bio-context routers are included here by later plans, e.g.:
-    #   from protcellar.interface.routes.organizations import router as org_router
-    #   app.include_router(org_router)
+    from protcellar.interface.routes.organizations import router as org_router
+
+    app.include_router(org_router)
 
     return app
 
