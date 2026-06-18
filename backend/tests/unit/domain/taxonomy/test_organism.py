@@ -44,3 +44,10 @@ def test_mark_merged_into_redirect() -> None:
     org.mark_merged_into(target)
     assert org.is_merged is True
     assert org.merged_into_id == target
+
+
+def test_update_blank_rank_raises() -> None:
+    org = Organism.create(ncbi_tax_id=9606, rank="species", scientific_name="Homo sapiens",
+                          source=OrganismSource.NCBI)
+    with pytest.raises(ValidationError):
+        org.update(rank="  ")

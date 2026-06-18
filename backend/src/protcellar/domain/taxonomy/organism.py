@@ -121,7 +121,10 @@ class Organism(AggregateRoot):
                 raise ValidationError("Organism scientific_name must not be empty")
             self.scientific_name = str(value).strip()
         if "rank" in fields:
-            self.rank = str(fields["rank"]).strip()
+            value = fields["rank"]
+            if not value or not str(value).strip():
+                raise ValidationError("Organism rank must not be empty")
+            self.rank = str(value).strip()
         if "parent_id" in fields:
             self.parent_id = fields["parent_id"]
         if "division" in fields:
