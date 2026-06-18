@@ -8,7 +8,6 @@ persisted independently of the use case's UoW.
 from __future__ import annotations
 
 import uuid
-from datetime import UTC, datetime
 
 import structlog
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
@@ -54,7 +53,6 @@ class AuditEventHandler:
 
 async def _record_event(repo: SQLAlchemyAuditRepository, event: DomainEvent) -> None:
     """Map a DomainEvent to a minimal AuditOperation and persist it."""
-    now = datetime.now(UTC)
     operation = AuditOperation(
         id=uuid.uuid4(),
         workspace_id=getattr(event, "workspace_id", uuid.UUID(int=0)),
@@ -65,7 +63,7 @@ async def _record_event(repo: SQLAlchemyAuditRepository, event: DomainEvent) -> 
         entity_id=event.aggregate_id,
         status=AuditStatus.COMPLETED,
         started_at=event.occurred_at,
-        completed_at=now,
+        completed_at=event.occurred_at,
     )
 
     operation.add_entry(
