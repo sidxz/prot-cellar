@@ -8,7 +8,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class SentinelSettings(BaseSettings):
     """Typed configuration for Sentinel auth integration (authz mode)."""
 
-    model_config = SettingsConfigDict(env_prefix="SENTINEL_", env_file=".env")
+    model_config = SettingsConfigDict(env_prefix="SENTINEL_", env_file=".env", extra="ignore")
 
     url: str = "http://localhost:9003"
     service_name: str = "protcellar"

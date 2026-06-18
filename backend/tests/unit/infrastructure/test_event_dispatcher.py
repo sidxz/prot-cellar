@@ -24,7 +24,7 @@ async def test_dispatch_catchall_only() -> None:
 
 @pytest.mark.asyncio
 async def test_dispatch_exact_match_and_catchall_no_double_dispatch() -> None:
-    """Test exact-match handler receives concrete subclass event and catch-all also fires (no double-dispatch)."""
+    """Exact-match handler and catch-all both fire; no double-dispatch."""
     seen: list[str] = []
     disp = EventDispatcher()
 
