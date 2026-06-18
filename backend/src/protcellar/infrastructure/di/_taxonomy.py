@@ -7,6 +7,7 @@ from typing import Any
 from lagom import Container
 from sqlalchemy.ext.asyncio import async_sessionmaker
 
+from protcellar.application.taxonomy.bulk_upsert_organisms import BulkUpsertOrganisms
 from protcellar.application.taxonomy.create_organism import CreateOrganism
 from protcellar.application.taxonomy.create_proteome import CreateProteome
 from protcellar.application.taxonomy.create_strain import CreateStrain
@@ -51,6 +52,7 @@ def register_taxonomy(container: Container) -> None:
 
         return _f
 
+    container.define(BulkUpsertOrganisms, _org_cmd(BulkUpsertOrganisms))
     container.define(CreateOrganism, _org_cmd(CreateOrganism))
     container.define(UpdateOrganism, _org_cmd(UpdateOrganism))
     container.define(GetOrganism, _org_query(GetOrganism))

@@ -34,6 +34,8 @@ class SQLAlchemyOrganismRepository(
             is_deleted=model.is_deleted,
             source=OrganismSource(model.source),
             source_version=model.source_version,
+            source_record_id=model.source_record_id,
+            source_record_checksum=model.source_record_checksum,
             names=[
                 OrganismName(
                     id=n.id,
@@ -64,6 +66,8 @@ class SQLAlchemyOrganismRepository(
             is_deleted=aggregate.is_deleted,
             source=aggregate.source.value,
             source_version=aggregate.source_version,
+            source_record_id=aggregate.source_record_id,
+            source_record_checksum=aggregate.source_record_checksum,
             version=aggregate.version,
         )
         model.names = [self._name_to_model(n) for n in aggregate.names]
@@ -80,6 +84,8 @@ class SQLAlchemyOrganismRepository(
         model.is_deleted = aggregate.is_deleted
         model.source = aggregate.source.value
         model.source_version = aggregate.source_version
+        model.source_record_id = aggregate.source_record_id
+        model.source_record_checksum = aggregate.source_record_checksum
         # Replace the names collection wholesale (delete-orphan handles removals)
         model.names = [self._name_to_model(n) for n in aggregate.names]
 
@@ -92,6 +98,16 @@ class SQLAlchemyOrganismRepository(
             unique_name=n.unique_name,
             is_preferred=n.is_preferred,
         )
+
+    async def find_by_source_record_id(
+        self, source: str, source_record_id: str
+    ) -> Organism | None:
+        stmt = select(OrganismModel).where(
+            OrganismModel.source == source,
+            OrganismModel.source_record_id == source_record_id,
+        )
+        model = (await self._session.execute(stmt)).scalar_one_or_none()
+        return self._to_domain_tracked(model) if model else None
 
     async def find_by_tax_id(self, tax_id: int) -> Organism | None:
         stmt = select(OrganismModel).where(OrganismModel.ncbi_tax_id == tax_id)

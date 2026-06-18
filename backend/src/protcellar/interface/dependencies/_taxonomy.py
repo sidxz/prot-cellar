@@ -6,6 +6,7 @@ from typing import Annotated
 
 from fastapi import Depends
 
+from protcellar.application.taxonomy.bulk_upsert_organisms import BulkUpsertOrganisms
 from protcellar.application.taxonomy.create_organism import CreateOrganism
 from protcellar.application.taxonomy.create_proteome import CreateProteome
 from protcellar.application.taxonomy.create_strain import CreateStrain
@@ -22,6 +23,7 @@ from protcellar.application.taxonomy.update_strain import UpdateStrain
 from ._core import _get_use_case
 
 __all__ = [
+    "BulkUpsertOrganismsDep",
     "CreateOrganismDep",
     "CreateProteomeDep",
     "CreateStrainDep",
@@ -37,6 +39,9 @@ __all__ = [
 ]
 
 # --- FastAPI type-alias Deps ---
+BulkUpsertOrganismsDep = Annotated[
+    BulkUpsertOrganisms, Depends(_get_use_case(BulkUpsertOrganisms))
+]
 CreateOrganismDep = Annotated[CreateOrganism, Depends(_get_use_case(CreateOrganism))]
 UpdateOrganismDep = Annotated[UpdateOrganism, Depends(_get_use_case(UpdateOrganism))]
 GetOrganismDep = Annotated[GetOrganism, Depends(_get_use_case(GetOrganism))]

@@ -40,6 +40,8 @@ class Organism(AggregateRoot):
         is_deleted: bool = False,
         source: OrganismSource = OrganismSource.NCBI,
         source_version: str | None = None,
+        source_record_id: str | None = None,
+        source_record_checksum: str | None = None,
         names: list[OrganismName] | None = None,
         created_at: datetime | None = None,
         updated_at: datetime | None = None,
@@ -62,6 +64,8 @@ class Organism(AggregateRoot):
         self.is_deleted = is_deleted
         self.source = source
         self.source_version = source_version
+        self.source_record_id = source_record_id
+        self.source_record_checksum = source_record_checksum
         self.names: list[OrganismName] = names if names is not None else []
 
     @classmethod

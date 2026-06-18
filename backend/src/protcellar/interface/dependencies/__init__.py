@@ -11,6 +11,7 @@ from protcellar.interface.dependencies._core import (
     get_uow,
 )
 from protcellar.interface.dependencies._taxonomy import (
+    BulkUpsertOrganismsDep,
     CreateOrganismDep,
     CreateProteomeDep,
     CreateStrainDep,
@@ -33,6 +34,7 @@ from protcellar.interface.dependencies._workspace_config import (
 
 __all__ = [
     "AuthDep",
+    "BulkUpsertOrganismsDep",
     "CreateOrganismDep",
     "CreateOrganizationDep",
     "CreateProteomeDep",

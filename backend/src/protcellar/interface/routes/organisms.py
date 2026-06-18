@@ -8,6 +8,10 @@ from fastapi import APIRouter
 from pydantic import BaseModel
 
 from protcellar.application.shared.sentinel import UNSET
+from protcellar.application.taxonomy.bulk_upsert_organisms import (
+    BulkUpsertOrganismsCommand,
+    OrganismImportRecord,
+)
 from protcellar.application.taxonomy.create_organism import CreateOrganismCommand
 from protcellar.application.taxonomy.get_organism import GetOrganismQuery
 from protcellar.application.taxonomy.list_organisms import ListOrganismsQuery
@@ -18,6 +22,7 @@ from protcellar.domain.taxonomy.organism import Organism
 from protcellar.infrastructure.identifiers.registry import IdentifierRegistry
 from protcellar.interface.dependencies import (
     AuthDep,
+    BulkUpsertOrganismsDep,
     CreateOrganismDep,
     GetOrganismDep,
     ListOrganismsDep,
@@ -180,3 +185,76 @@ async def update_organism(
     )
     org = result_to_response(await use_case(command, auth=auth))
     return OrganismResponse.from_domain(org)
+
+
+class BulkRecordBody(BaseModel):
+    ncbi_tax_id: int | None = None
+    rank: str
+    scientific_name: str
+    source: str
+    source_release: str
+    source_record_id: str
+    source_record_checksum: str
+    division: str | None = None
+
+
+class BulkUpsertBody(BaseModel):
+    records: list[BulkRecordBody]
+    dry_run: bool = False
+
+
+class ItemResultResponse(BaseModel):
+    index: int
+    status: str
+    id: str | None = None
+    error: str | None = None
+
+
+class BulkSummaryResponse(BaseModel):
+    created: int
+    updated: int
+    skipped: int
+    failed: int
+
+
+class BulkUpsertResponse(BaseModel):
+    results: list[ItemResultResponse]
+    summary: BulkSummaryResponse
+
+
+@router.post("/bulk", response_model=BulkUpsertResponse)
+async def bulk_upsert_organisms(
+    body: BulkUpsertBody,
+    auth: AuthDep,
+    use_case: BulkUpsertOrganismsDep,
+) -> BulkUpsertResponse:
+    command = BulkUpsertOrganismsCommand(
+        records=tuple(
+            OrganismImportRecord(
+                ncbi_tax_id=r.ncbi_tax_id,
+                rank=r.rank,
+                scientific_name=r.scientific_name,
+                source=r.source,
+                source_release=r.source_release,
+                source_record_id=r.source_record_id,
+                source_record_checksum=r.source_record_checksum,
+                division=r.division,
+            )
+            for r in body.records
+        ),
+        dry_run=body.dry_run,
+    )
+    item_results = result_to_response(await use_case(command, auth=auth))
+    summary = BulkSummaryResponse(
+        created=sum(1 for r in item_results if r.status == "created"),
+        updated=sum(1 for r in item_results if r.status == "updated"),
+        skipped=sum(1 for r in item_results if r.status == "skipped"),
+        failed=sum(1 for r in item_results if r.status == "failed"),
+    )
+    return BulkUpsertResponse(
+        results=[
+            ItemResultResponse(index=r.index, status=r.status, id=r.id, error=r.error)
+            for r in item_results
+        ],
+        summary=summary,
+    )
