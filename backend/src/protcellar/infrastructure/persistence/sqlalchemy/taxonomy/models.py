@@ -65,7 +65,7 @@ class StrainModel(Base, EntityModelMixin, WorkspaceIdMixin, VersionMixin):
     host_organism_id: Mapped[uuid.UUID | None] = mapped_column(
         ForeignKey("organisms.id"), nullable=True
     )
-    strain_metadata: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    strain_metadata: Mapped[dict[str, object] | None] = mapped_column(JSON, nullable=True)
 
 
 class OrganismNameModel(Base, EntityModelMixin):

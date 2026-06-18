@@ -27,7 +27,7 @@ class CreateStrainCommand(Command):
     assembly_acc: str | None = None
     culture_collection: str | None = None
     host_organism_id: uuid.UUID | None = None
-    metadata: dict | None = None
+    metadata: dict[str, object] | None = None
 
 
 class CreateStrain:

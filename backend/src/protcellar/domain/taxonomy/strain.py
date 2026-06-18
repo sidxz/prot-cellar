@@ -30,7 +30,7 @@ class Strain(AggregateRoot):
         assembly_acc: str | None = None,
         culture_collection: str | None = None,
         host_organism_id: uuid.UUID | None = None,
-        metadata: dict | None = None,
+        metadata: dict[str, object] | None = None,
         created_at: datetime | None = None,
         updated_at: datetime | None = None,
         version: int = 1,
@@ -47,7 +47,7 @@ class Strain(AggregateRoot):
         self.assembly_acc = assembly_acc
         self.culture_collection = culture_collection
         self.host_organism_id = host_organism_id
-        self.metadata = metadata
+        self.metadata: dict[str, object] | None = metadata
 
     @classmethod
     def create(
@@ -62,7 +62,7 @@ class Strain(AggregateRoot):
         assembly_acc: str | None = None,
         culture_collection: str | None = None,
         host_organism_id: uuid.UUID | None = None,
-        metadata: dict | None = None,
+        metadata: dict[str, object] | None = None,
     ) -> Strain:
         strain = cls(
             workspace_id=workspace_id,

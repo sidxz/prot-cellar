@@ -37,7 +37,7 @@ class StrainResponse(BaseModel):
     assembly_acc: str | None = None
     culture_collection: str | None = None
     host_organism_id: uuid.UUID | None = None
-    metadata: dict | None = None
+    metadata: dict[str, object] | None = None
     version: int
 
     @classmethod
@@ -67,7 +67,7 @@ class CreateStrainBody(BaseModel):
     assembly_acc: str | None = None
     culture_collection: str | None = None
     host_organism_id: uuid.UUID | None = None
-    metadata: dict | None = None
+    metadata: dict[str, object] | None = None
 
 
 class UpdateStrainBody(BaseModel):
@@ -76,7 +76,7 @@ class UpdateStrainBody(BaseModel):
     biosample_acc: str | None = None
     assembly_acc: str | None = None
     culture_collection: str | None = None
-    metadata: dict | None = None
+    metadata: dict[str, object] | None = None
 
     model_config = {"extra": "forbid"}
 

@@ -29,7 +29,7 @@ class UpdateStrainCommand(Command):
     assembly_acc: str | None | object = UNSET
     culture_collection: str | None | object = UNSET
     host_organism_id: uuid.UUID | None | object = UNSET
-    metadata: dict | None | object = UNSET
+    metadata: dict[str, object] | None | object = UNSET
 
 
 class UpdateStrain:
