@@ -21,7 +21,11 @@ class OrganismRepository(Protocol):
     async def find_by_name(self, name: str) -> list[Organism]: ...
 
     async def find_all(
-        self, *, cursor_id: uuid.UUID | None = None, limit: int | None = None
+        self,
+        *,
+        cursor_id: uuid.UUID | None = None,
+        limit: int | None = None,
+        rank: str | None = None,
     ) -> list[Organism]: ...
 
     async def save(self, aggregate: Organism) -> None: ...

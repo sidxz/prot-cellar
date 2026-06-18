@@ -3,12 +3,9 @@
 from __future__ import annotations
 
 import uuid
-from typing import Annotated
 
-from fastapi import APIRouter, Depends
-from lagom import Container
+from fastapi import APIRouter
 from pydantic import BaseModel
-from sqlalchemy.ext.asyncio import async_sessionmaker
 
 from protcellar.application.shared.sentinel import UNSET
 from protcellar.application.taxonomy.create_organism import CreateOrganismCommand
@@ -18,10 +15,7 @@ from protcellar.application.taxonomy.resolve_tax_id import ResolveTaxIdQuery
 from protcellar.application.taxonomy.update_organism import UpdateOrganismCommand
 from protcellar.domain.taxonomy.enums import NameClass, OrganismSource
 from protcellar.domain.taxonomy.organism import Organism
-from protcellar.infrastructure.persistence.sqlalchemy.taxonomy.organism_repository import (
-    SQLAlchemyOrganismRepository,
-)
-from protcellar.infrastructure.persistence.unit_of_work import AsyncUnitOfWork
+from protcellar.infrastructure.identifiers.registry import IdentifierRegistry
 from protcellar.interface.dependencies import (
     AuthDep,
     CreateOrganismDep,
@@ -29,26 +23,11 @@ from protcellar.interface.dependencies import (
     ListOrganismsDep,
     ResolveTaxIdDep,
     UpdateOrganismDep,
-    get_container,
 )
 from protcellar.interface.error_handlers import result_to_response
 from protcellar.interface.pagination import clamp_limit, parse_cursor
 
 router = APIRouter(prefix="/api/v1/organisms", tags=["organisms"])
-
-
-def _get_organism_repo(
-    container: Annotated[Container, Depends(get_container)],
-) -> tuple[AsyncUnitOfWork, SQLAlchemyOrganismRepository]:
-    """Build a fresh UoW + OrganismRepository from the container's session factory."""
-    uow = AsyncUnitOfWork(container[async_sessionmaker])
-    repo = SQLAlchemyOrganismRepository(uow)
-    return uow, repo
-
-
-OrganismRepoDep = Annotated[
-    tuple[AsyncUnitOfWork, SQLAlchemyOrganismRepository], Depends(_get_organism_repo)
-]
 
 
 class OrganismNameResponse(BaseModel):
@@ -61,6 +40,7 @@ class OrganismNameResponse(BaseModel):
 class OrganismResponse(BaseModel):
     id: uuid.UUID
     ncbi_tax_id: int | None = None
+    ncbi_url: str | None = None
     parent_id: uuid.UUID | None = None
     rank: str
     scientific_name: str
@@ -74,9 +54,15 @@ class OrganismResponse(BaseModel):
 
     @classmethod
     def from_domain(cls, org: Organism) -> OrganismResponse:
+        ncbi_url = (
+            IdentifierRegistry.default().resolve_url("ncbitaxon", str(org.ncbi_tax_id))
+            if org.ncbi_tax_id is not None
+            else None
+        )
         return cls(
             id=org.id,
             ncbi_tax_id=org.ncbi_tax_id,
+            ncbi_url=ncbi_url,
             parent_id=org.parent_id,
             rank=org.rank,
             scientific_name=org.scientific_name,
@@ -132,31 +118,19 @@ async def resolve_organism(
 async def list_organisms(
     auth: AuthDep,
     use_case: ListOrganismsDep,
-    repo_dep: OrganismRepoDep,
     name: str | None = None,
     rank: str | None = None,
     cursor: str | None = None,
     limit: int | None = None,
 ) -> list[OrganismResponse]:
-    if name is not None:
-        # Name search — call repo directly via a fresh UoW
-        uow, repo = repo_dep
-        async with uow:
-            organisms = await repo.find_by_name(name)
-            if rank is not None:
-                organisms = [o for o in organisms if o.rank == rank]
-        return [OrganismResponse.from_domain(o) for o in organisms]
-
-    # Paginated listing — delegate to use case
     query = ListOrganismsQuery(
         cursor_id=parse_cursor(cursor),
         limit=clamp_limit(limit),
+        name=name,
+        rank=rank,
     )
     page = result_to_response(await use_case(query, auth=auth))
-    items = page.items
-    if rank is not None:
-        items = [o for o in items if o.rank == rank]
-    return [OrganismResponse.from_domain(o) for o in items]
+    return [OrganismResponse.from_domain(o) for o in page.items]
 
 
 @router.get("/{organism_id}", response_model=OrganismResponse)

@@ -99,8 +99,10 @@ class SQLAlchemyOrganismRepository(
         return self._to_domain_tracked(model) if model else None
 
     async def find_children(self, parent_id: uuid.UUID) -> list[Organism]:
-        stmt = select(OrganismModel).where(OrganismModel.parent_id == parent_id).order_by(
-            OrganismModel.scientific_name
+        stmt = (
+            select(OrganismModel)
+            .where(OrganismModel.parent_id == parent_id)
+            .order_by(OrganismModel.scientific_name)
         )
         return [self._to_domain_tracked(m) for m in (await self._session.execute(stmt)).scalars()]
 
@@ -115,9 +117,15 @@ class SQLAlchemyOrganismRepository(
         return [self._to_domain_tracked(m) for m in (await self._session.execute(stmt)).scalars()]
 
     async def find_all(
-        self, *, cursor_id: uuid.UUID | None = None, limit: int | None = None
+        self,
+        *,
+        cursor_id: uuid.UUID | None = None,
+        limit: int | None = None,
+        rank: str | None = None,
     ) -> list[Organism]:
         stmt = select(OrganismModel).order_by(OrganismModel.id)
+        if rank is not None:
+            stmt = stmt.where(OrganismModel.rank == rank)
         if cursor_id is not None:
             stmt = stmt.where(OrganismModel.id > cursor_id)
         if limit is not None:

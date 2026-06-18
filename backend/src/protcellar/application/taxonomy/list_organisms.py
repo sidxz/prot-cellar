@@ -20,6 +20,8 @@ from protcellar.domain.taxonomy.repository import OrganismRepository
 class ListOrganismsQuery(Query):
     cursor_id: uuid.UUID | None = None
     limit: int | None = None
+    name: str | None = None
+    rank: str | None = None
 
 
 class ListOrganisms:
@@ -32,11 +34,20 @@ class ListOrganisms:
     ) -> Result[PageResult[Organism], DomainError]:
         require_authenticated(auth)
         async with self._uow:
+            if input.name is not None:
+                # Name search — no cursor pagination
+                organisms = await self._repo.find_by_name(input.name)
+                if input.rank is not None:
+                    organisms = [o for o in organisms if o.rank == input.rank]
+                return Success(PageResult(items=organisms, next_cursor=None))
+
+            # Paginated listing
             effective_limit = input.limit
             fetch_limit = effective_limit + 1 if effective_limit is not None else None
             organisms = await self._repo.find_all(
                 cursor_id=input.cursor_id,
                 limit=fetch_limit,
+                rank=input.rank,
             )
 
             next_cursor: str | None = None
