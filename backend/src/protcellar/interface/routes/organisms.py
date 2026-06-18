@@ -30,7 +30,7 @@ from protcellar.interface.dependencies import (
     UpdateOrganismDep,
 )
 from protcellar.interface.error_handlers import result_to_response
-from protcellar.interface.pagination import clamp_limit, parse_cursor
+from protcellar.interface.pagination import PaginatedResponse, clamp_limit, parse_cursor
 
 router = APIRouter(prefix="/api/v1/organisms", tags=["organisms"])
 
@@ -121,7 +121,7 @@ async def resolve_organism(
     return OrganismResponse.from_domain(org)
 
 
-@router.get("", response_model=list[OrganismResponse])
+@router.get("", response_model=PaginatedResponse[OrganismResponse])
 async def list_organisms(
     auth: AuthDep,
     use_case: ListOrganismsDep,
@@ -129,7 +129,7 @@ async def list_organisms(
     rank: str | None = None,
     cursor: str | None = None,
     limit: int | None = None,
-) -> list[OrganismResponse]:
+) -> PaginatedResponse[OrganismResponse]:
     query = ListOrganismsQuery(
         cursor_id=parse_cursor(cursor),
         limit=clamp_limit(limit),
@@ -137,7 +137,10 @@ async def list_organisms(
         rank=rank,
     )
     page = result_to_response(await use_case(query, auth=auth))
-    return [OrganismResponse.from_domain(o) for o in page.items]
+    return PaginatedResponse(
+        items=[OrganismResponse.from_domain(o) for o in page.items],
+        next_cursor=page.next_cursor,
+    )
 
 
 @router.get("/{organism_id}", response_model=OrganismResponse)

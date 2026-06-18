@@ -17,6 +17,9 @@ from protcellar.application.taxonomy.resolve_tax_id import ResolveTaxId, Resolve
 from protcellar.domain.shared.errors import GoneError, NotFoundError
 from protcellar.domain.shared.global_workspace import GLOBAL_WORKSPACE_ID
 from protcellar.domain.taxonomy.organism import Organism
+from tests.fakes.fake_auth import FakeAuth
+
+_AUTH = FakeAuth()
 
 # ---------------------------------------------------------------------------
 # Fake infrastructure
@@ -135,7 +138,7 @@ async def test_resolve_live_organism_returns_success() -> None:
     org = _make_organism(ncbi_tax_id=9606, scientific_name="Homo sapiens")
     use_case = _make_use_case([org])
 
-    result = await use_case(ResolveTaxIdQuery(tax_id=9606))
+    result = await use_case(ResolveTaxIdQuery(tax_id=9606), auth=_AUTH)
 
     assert isinstance(result, Success)
     assert result.unwrap().ncbi_tax_id == 9606
@@ -147,7 +150,7 @@ async def test_resolve_unknown_tax_id_returns_not_found() -> None:
     """A tax_id not in the repository returns a NotFoundError failure."""
     use_case = _make_use_case([])
 
-    result = await use_case(ResolveTaxIdQuery(tax_id=99999))
+    result = await use_case(ResolveTaxIdQuery(tax_id=99999), auth=_AUTH)
 
     assert isinstance(result, Failure)
     assert isinstance(result.failure(), NotFoundError)
@@ -160,7 +163,7 @@ async def test_resolve_deleted_organism_returns_gone_error() -> None:
     org.mark_deleted()
     use_case = _make_use_case([org])
 
-    result = await use_case(ResolveTaxIdQuery(tax_id=12345))
+    result = await use_case(ResolveTaxIdQuery(tax_id=12345), auth=_AUTH)
 
     assert isinstance(result, Failure)
     assert isinstance(result.failure(), GoneError)
@@ -180,7 +183,7 @@ async def test_resolve_merged_organism_returns_target() -> None:
 
     use_case = _make_use_case([target, merged])
 
-    result = await use_case(ResolveTaxIdQuery(tax_id=99999))
+    result = await use_case(ResolveTaxIdQuery(tax_id=99999), auth=_AUTH)
 
     assert isinstance(result, Success)
     resolved = result.unwrap()
@@ -198,7 +201,7 @@ async def test_resolve_merged_organism_missing_target_returns_merged_node() -> N
 
     use_case = _make_use_case([merged])
 
-    result = await use_case(ResolveTaxIdQuery(tax_id=77777))
+    result = await use_case(ResolveTaxIdQuery(tax_id=77777), auth=_AUTH)
 
     # Falls back to returning the merged node (target not found in repo)
     assert isinstance(result, Success)
@@ -217,7 +220,7 @@ async def test_resolve_uses_global_workspace_for_merge_target_lookup() -> None:
 
     use_case = _make_use_case([target, merged])
 
-    result = await use_case(ResolveTaxIdQuery(tax_id=2))
+    result = await use_case(ResolveTaxIdQuery(tax_id=2), auth=_AUTH)
 
     assert isinstance(result, Success)
     assert result.unwrap().id == target.id

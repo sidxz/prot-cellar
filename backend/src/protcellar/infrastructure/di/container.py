@@ -20,6 +20,7 @@ from protcellar.infrastructure.identifiers.registry import IdentifierRegistry
 from protcellar.infrastructure.messaging.event_dispatcher import EventDispatcher
 from protcellar.infrastructure.persistence.database import create_engine_and_sessionmaker
 from protcellar.infrastructure.persistence.settings import DatabaseSettings
+from protcellar.infrastructure.persistence.unit_of_work import AsyncUnitOfWork
 
 
 def create_container(db_settings: DatabaseSettings | None = None) -> Container:
@@ -61,6 +62,9 @@ def create_container(db_settings: DatabaseSettings | None = None) -> Container:
 
     container.define(AsyncEngine, Singleton(lambda: _build_engine_and_factory()[0]))
     container.define(async_sessionmaker, Singleton(lambda: _build_engine_and_factory()[1]))
+
+    # --- AsyncUnitOfWork ---
+    container.define(AsyncUnitOfWork, lambda c: AsyncUnitOfWork(c[async_sessionmaker]))
 
     # --- Event Dispatcher ---
     container.define(EventDispatcher, Singleton(EventDispatcher))

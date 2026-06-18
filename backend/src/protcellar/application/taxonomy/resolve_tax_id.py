@@ -6,7 +6,7 @@ from dataclasses import dataclass
 
 from returns.result import Failure, Result, Success
 
-from protcellar.application.auth import AuthContext
+from protcellar.application.auth import AuthContext, require_authenticated
 from protcellar.application.shared.query import Query
 from protcellar.application.shared.unit_of_work import UnitOfWork
 from protcellar.domain.shared.errors import DomainError, GoneError, NotFoundError
@@ -26,6 +26,7 @@ class ResolveTaxId:
     async def __call__(
         self, input: ResolveTaxIdQuery, auth: AuthContext | None = None
     ) -> Result[Organism, DomainError]:
+        require_authenticated(auth)
         async with self._uow:
             org = await self._repo.find_by_tax_id(input.tax_id)
             if org is None:

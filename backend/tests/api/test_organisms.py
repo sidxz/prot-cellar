@@ -26,7 +26,7 @@ async def test_search_by_name(client: AsyncClient) -> None:
     )
     resp = await client.get("/api/v1/organisms", params={"name": "coli"})
     assert resp.status_code == 200
-    assert any(o["scientific_name"] == "Escherichia coli" for o in resp.json())
+    assert any(o["scientific_name"] == "Escherichia coli" for o in resp.json()["items"])
 
 
 @pytest.mark.asyncio

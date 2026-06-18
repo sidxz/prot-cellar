@@ -70,9 +70,9 @@ async def test_list_proteomes(client: AsyncClient) -> None:
     # List all proteomes
     list_resp = await client.get("/api/v1/proteomes")
     assert list_resp.status_code == 200
-    items = list_resp.json()
-    assert isinstance(items, list)
-    ids = [p["uniprot_proteome_id"] for p in items]
+    body = list_resp.json()
+    assert "items" in body
+    ids = [p["uniprot_proteome_id"] for p in body["items"]]
     assert "UP000001940" in ids
 
 

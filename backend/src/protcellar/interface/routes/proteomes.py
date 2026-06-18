@@ -20,7 +20,7 @@ from protcellar.interface.dependencies import (
     ListProteomesDep,
 )
 from protcellar.interface.error_handlers import result_to_response
-from protcellar.interface.pagination import clamp_limit, parse_cursor
+from protcellar.interface.pagination import PaginatedResponse, clamp_limit, parse_cursor
 
 router = APIRouter(prefix="/api/v1/proteomes", tags=["proteomes"])
 
@@ -64,21 +64,24 @@ class CreateProteomeBody(BaseModel):
     source_version: str | None = None
 
 
-@router.get("", response_model=list[ProteomeResponse])
+@router.get("", response_model=PaginatedResponse[ProteomeResponse])
 async def list_proteomes(
     auth: AuthDep,
     use_case: ListProteomesDep,
     organism_id: uuid.UUID | None = None,
     cursor: str | None = None,
     limit: int | None = None,
-) -> list[ProteomeResponse]:
+) -> PaginatedResponse[ProteomeResponse]:
     query = ListProteomesQuery(
         cursor_id=parse_cursor(cursor),
         limit=clamp_limit(limit),
         organism_id=organism_id,
     )
     page = result_to_response(await use_case(query, auth=auth))
-    return [ProteomeResponse.from_domain(p) for p in page.items]
+    return PaginatedResponse(
+        items=[ProteomeResponse.from_domain(p) for p in page.items],
+        next_cursor=page.next_cursor,
+    )
 
 
 @router.get("/{proteome_id}", response_model=ProteomeResponse)
