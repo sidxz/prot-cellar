@@ -9,7 +9,7 @@ from dataclasses import dataclass
 @dataclass(frozen=True)
 class _Prefix:
     pattern: re.Pattern[str]
-    uri_template: str  # {curie} or {acc} substitution
+    uri_template: str  # {acc} substitution
 
 
 _DEFAULT_PREFIXES: dict[str, tuple[str, str]] = {
