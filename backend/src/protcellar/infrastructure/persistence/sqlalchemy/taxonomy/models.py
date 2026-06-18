@@ -5,7 +5,7 @@ from __future__ import annotations
 import uuid
 from datetime import datetime
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, UniqueConstraint
+from sqlalchemy import JSON, Boolean, DateTime, ForeignKey, Integer, String, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from protcellar.infrastructure.persistence.sqlalchemy.base import (
@@ -46,6 +46,26 @@ class OrganismModel(Base, EntityModelMixin, WorkspaceIdMixin, VersionMixin):
     names: Mapped[list[OrganismNameModel]] = relationship(
         cascade="all, delete-orphan", lazy="selectin", foreign_keys="OrganismNameModel.organism_id"
     )
+
+
+class StrainModel(Base, EntityModelMixin, WorkspaceIdMixin, VersionMixin):
+    __tablename__ = "strains"
+
+    species_organism_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("organisms.id"), nullable=False, index=True
+    )
+    strain_organism_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("organisms.id"), nullable=True
+    )
+    name: Mapped[str] = mapped_column(String(512), nullable=False)
+    isolate: Mapped[str | None] = mapped_column(String(256), nullable=True)
+    biosample_acc: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True)
+    assembly_acc: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True)
+    culture_collection: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    host_organism_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("organisms.id"), nullable=True
+    )
+    strain_metadata: Mapped[dict | None] = mapped_column(JSON, nullable=True)
 
 
 class OrganismNameModel(Base, EntityModelMixin):

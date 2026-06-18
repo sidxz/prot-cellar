@@ -1,0 +1,94 @@
+"""SQLAlchemy repository for Strain aggregates."""
+
+from __future__ import annotations
+
+import uuid
+
+from sqlalchemy import select
+
+from protcellar.domain.taxonomy.strain import Strain
+from protcellar.infrastructure.persistence.sqlalchemy.base_repository import (
+    SQLAlchemyRepository,
+)
+from protcellar.infrastructure.persistence.sqlalchemy.taxonomy.models import (
+    StrainModel,
+)
+
+
+class SQLAlchemyStrainRepository(SQLAlchemyRepository[Strain, StrainModel]):
+    model_class = StrainModel
+
+    def _to_domain(self, model: StrainModel) -> Strain:
+        return Strain(
+            id=model.id,
+            workspace_id=model.workspace_id,
+            species_organism_id=model.species_organism_id,
+            strain_organism_id=model.strain_organism_id,
+            name=model.name,
+            isolate=model.isolate,
+            biosample_acc=model.biosample_acc,
+            assembly_acc=model.assembly_acc,
+            culture_collection=model.culture_collection,
+            host_organism_id=model.host_organism_id,
+            metadata=model.strain_metadata,
+            created_at=model.created_at,
+            updated_at=model.updated_at,
+            version=model.version,
+        )
+
+    def _to_model(self, aggregate: Strain) -> StrainModel:
+        return StrainModel(
+            id=aggregate.id,
+            workspace_id=aggregate.workspace_id,
+            species_organism_id=aggregate.species_organism_id,
+            strain_organism_id=aggregate.strain_organism_id,
+            name=aggregate.name,
+            isolate=aggregate.isolate,
+            biosample_acc=aggregate.biosample_acc,
+            assembly_acc=aggregate.assembly_acc,
+            culture_collection=aggregate.culture_collection,
+            host_organism_id=aggregate.host_organism_id,
+            strain_metadata=aggregate.metadata,
+            version=aggregate.version,
+        )
+
+    def _update_model(self, model: StrainModel, aggregate: Strain) -> None:
+        model.species_organism_id = aggregate.species_organism_id
+        model.strain_organism_id = aggregate.strain_organism_id
+        model.name = aggregate.name
+        model.isolate = aggregate.isolate
+        model.biosample_acc = aggregate.biosample_acc
+        model.assembly_acc = aggregate.assembly_acc
+        model.culture_collection = aggregate.culture_collection
+        model.host_organism_id = aggregate.host_organism_id
+        model.strain_metadata = aggregate.metadata
+
+    async def find_by_workspace(
+        self,
+        workspace_id: uuid.UUID,
+        *,
+        cursor_id: uuid.UUID | None = None,
+        limit: int | None = None,
+    ) -> list[Strain]:
+        stmt = select(StrainModel).where(StrainModel.workspace_id == workspace_id)
+        if cursor_id is not None:
+            stmt = stmt.where(StrainModel.id > cursor_id)
+        stmt = stmt.order_by(StrainModel.id)
+        if limit is not None:
+            stmt = stmt.limit(limit)
+        result = await self._session.execute(stmt)
+        return [self._to_domain_tracked(m) for m in result.scalars()]
+
+    async def find_by_species(
+        self, workspace_id: uuid.UUID, species_organism_id: uuid.UUID
+    ) -> list[Strain]:
+        stmt = (
+            select(StrainModel)
+            .where(
+                StrainModel.workspace_id == workspace_id,
+                StrainModel.species_organism_id == species_organism_id,
+            )
+            .order_by(StrainModel.id)
+        )
+        result = await self._session.execute(stmt)
+        return [self._to_domain_tracked(m) for m in result.scalars()]

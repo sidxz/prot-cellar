@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import uuid
 from dataclasses import dataclass
 
 from protcellar.domain.shared.events import DomainEvent
@@ -16,3 +17,15 @@ class OrganismCreated(DomainEvent):
 @dataclass(frozen=True, kw_only=True)
 class OrganismUpdated(DomainEvent):
     pass
+
+
+@dataclass(frozen=True, kw_only=True)
+class StrainCreated(DomainEvent):
+    workspace_id: uuid.UUID
+    name: str
+    species_organism_id: uuid.UUID
+
+
+@dataclass(frozen=True, kw_only=True)
+class StrainUpdated(DomainEvent):
+    workspace_id: uuid.UUID
