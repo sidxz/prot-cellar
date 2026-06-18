@@ -29,3 +29,14 @@ class StrainCreated(DomainEvent):
 @dataclass(frozen=True, kw_only=True)
 class StrainUpdated(DomainEvent):
     workspace_id: uuid.UUID
+
+
+@dataclass(frozen=True, kw_only=True)
+class ProteomeCreated(DomainEvent):
+    uniprot_proteome_id: str
+    organism_id: uuid.UUID
+
+
+@dataclass(frozen=True, kw_only=True)
+class ProteomeUpdated(DomainEvent):
+    pass

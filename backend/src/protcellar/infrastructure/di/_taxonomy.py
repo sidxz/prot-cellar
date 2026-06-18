@@ -1,4 +1,4 @@
-"""Taxonomy DI bindings — registers Organism and Strain use cases into Lagom."""
+"""Taxonomy DI bindings — registers Organism, Strain, and Proteome use cases into Lagom."""
 
 from __future__ import annotations
 
@@ -8,10 +8,13 @@ from lagom import Container
 from sqlalchemy.ext.asyncio import async_sessionmaker
 
 from protcellar.application.taxonomy.create_organism import CreateOrganism
+from protcellar.application.taxonomy.create_proteome import CreateProteome
 from protcellar.application.taxonomy.create_strain import CreateStrain
 from protcellar.application.taxonomy.get_organism import GetOrganism
+from protcellar.application.taxonomy.get_proteome import GetProteome
 from protcellar.application.taxonomy.get_strain import GetStrain
 from protcellar.application.taxonomy.list_organisms import ListOrganisms
+from protcellar.application.taxonomy.list_proteomes import ListProteomes
 from protcellar.application.taxonomy.list_strains import ListStrains
 from protcellar.application.taxonomy.resolve_tax_id import ResolveTaxId
 from protcellar.application.taxonomy.update_organism import UpdateOrganism
@@ -19,6 +22,9 @@ from protcellar.application.taxonomy.update_strain import UpdateStrain
 from protcellar.infrastructure.messaging.event_dispatcher import EventDispatcher
 from protcellar.infrastructure.persistence.sqlalchemy.taxonomy.organism_repository import (
     SQLAlchemyOrganismRepository,
+)
+from protcellar.infrastructure.persistence.sqlalchemy.taxonomy.proteome_repository import (
+    SQLAlchemyProteomeRepository,
 )
 from protcellar.infrastructure.persistence.sqlalchemy.taxonomy.strain_repository import (
     SQLAlchemyStrainRepository,
@@ -71,3 +77,23 @@ def register_taxonomy(container: Container) -> None:
     container.define(UpdateStrain, _strain_cmd(UpdateStrain))
     container.define(GetStrain, _strain_query(GetStrain))
     container.define(ListStrains, _strain_query(ListStrains))
+
+    # --- Proteomes (command — needs EventDispatcher) ---
+    def _proteome_cmd(uc_cls: type) -> Any:
+        def _f(c: Container) -> Any:
+            uow = AsyncUnitOfWork(c[async_sessionmaker])
+            return uc_cls(uow, SQLAlchemyProteomeRepository(uow), c[EventDispatcher])
+
+        return _f
+
+    # --- Proteomes (query — no EventDispatcher) ---
+    def _proteome_query(uc_cls: type) -> Any:
+        def _f(c: Container) -> Any:
+            uow = AsyncUnitOfWork(c[async_sessionmaker])
+            return uc_cls(uow, SQLAlchemyProteomeRepository(uow))
+
+        return _f
+
+    container.define(CreateProteome, _proteome_cmd(CreateProteome))
+    container.define(GetProteome, _proteome_query(GetProteome))
+    container.define(ListProteomes, _proteome_query(ListProteomes))

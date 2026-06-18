@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING, Protocol, runtime_checkable
 from protcellar.domain.taxonomy.organism import Organism
 
 if TYPE_CHECKING:
+    from protcellar.domain.taxonomy.proteome import Proteome
     from protcellar.domain.taxonomy.strain import Strain
 
 
@@ -53,3 +54,23 @@ class StrainRepository(Protocol):
     ) -> list[Strain]: ...
 
     async def save(self, aggregate: Strain) -> None: ...
+
+
+@runtime_checkable
+class ProteomeRepository(Protocol):
+    async def find_by_id_in_workspace(
+        self, workspace_id: uuid.UUID, id: uuid.UUID
+    ) -> Proteome | None: ...
+
+    async def find_by_proteome_id(self, uniprot_proteome_id: str) -> Proteome | None: ...
+
+    async def find_by_organism(self, organism_id: uuid.UUID) -> list[Proteome]: ...
+
+    async def find_all(
+        self,
+        *,
+        cursor_id: uuid.UUID | None = None,
+        limit: int | None = None,
+    ) -> list[Proteome]: ...
+
+    async def save(self, aggregate: Proteome) -> None: ...

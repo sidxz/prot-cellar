@@ -5,7 +5,16 @@ from __future__ import annotations
 import uuid
 from datetime import datetime
 
-from sqlalchemy import JSON, Boolean, DateTime, ForeignKey, Integer, String, UniqueConstraint
+from sqlalchemy import (
+    JSON,
+    Boolean,
+    DateTime,
+    ForeignKey,
+    Index,
+    Integer,
+    String,
+    UniqueConstraint,
+)
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from protcellar.infrastructure.persistence.sqlalchemy.base import (
@@ -14,6 +23,7 @@ from protcellar.infrastructure.persistence.sqlalchemy.base import (
     VersionMixin,
     WorkspaceIdMixin,
 )
+from protcellar.infrastructure.persistence.sqlalchemy.provenance import ProvenanceMixin
 
 
 class OrganismModel(Base, EntityModelMixin, WorkspaceIdMixin, VersionMixin):
@@ -79,3 +89,22 @@ class OrganismNameModel(Base, EntityModelMixin):
     name_class: Mapped[str] = mapped_column(String(32), nullable=False)
     unique_name: Mapped[str | None] = mapped_column(String(512), nullable=True)
     is_preferred: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+
+
+class ProteomeModel(Base, EntityModelMixin, WorkspaceIdMixin, VersionMixin, ProvenanceMixin):
+    __tablename__ = "proteomes"
+    __table_args__ = (
+        Index("ix_proteomes_uniprot_proteome_id", "uniprot_proteome_id", unique=True),
+    )
+
+    uniprot_proteome_id: Mapped[str] = mapped_column(String(16), nullable=False)
+    organism_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("organisms.id"), nullable=False, index=True
+    )
+    strain_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("strains.id"), nullable=True, index=True
+    )
+    proteome_type: Mapped[str] = mapped_column(String(32), nullable=False)
+    is_reference: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    assembly_acc: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    source_version: Mapped[str | None] = mapped_column(String(64), nullable=True)

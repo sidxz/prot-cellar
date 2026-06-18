@@ -83,6 +83,10 @@ def create_app() -> FastAPI:
 
     app.include_router(strain_router)
 
+    from protcellar.interface.routes.proteomes import router as proteome_router
+
+    app.include_router(proteome_router)
+
     return app
 
 
