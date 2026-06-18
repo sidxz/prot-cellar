@@ -10,6 +10,13 @@ from protcellar.interface.dependencies._core import (
     get_event_dispatcher,
     get_uow,
 )
+from protcellar.interface.dependencies._taxonomy import (
+    CreateOrganismDep,
+    GetOrganismDep,
+    ListOrganismsDep,
+    ResolveTaxIdDep,
+    UpdateOrganismDep,
+)
 from protcellar.interface.dependencies._workspace_config import (
     CreateOrganizationDep,
     GetOrganizationDep,
@@ -19,11 +26,16 @@ from protcellar.interface.dependencies._workspace_config import (
 
 __all__ = [
     "AuthDep",
+    "CreateOrganismDep",
     "CreateOrganizationDep",
     "EventDispatcherDep",
+    "GetOrganismDep",
     "GetOrganizationDep",
+    "ListOrganismsDep",
     "ListOrganizationsDep",
+    "ResolveTaxIdDep",
     "UoWDep",
+    "UpdateOrganismDep",
     "UpdateOrganizationDep",
     "_get_use_case",
     "get_auth",

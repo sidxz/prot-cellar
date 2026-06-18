@@ -75,6 +75,10 @@ def create_app() -> FastAPI:
 
     app.include_router(org_router)
 
+    from protcellar.interface.routes.organisms import router as organism_router
+
+    app.include_router(organism_router)
+
     return app
 
 
