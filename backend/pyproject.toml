@@ -1,0 +1,90 @@
+[project]
+name = "protcellar"
+version = "0.1.0"
+description = "Protein, organism & target catalog (bio-side sibling of cellar)"
+requires-python = ">=3.13"
+dependencies = [
+    "fastapi>=0.115.0",
+    "uvicorn[standard]>=0.34.0",
+    "python-multipart>=0.0.20",
+    "sqlalchemy[asyncio]>=2.0.36",
+    "asyncpg>=0.30.0",
+    "alembic>=1.14.0",
+    "pydantic>=2.10.0",
+    "pydantic-settings>=2.7.0",
+    "lagom>=2.7.0",
+    "returns>=0.23.0",
+    "sentinel-auth-sdk>=0.11.0",
+    "pyjwt[crypto]>=2.10.0",
+    "httpx>=0.28.0",
+    "redis>=5.2.0",
+    "structlog>=24.4.0",
+    "biopython>=1.84",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-asyncio>=0.24.0",
+    "pytest-cov>=6.0.0",
+    "testcontainers[postgres]>=4.0.0",
+    "factory-boy>=3.3.0",
+    "ruff>=0.8.0",
+    "mypy>=1.13.0",
+    "pre-commit>=4.0.0",
+    "import-linter>=2.11",
+    "respx>=0.23.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/protcellar"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+pythonpath = ["src"]
+
+[tool.importlinter]
+root_packages = ["protcellar"]
+include_external_packages = true
+
+[[tool.importlinter.contracts]]
+name = "Clean Architecture layers"
+type = "layers"
+layers = [
+    "protcellar.interface",
+    "protcellar.infrastructure",
+    "protcellar.application",
+    "protcellar.domain",
+]
+
+[[tool.importlinter.contracts]]
+name = "Domain purity"
+type = "forbidden"
+source_modules = ["protcellar.domain"]
+forbidden_modules = [
+    "protcellar.application",
+    "protcellar.infrastructure",
+    "protcellar.interface",
+    "fastapi",
+    "sqlalchemy",
+    "asyncpg",
+    "redis",
+    "lagom",
+]
+
+# Re-enable when bounded-context modules exist (Plan 0 Tasks 9-10, Plan 1)
+# [[tool.importlinter.contracts]]
+# name = "Bounded context independence"
+# type = "independence"
+# modules = [
+#     "protcellar.domain.taxonomy",
+#     "protcellar.domain.protein_catalog",
+#     "protcellar.domain.target",
+#     "protcellar.domain.workspace_config",
+#     "protcellar.domain.audit_compliance",
+# ]
