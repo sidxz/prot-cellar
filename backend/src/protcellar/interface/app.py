@@ -29,10 +29,6 @@ def create_app() -> FastAPI:
         container = create_container()
         app.state.container = container
 
-        from protcellar.interface.dependencies._workspace_config import register_workspace_config
-
-        register_workspace_config(container)
-
         # Wire append-only audit as a catch-all domain-event handler
         dispatcher = container[EventDispatcher]
         session_factory = container[async_sessionmaker]

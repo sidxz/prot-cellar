@@ -14,6 +14,7 @@ from __future__ import annotations
 from lagom import Container, Singleton
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker
 
+from protcellar.infrastructure.di._workspace_config import register_workspace_config
 from protcellar.infrastructure.identifiers.registry import IdentifierRegistry
 from protcellar.infrastructure.messaging.event_dispatcher import EventDispatcher
 from protcellar.infrastructure.persistence.database import create_engine_and_sessionmaker
@@ -65,5 +66,7 @@ def create_container(db_settings: DatabaseSettings | None = None) -> Container:
 
     # --- Identifier Registry ---
     container.define(IdentifierRegistry, Singleton(IdentifierRegistry))
+
+    register_workspace_config(container)
 
     return container
