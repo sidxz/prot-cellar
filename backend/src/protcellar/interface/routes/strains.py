@@ -72,10 +72,12 @@ class CreateStrainBody(BaseModel):
 
 class UpdateStrainBody(BaseModel):
     name: str | None = None
+    strain_organism_id: uuid.UUID | None = None
     isolate: str | None = None
     biosample_acc: str | None = None
     assembly_acc: str | None = None
     culture_collection: str | None = None
+    host_organism_id: uuid.UUID | None = None
     metadata: dict[str, object] | None = None
 
     model_config = {"extra": "forbid"}
@@ -145,10 +147,12 @@ async def update_strain(
         workspace_id=auth.workspace_id,
         strain_id=strain_id,
         name=body.name if "name" in provided else None,
+        strain_organism_id=body.strain_organism_id if "strain_organism_id" in provided else UNSET,
         isolate=body.isolate if "isolate" in provided else UNSET,
         biosample_acc=body.biosample_acc if "biosample_acc" in provided else UNSET,
         assembly_acc=body.assembly_acc if "assembly_acc" in provided else UNSET,
         culture_collection=body.culture_collection if "culture_collection" in provided else UNSET,
+        host_organism_id=body.host_organism_id if "host_organism_id" in provided else UNSET,
         metadata=body.metadata if "metadata" in provided else UNSET,
     )
     strain = result_to_response(await use_case(command, auth=auth))
