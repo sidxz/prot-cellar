@@ -31,6 +31,7 @@ async def test_dispatch_exact_match_and_catchall_no_double_dispatch() -> None:
     @dataclass(frozen=True, kw_only=True)
     class FooHappened(DomainEvent):
         """Concrete domain event subclass."""
+
         pass
 
     async def exact_handler(ev: DomainEvent) -> None:

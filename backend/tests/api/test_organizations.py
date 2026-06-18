@@ -4,9 +4,7 @@ from httpx import AsyncClient
 
 @pytest.mark.asyncio
 async def test_create_and_get_organization(client: AsyncClient) -> None:
-    resp = await client.post(
-        "/api/v1/organizations", json={"name": "Eurofins", "org_type": "cro"}
-    )
+    resp = await client.post("/api/v1/organizations", json={"name": "Eurofins", "org_type": "cro"})
     assert resp.status_code == 201
     org_id = resp.json()["id"]
     assert resp.json()["version"] == 1

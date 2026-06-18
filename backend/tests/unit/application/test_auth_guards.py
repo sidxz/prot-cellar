@@ -11,13 +11,21 @@ class _Auth:
         self._role, self._ws = role, ws
 
     @property
-    def user_id(self) -> uuid.UUID: return uuid.uuid4()
+    def user_id(self) -> uuid.UUID:
+        return uuid.uuid4()
+
     @property
-    def workspace_id(self) -> uuid.UUID: return self._ws
+    def workspace_id(self) -> uuid.UUID:
+        return self._ws
+
     @property
-    def workspace_role(self) -> str: return self._role
+    def workspace_role(self) -> str:
+        return self._role
+
     @property
-    def is_admin(self) -> bool: return self._role == "admin"
+    def is_admin(self) -> bool:
+        return self._role == "admin"
+
     def has_role(self, minimum_role: str) -> bool:
         order = {"viewer": 0, "editor": 1, "admin": 2}
         return order[self._role] >= order[minimum_role]

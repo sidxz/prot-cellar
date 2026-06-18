@@ -10,7 +10,7 @@ class OperationType(StrEnum):
     PROPERTY_EDIT = "property_edit"
     BULK_IMPORT = "bulk_import"
     ACCESS_CHANGE = "access_change"
-    REFERENCE_SYNC = "reference_sync"   # NEW — UniProt/NCBI/ChEMBL refresh
+    REFERENCE_SYNC = "reference_sync"  # NEW — UniProt/NCBI/ChEMBL refresh
     ADMIN_HARD_DELETE = "admin_hard_delete"
 
 
