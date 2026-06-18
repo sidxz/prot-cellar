@@ -19,6 +19,12 @@ async def test_bulk_upsert_is_idempotent(client: AsyncClient) -> None:
     assert first.status_code == 200
     assert first.json()["summary"]["created"] == 1
 
+    # Verify source_release is persisted and returned via GET
+    created_id = first.json()["results"][0]["id"]
+    get_resp = await client.get(f"/api/v1/organisms/{created_id}")
+    assert get_resp.status_code == 200
+    assert get_resp.json()["source_release"] == _REC["source_release"]
+
     # same checksum → skipped
     second = await client.post("/api/v1/organisms/bulk", json={"records": [_REC]})
     assert second.json()["summary"]["skipped"] == 1

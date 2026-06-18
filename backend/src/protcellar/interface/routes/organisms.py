@@ -54,6 +54,7 @@ class OrganismResponse(BaseModel):
     merged_into_id: uuid.UUID | None = None
     is_deleted: bool
     source: OrganismSource
+    source_release: str | None = None
     version: int
     names: list[OrganismNameResponse]
 
@@ -76,6 +77,7 @@ class OrganismResponse(BaseModel):
             merged_into_id=org.merged_into_id,
             is_deleted=org.is_deleted,
             source=org.source,
+            source_release=org.source_release,
             version=org.version,
             names=[
                 OrganismNameResponse(

@@ -42,6 +42,8 @@ class Organism(AggregateRoot):
         source_version: str | None = None,
         source_record_id: str | None = None,
         source_record_checksum: str | None = None,
+        source_release: str | None = None,
+        imported_at: datetime | None = None,
         names: list[OrganismName] | None = None,
         created_at: datetime | None = None,
         updated_at: datetime | None = None,
@@ -66,6 +68,8 @@ class Organism(AggregateRoot):
         self.source_version = source_version
         self.source_record_id = source_record_id
         self.source_record_checksum = source_record_checksum
+        self.source_release = source_release
+        self.imported_at = imported_at
         self.names: list[OrganismName] = names if names is not None else []
 
     @classmethod

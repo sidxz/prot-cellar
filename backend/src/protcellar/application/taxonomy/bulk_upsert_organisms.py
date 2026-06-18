@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import UTC, datetime
 
 from returns.result import Result, Success
 
@@ -72,6 +73,8 @@ class BulkUpsertOrganisms:
                             source_version=rec.source_release,
                         )
                         existing.source_record_checksum = rec.source_record_checksum
+                        existing.source_release = rec.source_release
+                        existing.imported_at = datetime.now(UTC)
                         if not input.dry_run:
                             await self._repo.save(existing)
                         results.append(ItemResult(index=i, status="updated", id=str(existing.id)))
@@ -91,6 +94,8 @@ class BulkUpsertOrganisms:
                         )
                         org.source_record_id = rec.source_record_id
                         org.source_record_checksum = rec.source_record_checksum
+                        org.source_release = rec.source_release
+                        org.imported_at = datetime.now(UTC)
                         if not input.dry_run:
                             await self._repo.save(org)
                         results.append(ItemResult(index=i, status="created", id=str(org.id)))

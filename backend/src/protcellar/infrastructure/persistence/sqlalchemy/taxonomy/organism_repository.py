@@ -36,6 +36,8 @@ class SQLAlchemyOrganismRepository(
             source_version=model.source_version,
             source_record_id=model.source_record_id,
             source_record_checksum=model.source_record_checksum,
+            source_release=model.source_release,
+            imported_at=model.imported_at,
             names=[
                 OrganismName(
                     id=n.id,
@@ -68,6 +70,8 @@ class SQLAlchemyOrganismRepository(
             source_version=aggregate.source_version,
             source_record_id=aggregate.source_record_id,
             source_record_checksum=aggregate.source_record_checksum,
+            source_release=aggregate.source_release,
+            imported_at=aggregate.imported_at,
             version=aggregate.version,
         )
         model.names = [self._name_to_model(n) for n in aggregate.names]
@@ -86,6 +90,8 @@ class SQLAlchemyOrganismRepository(
         model.source_version = aggregate.source_version
         model.source_record_id = aggregate.source_record_id
         model.source_record_checksum = aggregate.source_record_checksum
+        model.source_release = aggregate.source_release
+        model.imported_at = aggregate.imported_at
         # Replace the names collection wholesale (delete-orphan handles removals)
         model.names = [self._name_to_model(n) for n in aggregate.names]
 
