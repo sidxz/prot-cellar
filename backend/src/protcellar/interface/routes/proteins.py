@@ -1,0 +1,303 @@
+"""Protein CRUD + search + FASTA + ID-resolution endpoints."""
+
+from __future__ import annotations
+
+import uuid
+
+from fastapi import APIRouter, Response
+from fastapi.responses import JSONResponse, PlainTextResponse
+from pydantic import BaseModel
+
+from protcellar.application.protein_catalog.create_protein import CreateProteinCommand
+from protcellar.application.protein_catalog.get_protein import GetProteinQuery
+from protcellar.application.protein_catalog.list_proteins import ListProteinsQuery
+from protcellar.application.protein_catalog.resolve_protein_id import ResolveProteinIdQuery
+from protcellar.application.protein_catalog.update_protein import UpdateProteinCommand
+from protcellar.application.shared.sentinel import UNSET
+from protcellar.domain.protein_catalog.enums import ProteinExistence
+from protcellar.domain.protein_catalog.protein import Protein
+from protcellar.domain.protein_catalog.value_objects import ProteinNames
+from protcellar.domain.shared.cross_reference import CrossReference
+from protcellar.infrastructure.identifiers.registry import IdentifierRegistry
+from protcellar.interface.dependencies import (
+    AuthDep,
+    CreateProteinDep,
+    GetProteinDep,
+    ListProteinsDep,
+    ResolveProteinIdDep,
+    UpdateProteinDep,
+)
+from protcellar.interface.error_handlers import result_to_response
+from protcellar.interface.pagination import PaginatedResponse, clamp_limit, parse_cursor
+
+router = APIRouter(prefix="/api/v1/proteins", tags=["proteins"])
+
+
+class ProteinResponse(BaseModel):
+    id: uuid.UUID
+    primary_accession: str
+    uniprot_url: str | None = None
+    secondary_accessions: list[str]
+    entry_name: str | None = None
+    is_reviewed: bool
+    protein_names: dict[str, object]
+    organism_id: uuid.UUID
+    strain_id: uuid.UUID | None = None
+    gene_id: uuid.UUID | None = None
+    seq_length: int
+    seq_mass: int | None = None
+    seq_crc64: str | None = None
+    protein_existence: ProteinExistence | None = None
+    keywords: list[str]
+    entry_version: int | None = None
+    sequence_version: int | None = None
+    cross_references: list[dict[str, str | None]]
+    version: int
+
+    @classmethod
+    def from_domain(cls, p: Protein) -> ProteinResponse:
+        registry = IdentifierRegistry.default()
+        uniprot_url = registry.resolve_url("uniprot", p.primary_accession)
+        protein_names = p.protein_names.to_dict()
+        cross_references = [
+            {
+                "database": x.database,
+                "accession": x.accession,
+                "curie": x.to_curie(),
+                "url": registry.resolve_url(x.database, x.accession),
+            }
+            for x in p.cross_references
+        ]
+        return cls(
+            id=p.id,
+            primary_accession=p.primary_accession,
+            uniprot_url=uniprot_url,
+            secondary_accessions=p.secondary_accessions,
+            entry_name=p.entry_name,
+            is_reviewed=p.is_reviewed,
+            protein_names=protein_names,
+            organism_id=p.organism_id,
+            strain_id=p.strain_id,
+            gene_id=p.gene_id,
+            seq_length=p.seq_length,
+            seq_mass=p.seq_mass,
+            seq_crc64=p.seq_crc64,
+            protein_existence=p.protein_existence,
+            keywords=p.keywords,
+            entry_version=p.entry_version,
+            sequence_version=p.sequence_version,
+            cross_references=cross_references,
+            version=p.version,
+        )
+
+
+class ProteinNamesBody(BaseModel):
+    recommended: str | None = None
+    alternative: list[str] = []
+    submitted: list[str] = []
+
+
+class CrossReferenceBody(BaseModel):
+    database: str
+    accession: str
+    properties: dict[str, str] | None = None
+    evidence: str | None = None
+
+
+class CreateProteinBody(BaseModel):
+    primary_accession: str
+    organism_id: uuid.UUID
+    sequence: str
+    is_reviewed: bool = False
+    secondary_accessions: list[str] = []
+    entry_name: str | None = None
+    protein_names: ProteinNamesBody | None = None
+    strain_id: uuid.UUID | None = None
+    gene_id: uuid.UUID | None = None
+    seq_mass: int | None = None
+    seq_crc64: str | None = None
+    protein_existence: ProteinExistence | None = None
+    keywords: list[str] = []
+    entry_version: int | None = None
+    sequence_version: int | None = None
+    cross_references: list[CrossReferenceBody] = []
+
+    model_config = {"extra": "forbid"}
+
+
+class UpdateProteinBody(BaseModel):
+    sequence: str | None = None
+    is_reviewed: bool | None = None
+    secondary_accessions: list[str] | None = None
+    entry_name: str | None = None
+    protein_names: ProteinNamesBody | None = None
+    strain_id: uuid.UUID | None = None
+    gene_id: uuid.UUID | None = None
+    seq_mass: int | None = None
+    seq_crc64: str | None = None
+    protein_existence: ProteinExistence | None = None
+    keywords: list[str] | None = None
+    entry_version: int | None = None
+    sequence_version: int | None = None
+    cross_references: list[CrossReferenceBody] | None = None
+
+    model_config = {"extra": "forbid"}
+
+
+# Route ordering: /resolve/{identifier} BEFORE /{accession} to avoid path-param shadowing.
+
+
+@router.get("/resolve/{identifier}", response_model=ProteinResponse)
+async def resolve_protein(
+    identifier: str,
+    auth: AuthDep,
+    use_case: ResolveProteinIdDep,
+) -> ProteinResponse:
+    query = ResolveProteinIdQuery(identifier=identifier)
+    protein = result_to_response(await use_case(query, auth=auth))
+    return ProteinResponse.from_domain(protein)
+
+
+@router.get("", response_model=PaginatedResponse[ProteinResponse])
+async def list_proteins(
+    auth: AuthDep,
+    use_case: ListProteinsDep,
+    organism_id: uuid.UUID | None = None,
+    gene_id: uuid.UUID | None = None,
+    reviewed: bool | None = None,
+    min_length: int | None = None,
+    max_length: int | None = None,
+    cursor: str | None = None,
+    limit: int | None = None,
+) -> PaginatedResponse[ProteinResponse]:
+    query = ListProteinsQuery(
+        cursor_id=parse_cursor(cursor),
+        limit=clamp_limit(limit),
+        organism_id=organism_id,
+        gene_id=gene_id,
+        is_reviewed=reviewed,
+        min_length=min_length,
+        max_length=max_length,
+    )
+    page = result_to_response(await use_case(query, auth=auth))
+    return PaginatedResponse(
+        items=[ProteinResponse.from_domain(p) for p in page.items],
+        next_cursor=page.next_cursor,
+    )
+
+
+@router.post("", response_model=ProteinResponse, status_code=201)
+async def create_protein(
+    body: CreateProteinBody,
+    auth: AuthDep,
+    use_case: CreateProteinDep,
+) -> ProteinResponse:
+    protein_names: ProteinNames | None = None
+    if body.protein_names is not None:
+        protein_names = ProteinNames(
+            recommended=body.protein_names.recommended,
+            alternative=tuple(body.protein_names.alternative),
+            submitted=tuple(body.protein_names.submitted),
+        )
+    cross_references = [
+        CrossReference(
+            database=xr.database,
+            accession=xr.accession,
+            properties=xr.properties,
+            evidence=xr.evidence,
+        )
+        for xr in body.cross_references
+    ]
+    command = CreateProteinCommand(
+        primary_accession=body.primary_accession,
+        organism_id=body.organism_id,
+        sequence=body.sequence,
+        is_reviewed=body.is_reviewed,
+        secondary_accessions=body.secondary_accessions,
+        entry_name=body.entry_name,
+        protein_names=protein_names,
+        strain_id=body.strain_id,
+        gene_id=body.gene_id,
+        seq_mass=body.seq_mass,
+        seq_crc64=body.seq_crc64,
+        protein_existence=body.protein_existence,
+        keywords=body.keywords,
+        entry_version=body.entry_version,
+        sequence_version=body.sequence_version,
+        cross_references=cross_references,
+    )
+    protein = result_to_response(await use_case(command, auth=auth))
+    return ProteinResponse.from_domain(protein)
+
+
+@router.get("/{accession}")
+async def get_protein(
+    accession: str,
+    auth: AuthDep,
+    use_case: GetProteinDep,
+    format: str | None = None,
+) -> Response:
+    query = GetProteinQuery(accession=accession)
+    protein = result_to_response(await use_case(query, auth=auth))
+    if format == "fasta":
+        return PlainTextResponse(protein.to_fasta(), media_type="text/x-fasta")
+    return JSONResponse(content=ProteinResponse.from_domain(protein).model_dump(mode="json"))
+
+
+@router.patch("/{accession}", response_model=ProteinResponse)
+async def update_protein(
+    accession: str,
+    body: UpdateProteinBody,
+    auth: AuthDep,
+    use_case: UpdateProteinDep,
+) -> ProteinResponse:
+    provided = body.model_fields_set
+
+    protein_names: ProteinNames | None | object = UNSET
+    if "protein_names" in provided:
+        if body.protein_names is not None:
+            protein_names = ProteinNames(
+                recommended=body.protein_names.recommended,
+                alternative=tuple(body.protein_names.alternative),
+                submitted=tuple(body.protein_names.submitted),
+            )
+        else:
+            protein_names = None
+
+    cross_references: list[CrossReference] | None = None
+    if "cross_references" in provided and body.cross_references is not None:
+        cross_references = [
+            CrossReference(
+                database=xr.database,
+                accession=xr.accession,
+                properties=xr.properties,
+                evidence=xr.evidence,
+            )
+            for xr in body.cross_references
+        ]
+
+    protein_existence: ProteinExistence | None | object = UNSET
+    if "protein_existence" in provided:
+        protein_existence = body.protein_existence
+
+    command = UpdateProteinCommand(
+        accession=accession,
+        sequence=body.sequence if "sequence" in provided else None,
+        is_reviewed=body.is_reviewed if "is_reviewed" in provided else None,
+        secondary_accessions=(
+            body.secondary_accessions if "secondary_accessions" in provided else None
+        ),
+        entry_name=body.entry_name if "entry_name" in provided else UNSET,
+        protein_names=protein_names,
+        strain_id=body.strain_id if "strain_id" in provided else UNSET,
+        gene_id=body.gene_id if "gene_id" in provided else UNSET,
+        seq_mass=body.seq_mass if "seq_mass" in provided else UNSET,
+        seq_crc64=body.seq_crc64 if "seq_crc64" in provided else UNSET,
+        protein_existence=protein_existence,
+        keywords=body.keywords if "keywords" in provided else None,
+        entry_version=body.entry_version if "entry_version" in provided else UNSET,
+        sequence_version=body.sequence_version if "sequence_version" in provided else UNSET,
+        cross_references=cross_references,
+    )
+    protein = result_to_response(await use_case(command, auth=auth))
+    return ProteinResponse.from_domain(protein)
