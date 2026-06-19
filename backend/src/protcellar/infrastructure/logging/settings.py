@@ -17,7 +17,7 @@ class LoggingSettings(BaseSettings):
       - ``LOG_LEVEL_OVERRIDES`` ``"name=LEVEL,name=LEVEL"`` per-logger overrides
     """
 
-    model_config = SettingsConfigDict(env_prefix="LOG_", env_file=".env")
+    model_config = SettingsConfigDict(env_prefix="LOG_", env_file=".env", extra="ignore")
 
     level: str = "INFO"
     format: str = "json"

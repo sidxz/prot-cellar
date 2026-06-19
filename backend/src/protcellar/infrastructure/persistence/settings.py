@@ -12,7 +12,7 @@ class DatabaseSettings(BaseSettings):
     and ``.env`` file.
     """
 
-    model_config = SettingsConfigDict(env_prefix="", env_file=".env")
+    model_config = SettingsConfigDict(env_prefix="", env_file=".env", extra="ignore")
 
     database_url: str
 
