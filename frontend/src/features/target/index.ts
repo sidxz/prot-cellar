@@ -15,3 +15,4 @@ export { cardinalityRule, componentCountValid, cardinalityHint } from "./lib/car
 export { TargetComponentsEditor } from "./components/target-components-editor";
 export { TargetFormDialog } from "./components/target-form-dialog";
 export { TargetListPage } from "./components/target-list";
+export { TargetDetailPage } from "./components/target-detail";
