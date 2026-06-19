@@ -35,3 +35,7 @@ export {
 
 // Proteome hooks
 export { useProteomes, useProteome } from "./hooks/use-proteomes";
+
+// Components
+export { OrganismListPage } from "./components/organism-list";
+export { OrganismDetailPage } from "./components/organism-detail";
