@@ -42,3 +42,5 @@ export { OrganismDetailPage } from "./components/organism-detail";
 export { StrainListPage } from "./components/strain-list";
 export { StrainDetailPage } from "./components/strain-detail";
 export { StrainFormDialog } from "./components/strain-form-dialog";
+export { ProteomeListPage } from "./components/proteome-list";
+export { ProteomeDetailPage } from "./components/proteome-detail";
