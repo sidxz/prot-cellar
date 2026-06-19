@@ -20,3 +20,4 @@ export {
 // Components
 export { OrganizationListPage } from "./components/organization-list";
 export { OrganizationFormDialog } from "./components/organization-form-dialog";
+export { OrganizationDetailPage } from "./components/organization-detail";
