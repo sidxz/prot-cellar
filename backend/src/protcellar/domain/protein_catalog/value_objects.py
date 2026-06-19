@@ -24,13 +24,15 @@ class ProteinNames:
     def from_dict(cls, data: dict[str, object] | None) -> ProteinNames:
         if not data:
             return cls()
-        alt = data.get("alternative") or []
-        sub = data.get("submitted") or []
         recommended = data.get("recommended")
+        alt_raw = data.get("alternative")
+        sub_raw = data.get("submitted")
+        alt = alt_raw if isinstance(alt_raw, list) else []
+        sub = sub_raw if isinstance(sub_raw, list) else []
         return cls(
             recommended=recommended if isinstance(recommended, str) else None,
-            alternative=tuple(str(x) for x in alt),  # type: ignore[attr-defined]
-            submitted=tuple(str(x) for x in sub),  # type: ignore[attr-defined]
+            alternative=tuple(str(x) for x in alt),
+            submitted=tuple(str(x) for x in sub),
         )
 
     @property

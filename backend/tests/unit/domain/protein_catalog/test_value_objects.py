@@ -19,6 +19,7 @@ def test_protein_names_from_none_is_empty() -> None:
     empty = ProteinNames.from_dict(None)
     assert empty.recommended is None
     assert empty.alternative == ()
+    assert empty.submitted == ()
     assert empty.display_name is None
 
 
