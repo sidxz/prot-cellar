@@ -1,6 +1,8 @@
 import { useQueryClient } from "@tanstack/react-query";
 
 import {
+  getGetTargetApiV1TargetsTargetIdGetQueryKey,
+  getListTargetsApiV1TargetsGetQueryKey,
   useCreateTargetApiV1TargetsPost,
   useGetTargetApiV1TargetsTargetIdGet,
   useListTargetsApiV1TargetsGet,
@@ -9,7 +11,6 @@ import {
 import { showSuccess } from "@/shared/lib/toast";
 
 import type { TargetListFilters } from "../types";
-import { TARGETS_KEY, targetDetailKey } from "./query-keys";
 
 /** List targets with optional filters and cursor-based pagination. */
 export function useTargets(filters: TargetListFilters = {}, cursor?: string) {
@@ -35,7 +36,7 @@ export function useCreateTarget() {
   return useCreateTargetApiV1TargetsPost({
     mutation: {
       onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: TARGETS_KEY });
+        queryClient.invalidateQueries({ queryKey: getListTargetsApiV1TargetsGetQueryKey() });
         showSuccess("Target created");
       },
     },
@@ -53,8 +54,10 @@ export function useUpdateTarget() {
   return useUpdateTargetApiV1TargetsTargetIdPatch({
     mutation: {
       onSuccess: (_data, variables) => {
-        queryClient.invalidateQueries({ queryKey: TARGETS_KEY });
-        queryClient.invalidateQueries({ queryKey: targetDetailKey(variables.targetId) });
+        queryClient.invalidateQueries({ queryKey: getListTargetsApiV1TargetsGetQueryKey() });
+        queryClient.invalidateQueries({
+          queryKey: getGetTargetApiV1TargetsTargetIdGetQueryKey(variables.targetId),
+        });
         showSuccess("Target updated");
       },
     },

@@ -152,7 +152,7 @@ export function TargetComponentsEditor({
                     placeholder="e.g. P00533"
                     className={cn(
                       "font-mono text-sm",
-                      isResolved && "border-teal-500 focus-visible:ring-teal-500/30",
+                      isResolved && "border-primary focus-visible:ring-primary/30",
                     )}
                     onChange={(e) =>
                       updateRow(idx, {
@@ -185,12 +185,12 @@ export function TargetComponentsEditor({
                 {/* Resolved badge */}
                 {isResolved && row.label && (
                   <div className="flex items-center gap-1.5 pt-1">
-                    <span className="text-teal-600" aria-label="Resolved">
+                    <span className="text-primary" aria-label="Resolved">
                       ✓
                     </span>
                     <Badge
                       variant="secondary"
-                      className="border-teal-200 bg-teal-50 text-teal-700 text-xs"
+                      className="border-primary/20 bg-primary/10 text-primary text-xs"
                     >
                       {row.label}
                     </Badge>
