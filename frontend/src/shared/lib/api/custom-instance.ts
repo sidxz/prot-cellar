@@ -61,6 +61,7 @@ export const customInstance = async <T>({
   data,
   headers,
   signal,
+  responseType,
 }: {
   url: string;
   method: string;
@@ -69,6 +70,7 @@ export const customInstance = async <T>({
   data?: unknown;
   headers?: Record<string, string>;
   signal?: AbortSignal;
+  responseType?: "json" | "text";
 }): Promise<T> => {
   // Build query string. Arrays are emitted as repeated keys (`k=a&k=b`),
   // matching FastAPI's `list[T] = Query(...)` expectation. Scalars are
@@ -137,6 +139,10 @@ export const customInstance = async <T>({
 
   if (response.status === 204) {
     return undefined as T;
+  }
+
+  if (responseType === "text") {
+    return (await response.text()) as T;
   }
 
   return response.json() as Promise<T>;

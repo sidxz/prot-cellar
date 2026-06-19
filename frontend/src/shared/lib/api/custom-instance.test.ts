@@ -67,4 +67,12 @@ describe("customInstance", () => {
   it("exposes API_V1 constant", () => {
     expect(API_V1).toBe("/api/v1");
   });
+
+  it("returns raw text when responseType is 'text'", async () => {
+    fetchMock.mockResolvedValue(
+      new Response(">sp|P1|X\nMAAA\nKLL", { status: 200, headers: { "content-type": "text/x-fasta" } }),
+    );
+    const out = await customInstance<string>({ url: "/api/v1/proteins/P1", method: "GET", params: { format: "fasta" }, responseType: "text" });
+    expect(out).toBe(">sp|P1|X\nMAAA\nKLL");
+  });
 });

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { chunkSequence, toFasta } from "./sequence";
+import { chunkSequence, parseFasta, toFasta } from "./sequence";
 
 describe("chunkSequence", () => {
   it("splits into fixed-width lines (default 60)", () => {
@@ -16,5 +16,17 @@ describe("chunkSequence", () => {
 describe("toFasta", () => {
   it("emits a header line then wrapped sequence", () => {
     expect(toFasta("sp|P1|X", "ABCDE", 2)).toBe(">sp|P1|X\nAB\nCD\nE");
+  });
+});
+
+describe("parseFasta", () => {
+  it("strips the header and joins residue lines", () => {
+    expect(parseFasta(">sp|P1|X\nMAAA\nKLL")).toEqual({ header: "sp|P1|X", sequence: "MAAAKLL" });
+  });
+  it("handles headerless input as pure sequence", () => {
+    expect(parseFasta("MAAA\nKLL")).toEqual({ header: "", sequence: "MAAAKLL" });
+  });
+  it("trims whitespace/blank lines", () => {
+    expect(parseFasta(">h\nMA A\n\n KL \n")).toEqual({ header: "h", sequence: "MAAKL" });
   });
 });
