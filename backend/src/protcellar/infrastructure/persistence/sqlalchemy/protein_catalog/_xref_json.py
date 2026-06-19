@@ -25,12 +25,16 @@ def xrefs_to_json(xrefs: list[CrossReference]) -> list[dict[str, object]]:
 def xrefs_from_json(data: list[dict[str, object]] | None) -> list[CrossReference]:
     if not data:
         return []
-    return [
-        CrossReference(
-            database=str(d["database"]),
-            accession=str(d["accession"]),
-            properties=d.get("properties"),  # type: ignore[arg-type]
-            evidence=d.get("evidence"),  # type: ignore[arg-type]
+    result: list[CrossReference] = []
+    for d in data:
+        props = d.get("properties")
+        evidence = d.get("evidence")
+        result.append(
+            CrossReference(
+                database=str(d["database"]),
+                accession=str(d["accession"]),
+                properties=props if isinstance(props, dict) else None,
+                evidence=evidence if isinstance(evidence, str) else None,
+            )
         )
-        for d in data
-    ]
+    return result
