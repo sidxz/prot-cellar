@@ -22,3 +22,4 @@ export { proteinPrimaryName, proteinExistenceLabel } from "./lib/protein-format"
 // Components
 export { ProteinListPage } from "./components/protein-list";
 export { ProteinDetailPage } from "./components/protein-detail";
+export { GeneListPage } from "./components/gene-list";
