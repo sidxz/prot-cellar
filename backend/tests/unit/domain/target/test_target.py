@@ -94,8 +94,24 @@ def test_update_revalidates_cardinality() -> None:
     # Adding a second component while still SINGLE_PROTEIN violates the invariant
     with pytest.raises(ValidationError):
         target.set_components([_component(), _component()])
+    assert target.target_type == TargetType.SINGLE_PROTEIN
+    assert len(target.components) == 1
     # Promoting to a complex with two components is valid
     target.update(target_type=TargetType.PROTEIN_COMPLEX, components=[_component(), _component()])
     assert target.target_type == TargetType.PROTEIN_COMPLEX
     assert len(target.components) == 2
     assert any(isinstance(e, TargetUpdated) for e in target.collect_events())
+
+
+def test_update_rejection_leaves_aggregate_unchanged() -> None:
+    target = Target.create(
+        workspace_id=uuid.uuid4(),
+        pref_name="X",
+        target_type=TargetType.SINGLE_PROTEIN,
+        components=[_component()],
+    )
+    with pytest.raises(ValidationError):
+        target.update(components=[_component(), _component()])
+    assert target.target_type == TargetType.SINGLE_PROTEIN
+    assert len(target.components) == 1
+    assert not any(isinstance(e, TargetUpdated) for e in target.collect_events())

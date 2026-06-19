@@ -124,7 +124,9 @@ class Target(AggregateRoot):
         re-validated against the resulting combination before it is committed.
         """
         new_type = fields.get("target_type", self.target_type)
-        new_components = list(fields["components"]) if "components" in fields else self.components
+        new_components = (
+            list(fields["components"]) if "components" in fields else list(self.components)
+        )
         # Validate the prospective combination before mutating any state.
         self._validate_cardinality(new_type, len(new_components))
 
