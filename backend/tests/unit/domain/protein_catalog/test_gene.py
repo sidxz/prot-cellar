@@ -2,7 +2,7 @@ import uuid
 
 import pytest
 
-from protcellar.domain.protein_catalog.events import GeneCreated
+from protcellar.domain.protein_catalog.events import GeneCreated, GeneUpdated
 from protcellar.domain.protein_catalog.gene import Gene
 from protcellar.domain.shared.errors import ValidationError
 from protcellar.domain.shared.global_workspace import GLOBAL_WORKSPACE_ID
@@ -30,3 +30,10 @@ def test_update_gene_fields() -> None:
     gene.update(ncbi_gene_id="7157", ensembl_gene_id="ENSG00000141510")
     assert gene.ncbi_gene_id == "7157"
     assert gene.ensembl_gene_id == "ENSG00000141510"
+    assert any(isinstance(e, GeneUpdated) for e in gene.collect_events())
+
+
+def test_update_rejects_empty_primary_name() -> None:
+    gene = Gene.create(primary_name="TP53", organism_id=uuid.uuid4())
+    with pytest.raises(ValidationError):
+        gene.update(primary_name="  ")
