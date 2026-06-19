@@ -413,7 +413,7 @@ class Gene(AggregateRoot):
         )
 ```
 
-- [ ] **Step 5: Write `domain/protein_catalog/repository.py`** (both protocols — `Protein` body referenced now, defined in Task 3; declare both to avoid a later edit):
+- [ ] **Step 5: Write `domain/protein_catalog/repository.py`** — **`GeneRepository` only.** Do **not** declare `ProteinRepository` here: it references `Protein` (created in Task 4), and a `TYPE_CHECKING` import of the not-yet-existing `protcellar.domain.protein_catalog.protein` module makes `mypy src` fail (mypy resolves `TYPE_CHECKING` blocks). `ProteinRepository` is appended to this file in Task 4, once `protein.py` exists.
 
 ```python
 """Protein Catalog repository protocols."""
@@ -421,12 +421,9 @@ class Gene(AggregateRoot):
 from __future__ import annotations
 
 import uuid
-from typing import TYPE_CHECKING, Protocol, runtime_checkable
+from typing import Protocol, runtime_checkable
 
 from protcellar.domain.protein_catalog.gene import Gene
-
-if TYPE_CHECKING:
-    from protcellar.domain.protein_catalog.protein import Protein
 
 
 @runtime_checkable
@@ -454,35 +451,6 @@ class GeneRepository(Protocol):
     ) -> Gene | None: ...
 
     async def save(self, aggregate: Gene) -> None: ...
-
-
-@runtime_checkable
-class ProteinRepository(Protocol):
-    async def find_by_id_in_workspace(
-        self, workspace_id: uuid.UUID, id: uuid.UUID
-    ) -> Protein | None: ...
-
-    async def find_by_accession(self, accession: str) -> Protein | None: ...
-
-    async def find_by_entry_name(self, entry_name: str) -> Protein | None: ...
-
-    async def find_by_source_record_id(
-        self, source: str, source_record_id: str
-    ) -> Protein | None: ...
-
-    async def find_all(
-        self,
-        *,
-        cursor_id: uuid.UUID | None = None,
-        limit: int | None = None,
-        organism_id: uuid.UUID | None = None,
-        gene_id: uuid.UUID | None = None,
-        is_reviewed: bool | None = None,
-        min_length: int | None = None,
-        max_length: int | None = None,
-    ) -> list[Protein]: ...
-
-    async def save(self, aggregate: Protein) -> None: ...
 ```
 
 - [ ] **Step 6: Run test to verify it passes** — `cd backend && uv run pytest tests/unit/domain/protein_catalog/test_gene.py -v` → PASS.
@@ -914,7 +882,7 @@ git commit -m "feat(protein-catalog): Gene reference-data vertical slice (CRUD +
 **Interfaces:**
 - Produces:
   - `Protein` aggregate (reference data, `workspace_id = GLOBAL_WORKSPACE_ID`): `primary_accession: str` (validated via `_UNIPROT_ACCESSION_RE`), `secondary_accessions: list[str]`, `entry_name: str | None`, `is_reviewed: bool`, `protein_names: ProteinNames`, `organism_id: uuid.UUID` (required), `strain_id: uuid.UUID | None`, `gene_id: uuid.UUID | None`, `sequence: str`, `seq_length: int` (derived = `len(sequence)`), `seq_mass: int | None`, `seq_crc64: str | None`, `protein_existence: ProteinExistence | None`, `keywords: list[str]`, `entry_version: int | None`, `sequence_version: int | None`, `cross_references: list[CrossReference]`, provenance attrs. `Protein.create(...)`, `update(**fields)`, `to_fasta() -> str`.
-  - `ProteinModel`, `SQLAlchemyProteinRepository` implementing `ProteinRepository` (Task 2 protocol).
+  - The `ProteinRepository` protocol (appended to `domain/protein_catalog/repository.py` in this task, now that `Protein` exists), `ProteinModel`, and `SQLAlchemyProteinRepository` implementing it.
 
 - [ ] **Step 1: Write the failing test** `backend/tests/unit/domain/protein_catalog/test_protein.py`:
 
@@ -1246,7 +1214,39 @@ class ProteinModel(Base, EntityModelMixin, WorkspaceIdMixin, VersionMixin, Prove
 
 > `primary_accession` uniqueness is a plain unique index (not workspace-scoped) — reference data is global. The `secondary_accessions` GIN index accelerates `acc = ANY(secondary_accessions)` resolution.
 
-- [ ] **Step 6: Write `protein_catalog/protein_repository.py`** (reuse the `_xrefs_to_json`/`_xrefs_from_json` helpers — import them from `gene_repository`, or lift both helpers into a small `protein_catalog/_xref_json.py` module and import from both repositories; either is fine — pick lift-to-shared-module to avoid a repo→repo import):
+- [ ] **Step 6a: Append the `ProteinRepository` protocol to `domain/protein_catalog/repository.py`** (now that `Protein` exists — no `TYPE_CHECKING` forward ref needed). Add a direct import `from protcellar.domain.protein_catalog.protein import Protein` and this protocol below `GeneRepository`:
+
+```python
+@runtime_checkable
+class ProteinRepository(Protocol):
+    async def find_by_id_in_workspace(
+        self, workspace_id: uuid.UUID, id: uuid.UUID
+    ) -> Protein | None: ...
+
+    async def find_by_accession(self, accession: str) -> Protein | None: ...
+
+    async def find_by_entry_name(self, entry_name: str) -> Protein | None: ...
+
+    async def find_by_source_record_id(
+        self, source: str, source_record_id: str
+    ) -> Protein | None: ...
+
+    async def find_all(
+        self,
+        *,
+        cursor_id: uuid.UUID | None = None,
+        limit: int | None = None,
+        organism_id: uuid.UUID | None = None,
+        gene_id: uuid.UUID | None = None,
+        is_reviewed: bool | None = None,
+        min_length: int | None = None,
+        max_length: int | None = None,
+    ) -> list[Protein]: ...
+
+    async def save(self, aggregate: Protein) -> None: ...
+```
+
+- [ ] **Step 6b: Write `protein_catalog/protein_repository.py`** (reuse the `_xrefs_to_json`/`_xrefs_from_json` helpers — lift both helpers into a small `protein_catalog/_xref_json.py` module and import from both repositories, to avoid a repo→repo import):
 
 ```python
 """SQLAlchemy Protein repository."""
