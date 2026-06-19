@@ -39,3 +39,6 @@ export { useProteomes, useProteome } from "./hooks/use-proteomes";
 // Components
 export { OrganismListPage } from "./components/organism-list";
 export { OrganismDetailPage } from "./components/organism-detail";
+export { StrainListPage } from "./components/strain-list";
+export { StrainDetailPage } from "./components/strain-detail";
+export { StrainFormDialog } from "./components/strain-form-dialog";
