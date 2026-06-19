@@ -1,4 +1,17 @@
 import "@testing-library/jest-dom";
+import { vi } from "vitest";
+
+// next/navigation requires the App Router context — stub out for tests.
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ push: vi.fn(), replace: vi.fn(), prefetch: vi.fn() }),
+  usePathname: () => "/",
+  useSearchParams: () => new URLSearchParams(),
+}));
+
+// cmdk calls scrollIntoView on list items; jsdom doesn't implement it.
+if (typeof window !== "undefined") {
+  window.HTMLElement.prototype.scrollIntoView = () => {};
+}
 
 // Radix UI uses ResizeObserver internally; polyfill for jsdom
 if (typeof global.ResizeObserver === "undefined") {

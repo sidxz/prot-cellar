@@ -1,3 +1,4 @@
+import { CommandPalette } from "@/shared/components/common/command-palette";
 import { AuthProvider } from "@/shared/providers/auth-provider";
 import { QueryProvider } from "@/shared/providers/query-provider";
 import { ThemeProvider } from "@/shared/providers/theme-provider";
@@ -35,7 +36,7 @@ export default function RootLayout({
           <AuthProvider>
             <QueryProvider>
               {children}
-              {/* CommandPalette mounted in T14 */}
+              <CommandPalette />
               <Toaster position="bottom-right" />
             </QueryProvider>
           </AuthProvider>
