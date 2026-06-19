@@ -121,20 +121,32 @@ export function OrganismDetailPage({ organismId }: OrganismDetailPageProps) {
         <table className="w-full text-sm border-collapse">
           <thead>
             <tr className="border-b border-border text-left">
-              <th className="pb-2 pr-4 text-xs font-medium text-muted-foreground uppercase tracking-wide">
+              <th
+                scope="col"
+                className="pb-2 pr-4 text-xs font-medium text-muted-foreground uppercase tracking-wide"
+              >
                 Name
               </th>
-              <th className="pb-2 pr-4 text-xs font-medium text-muted-foreground uppercase tracking-wide">
+              <th
+                scope="col"
+                className="pb-2 pr-4 text-xs font-medium text-muted-foreground uppercase tracking-wide"
+              >
                 Class
               </th>
-              <th className="pb-2 text-xs font-medium text-muted-foreground uppercase tracking-wide">
+              <th
+                scope="col"
+                className="pb-2 text-xs font-medium text-muted-foreground uppercase tracking-wide"
+              >
                 Preferred
               </th>
             </tr>
           </thead>
           <tbody>
             {organism.names.map((n) => (
-              <tr key={n.name} className="border-b border-border/50 last:border-0">
+              <tr
+                key={`${n.name_class}-${n.name}`}
+                className="border-b border-border/50 last:border-0"
+              >
                 <td className="py-1.5 pr-4 text-foreground">{n.name}</td>
                 <td className="py-1.5 pr-4 text-muted-foreground">
                   {NAME_CLASS_LABELS[n.name_class]}
