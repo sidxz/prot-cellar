@@ -90,7 +90,8 @@ export function createCrudHooks<
         invalidateAll(qc);
         showSuccess(createdMsg(entityName));
       },
-      onError: (err: Error) => {
+      // pass the raw error (often ApiError) so showError() can surface .detail
+      onError: (err: unknown) => {
         showError(err);
       },
     });
@@ -109,7 +110,7 @@ export function createCrudHooks<
         invalidateAll(qc);
         showSuccess(updatedMsg(entityName));
       },
-      onError: (err: Error) => {
+      onError: (err: unknown) => {
         showError(err);
       },
     });
@@ -124,7 +125,7 @@ export function createCrudHooks<
         invalidateAll(qc);
         showSuccess(deletedMsg(entityName));
       },
-      onError: (err: Error) => {
+      onError: (err: unknown) => {
         showError(err);
       },
     });
@@ -143,7 +144,7 @@ export function createCrudHooks<
         invalidateAll(qc);
         showSuccess(successMessage ?? actionDefaultMsg(entityName, action));
       },
-      onError: (err: Error) => {
+      onError: (err: unknown) => {
         showError(err);
       },
     });

@@ -24,8 +24,7 @@ export function showSuccess(message: string, opts?: ExternalToast): ToastId {
 export function showError(error: unknown, opts?: ExternalToast): ToastId {
   let message: string;
   if (error instanceof ApiError) {
-    message =
-      typeof error.detail === "string" ? error.detail : error.message || "An error occurred";
+    message = typeof error.detail === "string" ? error.detail : error.message;
   } else if (error instanceof Error) {
     message = error.message || "An error occurred";
   } else if (typeof error === "string") {
