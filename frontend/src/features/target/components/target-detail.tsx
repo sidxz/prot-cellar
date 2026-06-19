@@ -4,6 +4,7 @@ import { ExternalLink, Target as TargetIcon } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 
+import { OrganismRef } from "@/shared/components/common/organism-ref";
 import { Badge } from "@/shared/components/ui/badge";
 import { Button } from "@/shared/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/card";
@@ -144,18 +145,10 @@ function MetadataCard({ target }: MetadataCardProps) {
       </CardHeader>
       <CardContent>
         <dl className="flex flex-col">
-          {/* Organism — Plan 3 will add organism name; link by ID for now */}
-          {target.organism_id && (
-            <MetadataRow label="Organism">
-              {/* Plan 3 comment: organism name will be resolved when organism cross-linking lands */}
-              <Link
-                href={`/organisms/${target.organism_id}`}
-                className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-0.5 text-xs font-mono text-primary hover:bg-accent hover:text-accent-foreground transition-colors"
-              >
-                {target.organism_id}
-              </Link>
-            </MetadataRow>
-          )}
+          {/* Organism */}
+          <MetadataRow label="Organism">
+            <OrganismRef id={target.organism_id} />
+          </MetadataRow>
 
           {/* Pharmacological class */}
           {target.pharmacological_class && (

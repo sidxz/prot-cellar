@@ -1,5 +1,6 @@
 "use client";
 
+import { OrganismRef } from "@/shared/components/common/organism-ref";
 import { SequenceViewer } from "@/shared/components/sequence/sequence-viewer";
 import { Badge } from "@/shared/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/card";
@@ -108,13 +109,7 @@ function MetadataCard({ protein }: MetadataCardProps) {
 
           {/* Organism */}
           <MetadataRow label="Organism">
-            {/* Plan 3 will add the organism name; link by ID for now */}
-            <Link
-              href={`/organisms/${protein.organism_id}`}
-              className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-0.5 text-xs font-mono text-primary hover:bg-accent hover:text-accent-foreground transition-colors"
-            >
-              {protein.organism_id}
-            </Link>
+            <OrganismRef id={protein.organism_id} />
           </MetadataRow>
 
           {/* Gene */}

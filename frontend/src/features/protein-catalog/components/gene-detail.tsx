@@ -1,5 +1,6 @@
 "use client";
 
+import { OrganismRef } from "@/shared/components/common/organism-ref";
 import { Badge } from "@/shared/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/card";
 import { Skeleton } from "@/shared/components/ui/skeleton";
@@ -77,14 +78,9 @@ function GeneMetadataCard({ gene }: GeneMetadataCardProps) {
             </MetadataRow>
           )}
 
-          {/* Organism — Plan 3 will add the organism name; link by ID for now */}
+          {/* Organism */}
           <MetadataRow label="Organism">
-            <Link
-              href={`/organisms/${gene.organism_id}`}
-              className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-0.5 text-xs font-mono text-primary hover:bg-accent hover:text-accent-foreground transition-colors"
-            >
-              {gene.organism_id}
-            </Link>
+            <OrganismRef id={gene.organism_id} />
           </MetadataRow>
 
           {/* NCBI Gene */}

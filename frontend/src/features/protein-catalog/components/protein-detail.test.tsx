@@ -1,6 +1,14 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
+vi.mock("@/shared/lib/api/organisms/organisms", () => ({
+  useGetOrganismApiV1OrganismsOrganismIdGet: () => ({
+    data: undefined,
+    isLoading: false,
+    isError: false,
+  }),
+}));
+
 // ── Happy-path mock (primary fetch succeeds) ──────────────────────────────
 vi.mock("../hooks/use-proteins", () => ({
   useProtein: vi.fn(() => ({
