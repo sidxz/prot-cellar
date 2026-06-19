@@ -97,18 +97,19 @@ export function ProteinListPage() {
   const router = useRouter();
 
   // ── Filters ─────────────────────────────────────────────────────────────
-  const [filters, setFilters] = useState<ProteinListFilters>(() => readFilters());
-  const [reviewedState, setReviewedState] = useState<ReviewedState>(() =>
-    filterToReviewed(readFilters().reviewed),
+  // Read localStorage once at mount, derive all initial state from it
+  const initialFilters = readFilters();
+
+  const [filters, setFilters] = useState<ProteinListFilters>(initialFilters);
+  const [reviewedState, setReviewedState] = useState<ReviewedState>(
+    filterToReviewed(initialFilters.reviewed),
   );
-  const [minLengthInput, setMinLengthInput] = useState<string>(() => {
-    const f = readFilters();
-    return f.minLength != null ? String(f.minLength) : "";
-  });
-  const [maxLengthInput, setMaxLengthInput] = useState<string>(() => {
-    const f = readFilters();
-    return f.maxLength != null ? String(f.maxLength) : "";
-  });
+  const [minLengthInput, setMinLengthInput] = useState<string>(
+    initialFilters.minLength != null ? String(initialFilters.minLength) : "",
+  );
+  const [maxLengthInput, setMaxLengthInput] = useState<string>(
+    initialFilters.maxLength != null ? String(initialFilters.maxLength) : "",
+  );
 
   // Persist filters to localStorage on change
   useEffect(() => {
@@ -168,7 +169,7 @@ export function ProteinListPage() {
 
   // ── Pagination handlers ──────────────────────────────────────────────────
   function goNext() {
-    const nextCursor = data?.next_cursor as string | null | undefined;
+    const nextCursor = data?.next_cursor;
     if (!nextCursor) return;
     setCursorStack((prev) => [...prev, nextCursor]);
   }
