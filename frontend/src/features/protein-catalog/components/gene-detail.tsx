@@ -183,7 +183,7 @@ export function GeneDetailPage({ geneId }: GeneDetailPageProps) {
           <h1 className="text-2xl font-bold tracking-tight text-foreground font-mono">
             {data.primary_name}
           </h1>
-          <Badge className="bg-teal-600 text-white hover:bg-teal-700">Gene</Badge>
+          <Badge variant="default">Gene</Badge>
         </div>
         <p className="text-sm text-muted-foreground font-mono">{data.id}</p>
       </header>

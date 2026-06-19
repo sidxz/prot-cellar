@@ -52,8 +52,8 @@ export function GeneListPage() {
   const router = useRouter();
 
   // ── Filters ─────────────────────────────────────────────────────────────
-  // Read localStorage once at mount, derive all initial state from it
-  const initialFilters = readFilters();
+  // Lazy initializer — `readFilters` is called once at mount, not on every render
+  const [initialFilters] = useState(readFilters);
 
   const [filters, setFilters] = useState<GeneListFilters>(initialFilters);
   const [nameInput, setNameInput] = useState<string>(initialFilters.name ?? "");

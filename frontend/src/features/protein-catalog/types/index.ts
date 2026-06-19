@@ -12,6 +12,16 @@ export type Protein = Omit<ProteinResponse, "protein_names"> & {
   };
 };
 
+/**
+ * Cast a raw ProteinResponse to our narrowed Protein type.
+ * The generated `protein_names` and `cross_references` fields are typed
+ * loosely by the codegen; we perform one typed boundary cast here so
+ * callers don't need scattered `as unknown as Protein` casts.
+ */
+export function toProtein(r: ProteinResponse): Protein {
+  return r as unknown as Protein;
+}
+
 /** Gene (alias of generated DTO — no narrowing needed). */
 export type Gene = GeneResponse;
 

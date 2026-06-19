@@ -7,7 +7,9 @@ import { Skeleton } from "@/shared/components/ui/skeleton";
 import { CrossReferenceLinks } from "@/shared/components/xrefs/cross-reference-links";
 import { Dna, ExternalLink } from "lucide-react";
 import Link from "next/link";
-import { useProtein, useProteinFasta } from "../hooks/use-proteins";
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
+import { useProtein, useProteinFasta, useResolveProtein } from "../hooks/use-proteins";
 import { proteinExistenceLabel } from "../lib/protein-format";
 import type { Protein } from "../types";
 
@@ -221,15 +223,33 @@ export interface ProteinDetailPageProps {
 }
 
 export function ProteinDetailPage({ accession }: ProteinDetailPageProps) {
+  const router = useRouter();
+
+  // ── Primary fetch (by accession) ─────────────────────────────────────────
   const { data, isLoading, isError } = useProtein(accession);
 
+  // ── Resolve fallback — fires only when primary fetch finished and found nothing ──
+  const primaryNotFound = !isLoading && (isError || !data);
+  const {
+    data: resolvedData,
+    isLoading: resolveLoading,
+    isError: resolveError,
+  } = useResolveProtein(accession, { enabled: primaryNotFound });
+
+  // ── Redirect to canonical URL when resolve returns a different accession ──
+  useEffect(() => {
+    if (resolvedData && resolvedData.primary_accession !== accession) {
+      router.replace(`/proteins/${resolvedData.primary_accession}`);
+    }
+  }, [resolvedData, accession, router]);
+
   // ── Loading ──────────────────────────────────────────────────────────────
-  if (isLoading) {
+  if (isLoading || (primaryNotFound && resolveLoading)) {
     return <DetailSkeleton />;
   }
 
-  // ── Error / not found ─────────────────────────────────────────────────────
-  if (isError || !data) {
+  // ── Error / not found — only after BOTH paths have failed ────────────────
+  if (primaryNotFound && (resolveError || !resolvedData)) {
     return (
       <div className="flex flex-col items-center justify-center gap-4 py-24 text-center text-muted-foreground">
         <Dna className="h-12 w-12 opacity-25" />
@@ -247,8 +267,10 @@ export function ProteinDetailPage({ accession }: ProteinDetailPageProps) {
     );
   }
 
-  // Narrow to Protein (our re-typed wrapper)
-  const protein = data as unknown as Protein;
+  // ── Resolve succeeded with same accession (edge case guard) ──────────────
+  // Redirect effect above handles the different-accession case; if same accession,
+  // fall through and render using resolvedData cast to Protein below.
+  const protein: Protein = (data ?? resolvedData) as Protein;
 
   // ── Detail view ───────────────────────────────────────────────────────────
   return (
@@ -259,10 +281,7 @@ export function ProteinDetailPage({ accession }: ProteinDetailPageProps) {
           <h1 className="text-2xl font-bold tracking-tight text-foreground font-mono">
             {protein.primary_accession}
           </h1>
-          <Badge
-            variant={protein.is_reviewed ? "default" : "secondary"}
-            className={protein.is_reviewed ? "bg-teal-600 text-white hover:bg-teal-700" : undefined}
-          >
+          <Badge variant={protein.is_reviewed ? "default" : "secondary"}>
             {protein.is_reviewed ? "Swiss-Prot" : "TrEMBL"}
           </Badge>
           {protein.uniprot_url && (

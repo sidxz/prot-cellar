@@ -2,14 +2,14 @@ import { useQuery } from "@tanstack/react-query";
 
 import { parseFasta } from "@/shared/components/sequence/sequence";
 import { API_V1, customInstance } from "@/shared/lib/api/custom-instance";
-import type { ProteinResponse } from "@/shared/lib/api/model";
 import {
   useGetProteinApiV1ProteinsAccessionGet,
   useListProteinsApiV1ProteinsGet,
   useResolveProteinApiV1ProteinsResolveIdentifierGet,
 } from "@/shared/lib/api/proteins/proteins";
 
-import type { ProteinListFilters } from "../types";
+import type { Protein, ProteinListFilters } from "../types";
+import { toProtein } from "../types";
 import { proteinFastaKey } from "./query-keys";
 
 /** List proteins with optional filters and cursor-based pagination. */
@@ -25,15 +25,15 @@ export function useProteins(filters: ProteinListFilters = {}, cursor?: string) {
 
 /**
  * Fetch a single protein by accession.
- * The generated hook returns `unknown` (the endpoint is polymorphic);
- * we narrow the result to `ProteinResponse | undefined` at the wrapper boundary.
+ * Returns the result narrowed to our typed `Protein` wrapper so callers
+ * don't need scattered `as unknown as Protein` casts.
  */
 export function useProtein(accession: string) {
   const query = useGetProteinApiV1ProteinsAccessionGet(accession, undefined);
   return {
     ...query,
-    data: query.data as ProteinResponse | undefined,
-  };
+    data: query.data != null ? toProtein(query.data as Parameters<typeof toProtein>[0]) : undefined,
+  } as Omit<typeof query, "data"> & { data: Protein | undefined };
 }
 
 /**
@@ -56,9 +56,13 @@ export function useProteinFasta(accession: string) {
   });
 }
 
-/** Resolve a protein by any identifier (accession, entry name, etc.). */
-export function useResolveProtein(identifier: string) {
+/** Resolve a protein by any identifier (accession, entry name, etc.).
+ *  Pass `{ enabled: false }` to defer the fetch until a condition is met
+ *  (e.g. the primary `useProtein` call has already returned not-found).
+ */
+export function useResolveProtein(identifier: string, options?: { enabled?: boolean }) {
+  const enabled = options?.enabled !== undefined ? options.enabled : !!identifier;
   return useResolveProteinApiV1ProteinsResolveIdentifierGet(identifier, {
-    query: { enabled: !!identifier },
+    query: { enabled: !!identifier && enabled },
   });
 }
