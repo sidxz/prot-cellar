@@ -15,6 +15,7 @@ from lagom import Container, Singleton
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker
 
 from protcellar.infrastructure.di._protein_catalog import register_protein_catalog
+from protcellar.infrastructure.di._target import register_target
 from protcellar.infrastructure.di._taxonomy import register_taxonomy
 from protcellar.infrastructure.di._workspace_config import register_workspace_config
 from protcellar.infrastructure.identifiers.registry import IdentifierRegistry
@@ -76,5 +77,6 @@ def create_container(db_settings: DatabaseSettings | None = None) -> Container:
     register_workspace_config(container)
     register_taxonomy(container)
     register_protein_catalog(container)
+    register_target(container)
 
     return container

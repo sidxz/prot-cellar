@@ -55,6 +55,7 @@ def _create_test_app(database_url: str, fake_auth: FakeAuth) -> FastAPI:
     )
     from protcellar.interface.routes.proteomes import router as proteome_router
     from protcellar.interface.routes.strains import router as strain_router
+    from protcellar.interface.routes.targets import router as target_router
     from protcellar.interface.routes.version import router as version_router
 
     @app.get("/health")
@@ -68,6 +69,7 @@ def _create_test_app(database_url: str, fake_auth: FakeAuth) -> FastAPI:
     app.include_router(proteome_router)
     app.include_router(gene_router)
     app.include_router(protein_router)
+    app.include_router(target_router)
 
     # Override the stable auth wrapper (not the sentinel SDK directly)
     app.dependency_overrides[get_auth] = lambda: fake_auth
