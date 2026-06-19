@@ -145,12 +145,7 @@ export function OrganizationFormDialog({
             {/* Name */}
             <div className="grid gap-2">
               <Label htmlFor="org_name">Name</Label>
-              <Input
-                id="org_name"
-                placeholder="e.g. Acme Biopharma"
-                aria-label="Name"
-                {...form.register("name")}
-              />
+              <Input id="org_name" placeholder="e.g. Acme Biopharma" {...form.register("name")} />
               {form.formState.errors.name && (
                 <p className="text-xs text-destructive">{form.formState.errors.name.message}</p>
               )}
@@ -185,7 +180,7 @@ export function OrganizationFormDialog({
             {/* Contact name */}
             <div className="grid gap-2">
               <Label htmlFor="contact_name">
-                Contact person{" "}
+                Contact name{" "}
                 <span className="text-muted-foreground font-normal text-xs">(optional)</span>
               </Label>
               <Input

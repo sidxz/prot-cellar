@@ -13,7 +13,7 @@ describe("OrganizationFormDialog", () => {
   it("renders create-mode title and the name field when open with no organization", () => {
     render(<OrganizationFormDialog open onOpenChange={() => {}} />);
     expect(screen.getByRole("heading", { name: /new organization/i })).toBeInTheDocument();
-    expect(screen.getByLabelText(/name/i)).toBeInTheDocument();
+    expect(screen.getByLabelText("Name")).toBeInTheDocument();
   });
 
   it("renders edit-mode title when an organization is supplied", () => {
