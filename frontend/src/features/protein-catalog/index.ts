@@ -18,3 +18,6 @@ export { useGenes, useGene } from "./hooks/use-genes";
 
 // Format helpers
 export { proteinPrimaryName, proteinExistenceLabel } from "./lib/protein-format";
+
+// Components
+export { ProteinListPage } from "./components/protein-list";
