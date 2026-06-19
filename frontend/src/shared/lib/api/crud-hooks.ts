@@ -1,7 +1,7 @@
 "use client";
 
 import { customInstance } from "@/shared/lib/api/custom-instance";
-import { showError, showSuccess } from "@/shared/lib/toast";
+import { showSuccess } from "@/shared/lib/toast";
 import {
   type QueryClient,
   type UseQueryOptions,
@@ -90,10 +90,6 @@ export function createCrudHooks<
         invalidateAll(qc);
         showSuccess(createdMsg(entityName));
       },
-      // pass the raw error (often ApiError) so showError() can surface .detail
-      onError: (err: unknown) => {
-        showError(err);
-      },
     });
   }
 
@@ -110,9 +106,6 @@ export function createCrudHooks<
         invalidateAll(qc);
         showSuccess(updatedMsg(entityName));
       },
-      onError: (err: unknown) => {
-        showError(err);
-      },
     });
   }
 
@@ -124,9 +117,6 @@ export function createCrudHooks<
       onSuccess: () => {
         invalidateAll(qc);
         showSuccess(deletedMsg(entityName));
-      },
-      onError: (err: unknown) => {
-        showError(err);
       },
     });
   }
@@ -143,9 +133,6 @@ export function createCrudHooks<
       onSuccess: () => {
         invalidateAll(qc);
         showSuccess(successMessage ?? actionDefaultMsg(entityName, action));
-      },
-      onError: (err: unknown) => {
-        showError(err);
       },
     });
   }

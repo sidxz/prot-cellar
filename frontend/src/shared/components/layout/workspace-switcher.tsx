@@ -15,7 +15,7 @@ import {
   useSidebar,
 } from "@/shared/components/ui/sidebar";
 import { useAuthz } from "@sentinel-auth/nextjs";
-import { Check, ChevronsUpDown, Dna, FlaskConical } from "lucide-react";
+import { Building2, Check, ChevronsUpDown, Dna } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 
 interface WorkspaceOption {
@@ -118,7 +118,7 @@ export function WorkspaceSwitcher() {
                     if (ws.id !== currentWorkspaceId) switchWorkspace(ws.id);
                   }}
                 >
-                  <FlaskConical className="mr-2 size-4" />
+                  <Building2 className="mr-2 size-4" />
                   <div className="flex flex-1 items-center justify-between">
                     <span className="truncate">{ws.name}</span>
                     <div className="flex items-center gap-1.5">
@@ -130,7 +130,7 @@ export function WorkspaceSwitcher() {
               ))
             ) : (
               <DropdownMenuItem disabled>
-                <FlaskConical className="mr-2 size-4" />
+                <Building2 className="mr-2 size-4" />
                 <span>{currentWorkspace}</span>
               </DropdownMenuItem>
             )}

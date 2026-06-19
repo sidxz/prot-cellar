@@ -71,7 +71,8 @@ export interface DataGridProps<TData = unknown>
    *  status text or other left-aligned controls there. */
   toolbarLeft?: ReactNode;
   /**
-   * When this value changes to a truthy value, the grid calls `api.deselectAll()`.
+   * When this value changes to a falsy value, the grid calls `api.deselectAll()`.
+   * Callers typically pass the tracked selection set size; dropping to 0 triggers clear.
    * Useful for syncing external clear-selection events (e.g. after a new search).
    */
   clearSelectionToken?: unknown;

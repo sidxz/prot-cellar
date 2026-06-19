@@ -2,6 +2,7 @@
 
 import { Badge } from "@/shared/components/ui/badge";
 import { Button } from "@/shared/components/ui/button";
+import { showError } from "@/shared/lib/toast";
 import { cn } from "@/shared/lib/utils";
 import { useState } from "react";
 import { chunkSequence, toFasta } from "./sequence";
@@ -42,15 +43,18 @@ export function SequenceViewer({
   const chunks = chunkSequence(sequence, RESIDUES_PER_LINE);
 
   function handleCopy() {
-    navigator.clipboard.writeText(sequence).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1500);
-    });
+    navigator.clipboard
+      .writeText(sequence)
+      .then(() => {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 1500);
+      })
+      .catch(() => showError("Failed to copy sequence"));
   }
 
   function handleDownloadFasta() {
     const header = accession ?? "sequence";
-    const fasta = toFasta(header, sequence);
+    const fasta = toFasta(header, sequence, RESIDUES_PER_LINE);
     const blob = new Blob([fasta], { type: "text/plain" });
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement("a");
