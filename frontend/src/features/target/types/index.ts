@@ -19,6 +19,12 @@ export interface TargetComponentInput {
   accession?: string;
   /** Display-only: human-readable label */
   label?: string;
+  /**
+   * Client-only React key — never sent to the API.
+   * Assigned by TargetComponentsEditor on mount/add and preserved across
+   * all row edits.  Stripped before building the API request body.
+   */
+  _key?: number;
 }
 
 /** Human-readable labels for each TargetType value. */

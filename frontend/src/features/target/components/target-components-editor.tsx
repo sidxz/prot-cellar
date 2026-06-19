@@ -17,7 +17,7 @@ import type { ComponentRelationship, TargetType } from "@/shared/lib/api/model";
 import { resolveProteinApiV1ProteinsResolveIdentifierGet } from "@/shared/lib/api/proteins/proteins";
 import { showError } from "@/shared/lib/toast";
 import { cn } from "@/shared/lib/utils";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 interface TargetComponentsEditorProps {
   value: TargetComponentInput[];
@@ -31,24 +31,27 @@ interface TargetComponentsEditorProps {
  * Row mutations are always surfaced via `onChange(newRows)` — the parent owns
  * the source of truth.  We only keep transient per-row "resolving" state here
  * (a `Set<number>` of stable client-key ids that are currently loading).
+ *
+ * Stable React keys are carried IN each row as `_key` (a client-only field,
+ * never sent to the API).  The `nextKey` counter never resets so removed-row
+ * keys are never reused, preventing React key churn on remove/reorder.
  */
 export function TargetComponentsEditor({
   value,
   onChange,
   targetType,
 }: TargetComponentsEditorProps) {
-  // Stable client keys per row — counter never resets so removed-row keys are
-  // never reused, preventing React key churn on remove/reorder.
-  const keyCounter = useRef(0);
-  const rowKeys = useRef<number[]>([]);
+  // Monotonically increasing counter for assigning _key values.
+  const nextKey = useRef(1);
 
-  // Seed keys for any rows that arrive before this component mounts (e.g. edit
-  // mode pre-populating existing rows).
-  if (rowKeys.current.length < value.length) {
-    while (rowKeys.current.length < value.length) {
-      rowKeys.current.push(keyCounter.current++);
+  // Normalize any rows that arrived without a _key (e.g. pre-populated edit
+  // rows from the server).  Guarded so it only fires when at least one row is
+  // missing _key — prevents an infinite onChange loop.
+  useEffect(() => {
+    if (value.some((r) => r._key == null)) {
+      onChange(value.map((r) => (r._key == null ? { ...r, _key: nextKey.current++ } : r)));
     }
-  }
+  }, [value, onChange]);
 
   // Transient loading state: which stable-key ids are currently resolving.
   const [resolvingKeys, setResolvingKeys] = useState<Set<number>>(new Set());
@@ -56,6 +59,7 @@ export function TargetComponentsEditor({
   // ── helpers ──────────────────────────────────────────────────────────────
 
   function updateRow(idx: number, patch: Partial<TargetComponentInput>) {
+    // Preserve the existing _key when patching a row.
     const newRows = value.map((row, i) => (i === idx ? { ...row, ...patch } : row));
     onChange(newRows);
   }
@@ -64,17 +68,15 @@ export function TargetComponentsEditor({
     const accession = value[idx]?.accession?.trim();
     if (!accession) return;
 
-    const stableKey = rowKeys.current[idx];
+    const stableKey = value[idx]._key;
+    if (stableKey == null) return;
     setResolvingKeys((prev) => new Set(prev).add(stableKey));
 
     try {
       const protein = await resolveProteinApiV1ProteinsResolveIdentifierGet(accession);
-      // Extract the best human-readable label from protein_names (recommended.full_name)
-      // or fall back to primary_accession.
-      const names = protein.protein_names as Record<string, unknown> | null;
-      const recommended = names?.recommended as Record<string, unknown> | undefined;
-      const fullName = recommended?.full_name as string | undefined;
-      const label = fullName ?? protein.primary_accession;
+      // Use entry_name (e.g. "P53_HUMAN") or fall back to primary_accession.
+      // Both are plain top-level fields on ProteinResponse — no runtime cast needed.
+      const label = protein.entry_name ?? protein.primary_accession;
 
       updateRow(idx, { protein_id: protein.id, label });
     } catch (err) {
@@ -91,12 +93,13 @@ export function TargetComponentsEditor({
   }
 
   function addRow() {
-    rowKeys.current.push(keyCounter.current++);
-    onChange([...value, { protein_id: "", relationship: "single_protein", accession: "" }]);
+    onChange([
+      ...value,
+      { protein_id: "", relationship: "single_protein", accession: "", _key: nextKey.current++ },
+    ]);
   }
 
   function removeRow(idx: number) {
-    rowKeys.current.splice(idx, 1);
     onChange(value.filter((_, i) => i !== idx));
   }
 
@@ -126,7 +129,9 @@ export function TargetComponentsEditor({
       {/* Rows */}
       <div className="space-y-3">
         {value.map((row, idx) => {
-          const stableKey = rowKeys.current[idx];
+          // _key is guaranteed by the normalization effect above; fall back to
+          // index only as a last resort (should never occur in practice).
+          const stableKey = row._key ?? idx;
           const isResolving = resolvingKeys.has(stableKey);
           const isResolved = row.protein_id !== "";
 
