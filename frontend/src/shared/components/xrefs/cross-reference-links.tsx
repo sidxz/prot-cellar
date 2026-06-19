@@ -36,7 +36,7 @@ export function CrossReferenceLinks({ items, className }: CrossReferenceLinksPro
             {refs.map((ref) =>
               ref.url ? (
                 <a
-                  key={ref.accession}
+                  key={`${ref.database}-${ref.accession}`}
                   href={ref.url}
                   target="_blank"
                   rel="noopener noreferrer"
@@ -46,7 +46,7 @@ export function CrossReferenceLinks({ items, className }: CrossReferenceLinksPro
                 </a>
               ) : (
                 <span
-                  key={ref.accession}
+                  key={`${ref.database}-${ref.accession}`}
                   className="inline-flex items-center rounded-md border border-border px-2 py-0.5 font-mono text-xs text-muted-foreground"
                 >
                   {ref.accession}

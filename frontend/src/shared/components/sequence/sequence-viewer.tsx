@@ -15,6 +15,7 @@ export interface SequenceViewerProps {
 }
 
 const RULER_STEP = 10;
+const RESIDUES_PER_LINE = 60;
 
 function buildRuler(lineStart: number, lineLen: number): string {
   let ruler = "";
@@ -38,7 +39,7 @@ export function SequenceViewer({
   className,
 }: SequenceViewerProps) {
   const [copied, setCopied] = useState(false);
-  const chunks = chunkSequence(sequence);
+  const chunks = chunkSequence(sequence, RESIDUES_PER_LINE);
 
   function handleCopy() {
     navigator.clipboard.writeText(sequence).then(() => {
@@ -98,7 +99,7 @@ export function SequenceViewer({
       <section className="overflow-x-auto rounded-md bg-muted p-3" aria-label="Protein sequence">
         <pre className="font-mono text-xs leading-relaxed text-foreground">
           {chunks.map((chunk, idx) => {
-            const lineStart = idx * 60;
+            const lineStart = idx * RESIDUES_PER_LINE;
             const ruler = buildRuler(lineStart, chunk.length);
             return (
               <div key={lineStart} className="flex gap-2">
