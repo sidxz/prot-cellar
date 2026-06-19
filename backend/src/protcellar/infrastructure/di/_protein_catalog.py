@@ -7,6 +7,7 @@ from typing import Any
 from lagom import Container
 from sqlalchemy.ext.asyncio import async_sessionmaker
 
+from protcellar.application.protein_catalog.bulk_upsert_proteins import BulkUpsertProteins
 from protcellar.application.protein_catalog.create_gene import CreateGene
 from protcellar.application.protein_catalog.create_protein import CreateProtein
 from protcellar.application.protein_catalog.get_gene import GetGene
@@ -55,6 +56,7 @@ def register_protein_catalog(container: Container) -> None:
 
         return _f
 
+    container.define(BulkUpsertProteins, _protein_cmd(BulkUpsertProteins))
     container.define(CreateGene, _gene_cmd(CreateGene))
     container.define(UpdateGene, _gene_cmd(UpdateGene))
     container.define(GetGene, _gene_query(GetGene))

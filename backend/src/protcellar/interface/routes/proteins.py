@@ -8,6 +8,10 @@ from fastapi import APIRouter, Response
 from fastapi.responses import JSONResponse, PlainTextResponse
 from pydantic import BaseModel
 
+from protcellar.application.protein_catalog.bulk_upsert_proteins import (
+    BulkUpsertProteinsCommand,
+    ProteinImportRecord,
+)
 from protcellar.application.protein_catalog.create_protein import CreateProteinCommand
 from protcellar.application.protein_catalog.get_protein import GetProteinQuery
 from protcellar.application.protein_catalog.list_proteins import ListProteinsQuery
@@ -21,6 +25,7 @@ from protcellar.domain.shared.cross_reference import CrossReference
 from protcellar.infrastructure.identifiers.registry import IdentifierRegistry
 from protcellar.interface.dependencies import (
     AuthDep,
+    BulkUpsertProteinsDep,
     CreateProteinDep,
     GetProteinDep,
     ListProteinsDep,
@@ -144,6 +149,52 @@ class UpdateProteinBody(BaseModel):
     model_config = {"extra": "forbid"}
 
 
+class BulkRecordBody(BaseModel):
+    primary_accession: str
+    organism_id: uuid.UUID
+    sequence: str
+    is_reviewed: bool
+    source: str
+    source_release: str
+    source_record_id: str
+    source_record_checksum: str
+    secondary_accessions: list[str] = []
+    entry_name: str | None = None
+    protein_names: ProteinNamesBody | None = None
+    strain_id: uuid.UUID | None = None
+    gene_id: uuid.UUID | None = None
+    seq_mass: int | None = None
+    seq_crc64: str | None = None
+    protein_existence: ProteinExistence | None = None
+    keywords: list[str] = []
+    entry_version: int | None = None
+    sequence_version: int | None = None
+
+
+class BulkUpsertBody(BaseModel):
+    records: list[BulkRecordBody]
+    dry_run: bool = False
+
+
+class ItemResultResponse(BaseModel):
+    index: int
+    status: str
+    id: str | None = None
+    error: str | None = None
+
+
+class BulkSummaryResponse(BaseModel):
+    created: int
+    updated: int
+    skipped: int
+    failed: int
+
+
+class BulkUpsertResponse(BaseModel):
+    results: list[ItemResultResponse]
+    summary: BulkSummaryResponse
+
+
 # Route ordering: /resolve/{identifier} BEFORE /{accession} to avoid path-param shadowing.
 
 
@@ -183,6 +234,63 @@ async def list_proteins(
     return PaginatedResponse(
         items=[ProteinResponse.from_domain(p) for p in page.items],
         next_cursor=page.next_cursor,
+    )
+
+
+@router.post("/bulk", response_model=BulkUpsertResponse)
+async def bulk_upsert_proteins(
+    body: BulkUpsertBody,
+    auth: AuthDep,
+    use_case: BulkUpsertProteinsDep,
+) -> BulkUpsertResponse:
+    command = BulkUpsertProteinsCommand(
+        records=tuple(
+            ProteinImportRecord(
+                primary_accession=r.primary_accession,
+                organism_id=r.organism_id,
+                sequence=r.sequence,
+                is_reviewed=r.is_reviewed,
+                source=r.source,
+                source_release=r.source_release,
+                source_record_id=r.source_record_id,
+                source_record_checksum=r.source_record_checksum,
+                secondary_accessions=tuple(r.secondary_accessions),
+                entry_name=r.entry_name,
+                protein_names=(
+                    ProteinNames(
+                        recommended=r.protein_names.recommended,
+                        alternative=tuple(r.protein_names.alternative),
+                        submitted=tuple(r.protein_names.submitted),
+                    )
+                    if r.protein_names is not None
+                    else None
+                ),
+                strain_id=r.strain_id,
+                gene_id=r.gene_id,
+                seq_mass=r.seq_mass,
+                seq_crc64=r.seq_crc64,
+                protein_existence=r.protein_existence,
+                keywords=tuple(r.keywords),
+                entry_version=r.entry_version,
+                sequence_version=r.sequence_version,
+            )
+            for r in body.records
+        ),
+        dry_run=body.dry_run,
+    )
+    item_results = result_to_response(await use_case(command, auth=auth))
+    summary = BulkSummaryResponse(
+        created=sum(1 for r in item_results if r.status == "created"),
+        updated=sum(1 for r in item_results if r.status == "updated"),
+        skipped=sum(1 for r in item_results if r.status == "skipped"),
+        failed=sum(1 for r in item_results if r.status == "failed"),
+    )
+    return BulkUpsertResponse(
+        results=[
+            ItemResultResponse(index=r.index, status=r.status, id=r.id, error=r.error)
+            for r in item_results
+        ],
+        summary=summary,
     )
 
 

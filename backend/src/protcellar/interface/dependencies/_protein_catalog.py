@@ -6,6 +6,7 @@ from typing import Annotated
 
 from fastapi import Depends
 
+from protcellar.application.protein_catalog.bulk_upsert_proteins import BulkUpsertProteins
 from protcellar.application.protein_catalog.create_gene import CreateGene
 from protcellar.application.protein_catalog.create_protein import CreateProtein
 from protcellar.application.protein_catalog.get_gene import GetGene
@@ -19,6 +20,7 @@ from protcellar.application.protein_catalog.update_protein import UpdateProtein
 from ._core import _get_use_case
 
 __all__ = [
+    "BulkUpsertProteinsDep",
     "CreateGeneDep",
     "CreateProteinDep",
     "GetGeneDep",
@@ -29,6 +31,9 @@ __all__ = [
     "UpdateGeneDep",
     "UpdateProteinDep",
 ]
+
+# --- Protein Bulk ---
+BulkUpsertProteinsDep = Annotated[BulkUpsertProteins, Depends(_get_use_case(BulkUpsertProteins))]
 
 # --- Gene Deps ---
 CreateGeneDep = Annotated[CreateGene, Depends(_get_use_case(CreateGene))]
