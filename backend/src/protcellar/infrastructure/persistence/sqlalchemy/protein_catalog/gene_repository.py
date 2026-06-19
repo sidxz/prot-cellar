@@ -8,35 +8,12 @@ from sqlalchemy import select
 
 from protcellar.domain.protein_catalog.gene import Gene
 from protcellar.domain.protein_catalog.repository import GeneRepository
-from protcellar.domain.shared.cross_reference import CrossReference
 from protcellar.infrastructure.persistence.sqlalchemy.base_repository import SQLAlchemyRepository
+from protcellar.infrastructure.persistence.sqlalchemy.protein_catalog._xref_json import (
+    xrefs_from_json,
+    xrefs_to_json,
+)
 from protcellar.infrastructure.persistence.sqlalchemy.protein_catalog.models import GeneModel
-
-
-def _xrefs_to_json(xrefs: list[CrossReference]) -> list[dict[str, object]]:
-    return [
-        {
-            "database": x.database,
-            "accession": x.accession,
-            "properties": x.properties,
-            "evidence": x.evidence,
-        }
-        for x in xrefs
-    ]
-
-
-def _xrefs_from_json(data: list[dict[str, object]] | None) -> list[CrossReference]:
-    if not data:
-        return []
-    return [
-        CrossReference(
-            database=str(d["database"]),
-            accession=str(d["accession"]),
-            properties=d.get("properties"),  # type: ignore[arg-type]
-            evidence=d.get("evidence"),  # type: ignore[arg-type]
-        )
-        for d in data
-    ]
 
 
 class SQLAlchemyGeneRepository(SQLAlchemyRepository[Gene, GeneModel], GeneRepository):
@@ -51,7 +28,7 @@ class SQLAlchemyGeneRepository(SQLAlchemyRepository[Gene, GeneModel], GeneReposi
             ncbi_gene_id=model.ncbi_gene_id,
             ensembl_gene_id=model.ensembl_gene_id,
             hgnc_id=model.hgnc_id,
-            cross_references=_xrefs_from_json(model.cross_references),
+            cross_references=xrefs_from_json(model.cross_references),
             source=model.source,
             source_release=model.source_release,
             source_record_id=model.source_record_id,
@@ -72,7 +49,7 @@ class SQLAlchemyGeneRepository(SQLAlchemyRepository[Gene, GeneModel], GeneReposi
             ncbi_gene_id=aggregate.ncbi_gene_id,
             ensembl_gene_id=aggregate.ensembl_gene_id,
             hgnc_id=aggregate.hgnc_id,
-            cross_references=_xrefs_to_json(aggregate.cross_references) or None,
+            cross_references=xrefs_to_json(aggregate.cross_references) or None,
             source=aggregate.source,
             source_release=aggregate.source_release,
             source_record_id=aggregate.source_record_id,
@@ -88,7 +65,7 @@ class SQLAlchemyGeneRepository(SQLAlchemyRepository[Gene, GeneModel], GeneReposi
         model.ncbi_gene_id = aggregate.ncbi_gene_id
         model.ensembl_gene_id = aggregate.ensembl_gene_id
         model.hgnc_id = aggregate.hgnc_id
-        model.cross_references = _xrefs_to_json(aggregate.cross_references) or None
+        model.cross_references = xrefs_to_json(aggregate.cross_references) or None
         model.source = aggregate.source
         model.source_release = aggregate.source_release
         model.source_record_id = aggregate.source_record_id

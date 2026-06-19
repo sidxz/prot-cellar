@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import uuid
 
-from sqlalchemy import JSON, ForeignKey, String
+from sqlalchemy import JSON, Boolean, ForeignKey, Index, Integer, String, Text
 from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -28,4 +28,40 @@ class GeneModel(Base, EntityModelMixin, WorkspaceIdMixin, VersionMixin, Provenan
     ncbi_gene_id: Mapped[str | None] = mapped_column(String(32), nullable=True, index=True)
     ensembl_gene_id: Mapped[str | None] = mapped_column(String(32), nullable=True, index=True)
     hgnc_id: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    cross_references: Mapped[list[dict[str, object]] | None] = mapped_column(JSON, nullable=True)
+
+
+class ProteinModel(Base, EntityModelMixin, WorkspaceIdMixin, VersionMixin, ProvenanceMixin):
+    __tablename__ = "proteins"
+    __table_args__ = (
+        Index("ix_proteins_primary_accession", "primary_accession", unique=True),
+        Index(
+            "ix_proteins_secondary_accessions",
+            "secondary_accessions",
+            postgresql_using="gin",
+        ),
+    )
+
+    primary_accession: Mapped[str] = mapped_column(String(10), nullable=False)
+    secondary_accessions: Mapped[list[str] | None] = mapped_column(ARRAY(String), nullable=True)
+    entry_name: Mapped[str | None] = mapped_column(String(32), nullable=True, index=True)
+    is_reviewed: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False, index=True)
+    protein_names: Mapped[dict[str, object] | None] = mapped_column(JSON, nullable=True)
+    organism_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("organisms.id"), nullable=False, index=True
+    )
+    strain_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("strains.id"), nullable=True, index=True
+    )
+    gene_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("genes.id"), nullable=True, index=True
+    )
+    sequence: Mapped[str] = mapped_column(Text, nullable=False)
+    seq_length: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
+    seq_mass: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    seq_crc64: Mapped[str | None] = mapped_column(String(16), nullable=True)
+    protein_existence: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    keywords: Mapped[list[str] | None] = mapped_column(ARRAY(String), nullable=True)
+    entry_version: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    sequence_version: Mapped[int | None] = mapped_column(Integer, nullable=True)
     cross_references: Mapped[list[dict[str, object]] | None] = mapped_column(JSON, nullable=True)
