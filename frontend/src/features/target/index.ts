@@ -10,3 +10,6 @@ export { useTargets, useTarget, useCreateTarget, useUpdateTarget } from "./hooks
 
 // Cardinality utilities
 export { cardinalityRule, componentCountValid, cardinalityHint } from "./lib/cardinality";
+
+// Components
+export { TargetComponentsEditor } from "./components/target-components-editor";
