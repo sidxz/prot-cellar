@@ -54,6 +54,16 @@ describe("customInstance", () => {
     await expect(customInstance({ url: "/api/v1/x", method: "POST" })).rejects.toBeInstanceOf(ApiError);
   });
 
+  it("does not force JSON content-type for FormData bodies", async () => {
+    fetchMock.mockResolvedValue(jsonResponse({ ok: true }));
+    const fd = new FormData();
+    fd.append("f", "v");
+    await customInstance({ url: "/api/v1/x", method: "POST", data: fd });
+    const init = fetchMock.mock.calls[0][1] as RequestInit;
+    const headers = init.headers as Record<string, string>;
+    expect(headers["Content-Type"]).toBeUndefined();
+  });
+
   it("exposes API_V1 constant", () => {
     expect(API_V1).toBe("/api/v1");
   });
