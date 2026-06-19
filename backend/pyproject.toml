@@ -77,14 +77,13 @@ forbidden_modules = [
     "lagom",
 ]
 
-# Re-enable when bounded-context modules exist (Plan 0 Tasks 9-10, Plan 1)
-# [[tool.importlinter.contracts]]
-# name = "Bounded context independence"
-# type = "independence"
-# modules = [
-#     "protcellar.domain.taxonomy",
-#     "protcellar.domain.protein_catalog",
-#     "protcellar.domain.target",
-#     "protcellar.domain.workspace_config",
-#     "protcellar.domain.audit_compliance",
-# ]
+[[tool.importlinter.contracts]]
+name = "Bounded context independence"
+type = "independence"
+modules = [
+    "protcellar.domain.taxonomy",
+    "protcellar.domain.protein_catalog",
+    "protcellar.domain.target",
+    "protcellar.domain.workspace_config",
+    "protcellar.domain.audit_compliance",
+]
