@@ -7,6 +7,7 @@ Tasks 9, 10, and the taxonomy plan append model-module imports below.
 """
 
 import protcellar.infrastructure.persistence.sqlalchemy.audit_compliance.models
+import protcellar.infrastructure.persistence.sqlalchemy.protein_catalog.models
 import protcellar.infrastructure.persistence.sqlalchemy.taxonomy.models
 
 # --- model module imports (appended by Tasks 9, 10, taxonomy plan) ---
