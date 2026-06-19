@@ -117,19 +117,16 @@ class UpdateTargetBody(BaseModel):
 async def list_targets(
     auth: AuthDep,
     use_case: ListTargetsDep,
-    target_type: str | None = None,
+    target_type: TargetType | None = None,
     chembl_id: str | None = None,
     cursor: str | None = None,
     limit: int | None = None,
 ) -> PaginatedResponse[TargetResponse]:
-    parsed_target_type: TargetType | None = None
-    if target_type is not None:
-        parsed_target_type = TargetType(target_type)
     query = ListTargetsQuery(
         workspace_id=auth.workspace_id,
         cursor_id=parse_cursor(cursor),
         limit=clamp_limit(limit),
-        target_type=parsed_target_type,
+        target_type=target_type,
         chembl_id=chembl_id,
     )
     page = result_to_response(await use_case(query, auth=auth))

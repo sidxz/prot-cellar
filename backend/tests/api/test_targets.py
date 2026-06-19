@@ -112,3 +112,32 @@ async def test_update_target_preserves_components(client: AsyncClient) -> None:
     refetched = await client.get(f"/api/v1/targets/{target_id}")
     assert {c["protein_id"] for c in refetched.json()["components"]} == {p2, p3}
     assert len(refetched.json()["components"]) == 2
+
+
+@pytest.mark.asyncio
+async def test_list_rejects_invalid_target_type(client: AsyncClient) -> None:
+    resp = await client.get("/api/v1/targets", params={"target_type": "garbage"})
+    assert resp.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_patch_clearing_components_rejected(client: AsyncClient) -> None:
+    organism_id = await _organism(client)
+    p1 = await _protein(client, organism_id, "P77777")
+    p2 = await _protein(client, organism_id, "P88888")
+    created = await client.post(
+        "/api/v1/targets",
+        json={
+            "pref_name": "Complex Clear",
+            "target_type": "protein_complex",
+            "components": [
+                {"protein_id": p1, "relationship": "protein_subunit"},
+                {"protein_id": p2, "relationship": "protein_subunit"},
+            ],
+        },
+    )
+    assert created.status_code == 201
+    tid = created.json()["id"]
+    # Clearing all components on a complex violates the cardinality invariant (>=2).
+    cleared = await client.patch(f"/api/v1/targets/{tid}", json={"components": []})
+    assert cleared.status_code == 422
