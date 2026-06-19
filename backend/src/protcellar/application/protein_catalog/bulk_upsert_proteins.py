@@ -16,6 +16,7 @@ from protcellar.domain.protein_catalog.enums import ProteinExistence
 from protcellar.domain.protein_catalog.protein import Protein
 from protcellar.domain.protein_catalog.repository import ProteinRepository
 from protcellar.domain.protein_catalog.value_objects import ProteinNames
+from protcellar.domain.shared.cross_reference import CrossReference
 from protcellar.domain.shared.errors import DomainError
 
 
@@ -40,6 +41,7 @@ class ProteinImportRecord:
     keywords: tuple[str, ...] = ()
     entry_version: int | None = None
     sequence_version: int | None = None
+    cross_references: tuple[CrossReference, ...] = ()
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -93,6 +95,7 @@ class BulkUpsertProteins:
                             keywords=list(rec.keywords),
                             entry_version=rec.entry_version,
                             sequence_version=rec.sequence_version,
+                            cross_references=list(rec.cross_references),
                         )
                         existing.source_record_checksum = rec.source_record_checksum
                         existing.source_release = rec.source_release
@@ -117,6 +120,7 @@ class BulkUpsertProteins:
                             keywords=list(rec.keywords),
                             entry_version=rec.entry_version,
                             sequence_version=rec.sequence_version,
+                            cross_references=list(rec.cross_references),
                         )
                         protein.source = rec.source
                         protein.source_record_id = rec.source_record_id

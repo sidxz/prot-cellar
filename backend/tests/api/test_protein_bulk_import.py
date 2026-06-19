@@ -22,10 +22,16 @@ async def test_bulk_upsert_is_idempotent(client: AsyncClient) -> None:
         "source_release": "2026_02",
         "source_record_id": "P0DP23",
         "source_record_checksum": "crc1",
+        "cross_references": [{"database": "pdb", "accession": "6VXX"}],
     }
     first = await client.post("/api/v1/proteins/bulk", json={"records": [rec]})
     assert first.status_code == 200
     assert first.json()["summary"]["created"] == 1
+
+    # Verify cross_reference round-trips
+    got_created = await client.get("/api/v1/proteins/P0DP23")
+    xrefs = got_created.json()["cross_references"]
+    assert any(x["database"] == "pdb" and x["accession"] == "6VXX" for x in xrefs)
 
     # Same checksum → skipped
     second = await client.post("/api/v1/proteins/bulk", json={"records": [rec]})

@@ -169,6 +169,7 @@ class BulkRecordBody(BaseModel):
     keywords: list[str] = []
     entry_version: int | None = None
     sequence_version: int | None = None
+    cross_references: list[CrossReferenceBody] = []
 
 
 class BulkUpsertBody(BaseModel):
@@ -273,6 +274,15 @@ async def bulk_upsert_proteins(
                 keywords=tuple(r.keywords),
                 entry_version=r.entry_version,
                 sequence_version=r.sequence_version,
+                cross_references=tuple(
+                    CrossReference(
+                        database=xr.database,
+                        accession=xr.accession,
+                        properties=xr.properties,
+                        evidence=xr.evidence,
+                    )
+                    for xr in r.cross_references
+                ),
             )
             for r in body.records
         ),
