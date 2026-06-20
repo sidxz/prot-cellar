@@ -272,6 +272,8 @@ class ProteinNamesBody(BaseModel):
     recommended: str | None = None
     alternative: list[str] = []
     submitted: list[str] = []
+    short_names: list[str] = []
+    ec_numbers: list[str] = []
 
 
 class CrossReferenceBody(BaseModel):
@@ -442,6 +444,8 @@ async def bulk_upsert_proteins(
                         recommended=r.protein_names.recommended,
                         alternative=tuple(r.protein_names.alternative),
                         submitted=tuple(r.protein_names.submitted),
+                        short_names=tuple(r.protein_names.short_names),
+                        ec_numbers=tuple(r.protein_names.ec_numbers),
                     )
                     if r.protein_names is not None
                     else None
@@ -557,6 +561,8 @@ async def create_protein(
             recommended=body.protein_names.recommended,
             alternative=tuple(body.protein_names.alternative),
             submitted=tuple(body.protein_names.submitted),
+            short_names=tuple(body.protein_names.short_names),
+            ec_numbers=tuple(body.protein_names.ec_numbers),
         )
     cross_references = [
         CrossReference(
@@ -619,6 +625,8 @@ async def update_protein(
                 recommended=body.protein_names.recommended,
                 alternative=tuple(body.protein_names.alternative),
                 submitted=tuple(body.protein_names.submitted),
+                short_names=tuple(body.protein_names.short_names),
+                ec_numbers=tuple(body.protein_names.ec_numbers),
             )
         else:
             protein_names = None

@@ -13,12 +13,16 @@ class ProteinNames:
     recommended: str | None = None
     alternative: tuple[str, ...] = ()
     submitted: tuple[str, ...] = ()
+    short_names: tuple[str, ...] = ()
+    ec_numbers: tuple[str, ...] = ()
 
     def to_dict(self) -> dict[str, object]:
         return {
             "recommended": self.recommended,
             "alternative": list(self.alternative),
             "submitted": list(self.submitted),
+            "short_names": list(self.short_names),
+            "ec_numbers": list(self.ec_numbers),
         }
 
     @classmethod
@@ -28,12 +32,18 @@ class ProteinNames:
         recommended = data.get("recommended")
         alt_raw = data.get("alternative")
         sub_raw = data.get("submitted")
+        short_raw = data.get("short_names")
+        ec_raw = data.get("ec_numbers")
         alt = alt_raw if isinstance(alt_raw, list) else []
         sub = sub_raw if isinstance(sub_raw, list) else []
+        short = short_raw if isinstance(short_raw, list) else []
+        ec = ec_raw if isinstance(ec_raw, list) else []
         return cls(
             recommended=recommended if isinstance(recommended, str) else None,
             alternative=tuple(str(x) for x in alt),
             submitted=tuple(str(x) for x in sub),
+            short_names=tuple(str(x) for x in short),
+            ec_numbers=tuple(str(x) for x in ec),
         )
 
     @property

@@ -180,6 +180,12 @@ Today `proteins.keywords` is `ARRAY(String)` (names only — loses `KW-id` + cat
 
 ---
 
+## Name-block enrichment — short names + EC numbers  ✅ DONE
+
+> Status: GREEN (no migration — it's the `protein_names` JSON column). `ProteinNames` VO + `ProteinNamesBody` gain `short_names` + `ec_numbers` (protein-level tuples), closing the last losslessness gap in the protein-description block (per user decision "enrich names only"). Full suite 91 green; ruff/mypy clean.
+
+## SCHEMA COMPLETE ✅ — all 8 tasks + name enrichment done; model losslessly holds a full UniProtKB entry. Next: the import pipeline below.
+
 ## Follow-on (separate plan): UniProt import pipeline
 
 After the schema lands, a second plan covers ingestion (not schema): fetch `/proteomes/UP000001584` → upsert proteome row + membership; stream `/uniprotkb/stream?query=proteome:UP000001584&format=json&compressed=true`; a **UniProt-JSON → ProteinImportRecord mapper** exploding each entry into the Task 3–8 children; durable chunked workflow (cursor `Link` paging, 500/page), dry-run, `BULK_IMPORT` audit op. Decision deferred: relational `evidence` table vs JSONB-per-row (plan assumes JSONB).

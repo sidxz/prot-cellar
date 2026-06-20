@@ -253,3 +253,30 @@ async def test_bulk_import_captures_citations(client: AsyncClient) -> None:
     assert c["pubmed_id"] == "9634230"
     assert c["title"].startswith("The complete genome")
     assert c["authors"] == ["Cole S.T.", "Brosch R."]
+
+
+@pytest.mark.asyncio
+async def test_bulk_import_captures_short_names_and_ec_numbers(client: AsyncClient) -> None:
+    organism_id = await _organism(client, ncbi_tax_id=99909)
+    rec = {
+        "primary_accession": "P9WGR1",
+        "organism_id": organism_id,
+        "sequence": "MGSKATLNDARQ",
+        "is_reviewed": True,
+        "source": "uniprot",
+        "source_release": "2026_02",
+        "source_record_id": "P9WGR1",
+        "source_record_checksum": "crc1",
+        "protein_names": {
+            "recommended": "Catalase-peroxidase",
+            "short_names": ["CP"],
+            "ec_numbers": ["1.11.1.21"],
+        },
+    }
+    resp = await client.post("/api/v1/proteins/bulk", json={"records": [rec]})
+    assert resp.status_code == 200
+    got = (await client.get("/api/v1/proteins/P9WGR1")).json()
+    pn = got["protein_names"]
+    assert pn["recommended"] == "Catalase-peroxidase"
+    assert pn["short_names"] == ["CP"]
+    assert pn["ec_numbers"] == ["1.11.1.21"]
