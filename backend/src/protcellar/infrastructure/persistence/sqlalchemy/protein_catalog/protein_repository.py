@@ -329,7 +329,7 @@ class SQLAlchemyProteinRepository(SQLAlchemyRepository[Protein, ProteinModel], P
         max_length: int | None = None,
         xref_db: str | None = None,
         has_structure: bool | None = None,
-        go_term: str | None = None,
+        go_terms: list[str] | None = None,
         keyword: str | None = None,
     ) -> list[Protein]:
         stmt = select(ProteinModel).order_by(ProteinModel.id)
@@ -357,12 +357,12 @@ class SQLAlchemyProteinRepository(SQLAlchemyRepository[Protein, ProteinModel], P
                     ProteinCrossReferenceModel.database.in_(_STRUCTURE_DBS),
                 )
             )
-        if go_term is not None:
+        if go_terms:
             stmt = stmt.where(
                 exists().where(
                     ProteinCrossReferenceModel.protein_id == ProteinModel.id,
                     ProteinCrossReferenceModel.database == "GO",
-                    ProteinCrossReferenceModel.accession == go_term,
+                    ProteinCrossReferenceModel.accession.in_(go_terms),
                 )
             )
         if keyword is not None:

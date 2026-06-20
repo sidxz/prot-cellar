@@ -62,7 +62,7 @@ class ProteinRepository(Protocol):
         max_length: int | None = None,
         xref_db: str | None = None,
         has_structure: bool | None = None,
-        go_term: str | None = None,
+        go_terms: list[str] | None = None,
         keyword: str | None = None,
     ) -> list[Protein]: ...
 

@@ -11,6 +11,7 @@ from protcellar.application.auth import AuthContext, require_authenticated
 from protcellar.application.shared.pagination import PageResult
 from protcellar.application.shared.query import Query
 from protcellar.application.shared.unit_of_work import UnitOfWork
+from protcellar.domain.gene_ontology.repository import GoOntologyRepository
 from protcellar.domain.protein_catalog.protein import Protein
 from protcellar.domain.protein_catalog.repository import ProteinRepository
 from protcellar.domain.shared.errors import DomainError
@@ -28,19 +29,31 @@ class ListProteinsQuery(Query):
     xref_db: str | None = None
     has_structure: bool | None = None
     go_term: str | None = None
+    descendants: bool = False
     keyword: str | None = None
 
 
 class ListProteins:
-    def __init__(self, uow: UnitOfWork, repo: ProteinRepository) -> None:
+    def __init__(
+        self, uow: UnitOfWork, repo: ProteinRepository, go_repo: GoOntologyRepository
+    ) -> None:
         self._uow = uow
         self._repo = repo
+        self._go_repo = go_repo
 
     async def __call__(
         self, input: ListProteinsQuery, auth: AuthContext | None = None
     ) -> Result[PageResult[Protein], DomainError]:
         require_authenticated(auth)
         async with self._uow:
+            go_terms: list[str] | None = None
+            if input.go_term is not None:
+                if input.descendants:
+                    go_terms = sorted(
+                        {input.go_term} | await self._go_repo.descendants(input.go_term)
+                    )
+                else:
+                    go_terms = [input.go_term]
             effective_limit = input.limit
             fetch_limit = effective_limit + 1 if effective_limit is not None else None
             proteins = await self._repo.find_all(
@@ -53,7 +66,7 @@ class ListProteins:
                 max_length=input.max_length,
                 xref_db=input.xref_db,
                 has_structure=input.has_structure,
-                go_term=input.go_term,
+                go_terms=go_terms,
                 keyword=input.keyword,
             )
 

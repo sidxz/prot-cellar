@@ -1,5 +1,8 @@
 import pytest
 from httpx import AsyncClient
+from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
+
+from protcellar.infrastructure.persistence.sqlalchemy.gene_ontology.models import GoEdgeModel
 
 
 async def _organism(client: AsyncClient, tax_id: int, name: str) -> str:
@@ -47,6 +50,36 @@ async def test_protein_catalog_filters(client: AsyncClient) -> None:
     assert "P0DV10" in go and "P0DV11" not in go
     kw = await accs("?keyword=KW-0560")
     assert "P0DV10" in kw and "P0DV11" not in kw
+
+
+@pytest.mark.asyncio
+async def test_go_term_descendants_filter(client: AsyncClient, database_url: str) -> None:
+    # seed a GO edge: child GO:0016655 is_a parent GO:0016491 (committed so the app sees it)
+    engine = create_async_engine(database_url)
+    factory = async_sessionmaker(engine, expire_on_commit=False)
+    async with factory() as session, session.begin():
+        session.add(
+            GoEdgeModel(child_go_id="GO:0016655", parent_go_id="GO:0016491", relation="is_a")
+        )
+    await engine.dispose()
+
+    org = await _organism(client, 99940, "Subtree testus")
+    rec = {
+        "primary_accession": "P0DW50", "organism_id": org, "sequence": "MKTAYIAKQR",
+        "is_reviewed": True, "source": "uniprot", "source_release": "x",
+        "source_record_id": "P0DW50", "source_record_checksum": "c",
+        "cross_references": [{"database": "GO", "accession": "GO:0016655"}],
+    }
+    assert (await client.post("/api/v1/proteins/bulk", json={"records": [rec]})).status_code == 200
+
+    async def accs(q: str) -> set[str]:
+        items = (await client.get(f"/api/v1/proteins{q}&limit=200")).json()["items"]
+        return {p["primary_accession"] for p in items}
+
+    # exact: the protein is annotated with the child, not the parent -> not matched
+    assert "P0DW50" not in await accs("?go_term=GO:0016491")
+    # subtree: descendants of the parent include the child -> matched
+    assert "P0DW50" in await accs("?go_term=GO:0016491&descendants=true")
 
 
 @pytest.mark.asyncio

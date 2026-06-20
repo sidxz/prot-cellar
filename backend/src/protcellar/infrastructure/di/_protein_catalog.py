@@ -18,6 +18,9 @@ from protcellar.application.protein_catalog.resolve_protein_id import ResolvePro
 from protcellar.application.protein_catalog.update_gene import UpdateGene
 from protcellar.application.protein_catalog.update_protein import UpdateProtein
 from protcellar.infrastructure.messaging.event_dispatcher import EventDispatcher
+from protcellar.infrastructure.persistence.sqlalchemy.gene_ontology.go_ontology_repository import (
+    SQLAlchemyGoOntologyRepository,
+)
 from protcellar.infrastructure.persistence.sqlalchemy.protein_catalog.gene_repository import (
     SQLAlchemyGeneRepository,
 )
@@ -56,6 +59,12 @@ def register_protein_catalog(container: Container) -> None:
 
         return _f
 
+    def _list_proteins(c: Any) -> ListProteins:
+        uow = AsyncUnitOfWork(c[async_sessionmaker])
+        return ListProteins(
+            uow, SQLAlchemyProteinRepository(uow), SQLAlchemyGoOntologyRepository(uow)
+        )
+
     container.define(BulkUpsertProteins, _protein_cmd(BulkUpsertProteins))
     container.define(CreateGene, _gene_cmd(CreateGene))
     container.define(UpdateGene, _gene_cmd(UpdateGene))
@@ -65,5 +74,5 @@ def register_protein_catalog(container: Container) -> None:
     container.define(CreateProtein, _protein_cmd(CreateProtein))
     container.define(UpdateProtein, _protein_cmd(UpdateProtein))
     container.define(GetProtein, _protein_query(GetProtein))
-    container.define(ListProteins, _protein_query(ListProteins))
+    container.define(ListProteins, _list_proteins)
     container.define(ResolveProteinId, _protein_query(ResolveProteinId))

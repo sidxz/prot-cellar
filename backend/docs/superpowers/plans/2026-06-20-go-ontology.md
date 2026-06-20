@@ -89,7 +89,11 @@
 - [ ] **Step 4 — green** + ruff + mypy + `python -m protcellar.scripts.import_go_ontology --help`.
 - [ ] **Step 5 — commit:** `feat(ingestion): GO ontology import runner + CLI`.
 
-## Task 5: wire `descendants=true` into the protein filter
+## ✅ SUB-PROJECT 2 COMPLETE — all 5 tasks; full suite 111 green, ruff/mypy clean. Next: piece 3 (frontend viewer).
+
+## Task 5: wire `descendants=true` into the protein filter  ✅ DONE
+
+> Status: GREEN. `ListProteinsQuery.descendants`; `ListProteins` gains a `GoOntologyRepository` dep (dedicated 3-arg DI factory `_list_proteins`) and expands `go_term`→subtree when `descendants=true`; `find_all`'s `go_term: str` → `go_terms: list[str]` (`accession.in_`); route adds `descendants`. API test: child-annotated protein matched by `?go_term=<parent>&descendants=true`, not by exact. Full suite 111; ruff/mypy clean.
 
 **Files:** modify `application/protein_catalog/list_proteins.py`, `.../protein_repository.py` (+ protocol `repository.py`), `interface/routes/proteins.py`, DI wiring `interface/dependencies/_protein_catalog.py`; test `tests/api/test_proteins.py`.
 

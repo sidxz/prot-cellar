@@ -404,6 +404,7 @@ async def list_proteins(
     xref_db: str | None = None,
     has_structure: bool | None = None,
     go_term: str | None = None,
+    descendants: bool = False,
     keyword: str | None = None,
     cursor: str | None = None,
     limit: int | None = None,
@@ -419,6 +420,7 @@ async def list_proteins(
         xref_db=xref_db,
         has_structure=has_structure,
         go_term=go_term,
+        descendants=descendants,
         keyword=keyword,
     )
     page = result_to_response(await use_case(query, auth=auth))
