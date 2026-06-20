@@ -20,6 +20,7 @@ import { GoGraphCard } from "./sections/go-graph-card";
 import { GoTermsSection } from "./sections/go-terms-section";
 import { IsoformsSection } from "./sections/isoforms-section";
 import { KeywordsSection } from "./sections/keywords-section";
+import { StructureViewerCard } from "./sections/structure-viewer-card";
 
 // ---------------------------------------------------------------------------
 // Sub-components
@@ -297,6 +298,7 @@ export function ProteinDetailPage({ accession }: ProteinDetailPageProps) {
         <div className="flex flex-col gap-6 min-w-0">
           <FunctionSection protein={protein} />
           <FeaturesSection protein={protein} />
+          <StructureViewerCard protein={protein} />
           <GoGraphCard protein={protein} />
           <section aria-labelledby="seq-heading">
             <h2 id="seq-heading" className="text-base font-semibold mb-3 text-foreground">

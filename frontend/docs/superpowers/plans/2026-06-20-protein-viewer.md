@@ -81,7 +81,9 @@
 - [ ] Failing test: rich fixture → `<img>` with the joined ids in `src`; simulate `onError` → fallback link. Implement. Green + tsc + biome.
 - [ ] Commit `feat(protein-viewer): GO graph (QuickGO) card`.
 
-## Task 6 (3b): StructureViewerCard — pdbe-molstar (+ test)
+## Task 6 (3b): StructureViewerCard — pdbe-molstar (+ test)  ✅ DONE
+
+> Status: GREEN. Client component: loads the `pdbe-molstar` CDN bundle once, then creates the `<pdbe-molstar>` element imperatively in a `useEffect` (sidesteps custom-element JSX typing) inside a `data-structure-id` container; a plain-button switcher lists all PDB + AlphaFold structures (AlphaFold via `custom-data-url`), with method/resolution + a PDBe/AlphaFold link-out fallback. `null` when no structures. 84 tests; tsc/biome clean.
 
 **Files:** create `components/sections/structure-viewer-card.tsx` + test; possibly `shared/components/structure/` if reused.
 
