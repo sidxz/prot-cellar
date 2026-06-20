@@ -2,7 +2,7 @@
 
 GO is large reference data (~47k terms, ~80k edges), so this bypasses the
 per-aggregate UoW path and uses Postgres bulk upserts, chunked to stay under
-the 65 535 bind-parameter ceiling.
+asyncpg's 32 767 bind-parameter ceiling (rows * columns per statement).
 """
 
 from __future__ import annotations
@@ -22,7 +22,8 @@ from protcellar.infrastructure.persistence.sqlalchemy.gene_ontology.models impor
 )
 from protcellar.infrastructure.persistence.unit_of_work import AsyncUnitOfWork
 
-_CHUNK = 5000
+# go_terms is the widest table (10 columns); 2000 * 10 = 20000 < 32767, with margin.
+_CHUNK = 2000
 
 
 class SQLAlchemyGoOntologyRepository:

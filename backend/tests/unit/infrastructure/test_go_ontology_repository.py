@@ -75,3 +75,17 @@ async def test_descendants(go_uow: AsyncUnitOfWork) -> None:
         assert await repo.descendants("GO:0000003") == {"GO:0000001", "GO:0000002"}
         assert await repo.descendants("GO:0000002") == {"GO:0000001"}
         assert await repo.descendants("GO:0000001") == set()
+
+
+@pytest.mark.asyncio
+async def test_upsert_terms_chunks_large_batch(go_uow: AsyncUnitOfWork) -> None:
+    # > 32767/10 rows in one statement would blow asyncpg's bind-param limit;
+    # the repository must chunk. (4000 * 10 cols = 40000 params unchunked.)
+    async with go_uow as uow:
+        repo = SQLAlchemyGoOntologyRepository(uow)
+        terms = [
+            GoTerm(go_id=f"GO:{i:07d}", name=f"term {i}", namespace="molecular_function")
+            for i in range(4000)
+        ]
+        assert await repo.upsert_terms(terms, source_version="releases/2026-05-19") == 4000
+        assert await repo.find_term("GO:0003999") is not None
