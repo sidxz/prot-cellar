@@ -21,8 +21,18 @@ const fixture = {
       url: "http://go/1",
       properties: { GoTerm: "F:oxidoreductase activity", GoEvidence: "IEA:UniProt" },
     },
-    { database: "GO", accession: "GO:0006281", url: "http://go/2", properties: { GoTerm: "P:DNA repair" } },
-    { database: "GO", accession: "GO:0005737", url: "http://go/3", properties: { GoTerm: "C:cytoplasm" } },
+    {
+      database: "GO",
+      accession: "GO:0006281",
+      url: "http://go/2",
+      properties: { GoTerm: "P:DNA repair" },
+    },
+    {
+      database: "GO",
+      accession: "GO:0005737",
+      url: "http://go/3",
+      properties: { GoTerm: "C:cytoplasm" },
+    },
     {
       database: "PDB",
       accession: "1ABC",

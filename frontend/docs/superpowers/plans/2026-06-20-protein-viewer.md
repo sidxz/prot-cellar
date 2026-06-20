@@ -40,7 +40,9 @@
 - [ ] Green + tsc + biome.
 - [ ] Commit `feat(protein-viewer): annotation view-model (comments/GO/structures/features)`.
 
-## Task 3: FunctionSection + FeaturesSection + compose page (+ tests)
+## Task 3: FunctionSection + FeaturesSection + compose page (+ tests)  ✅ DONE
+
+> Status: GREEN. `FunctionSection` (FUNCTION/CATALYTIC ACTIVITY/COFACTOR/… comment groups; `commentLines` extracts text + reaction.name + cofactor names) and `FeaturesSection` (features grouped by category, capped at 15/category). `protein-detail.tsx` restructured into a responsive two-column layout (`lg:grid-cols-[2fr_1fr]`): main = Function/Features/Sequence, side = Metadata; cross-refs full-width. 73 tests; tsc/biome clean. Note: tooling via `./node_modules/.bin/{vitest,tsc,biome}` (the `pnpm exec` deps-check is flaky in this env).
 
 **Files:** create `components/sections/function-section.tsx`, `components/sections/features-section.tsx`; modify `components/protein-detail.tsx` (two-column layout, compose sections); tests `components/sections/*.test.tsx`.
 

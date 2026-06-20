@@ -13,6 +13,8 @@ import { useEffect } from "react";
 import { useProtein, useProteinFasta, useResolveProtein } from "../hooks/use-proteins";
 import { proteinExistenceLabel } from "../lib/protein-format";
 import type { Protein } from "../types";
+import { FeaturesSection } from "./sections/features-section";
+import { FunctionSection } from "./sections/function-section";
 
 // ---------------------------------------------------------------------------
 // Sub-components
@@ -297,16 +299,24 @@ export function ProteinDetailPage({ accession }: ProteinDetailPageProps) {
         )}
       </header>
 
-      {/* ── Metadata card ── */}
-      <MetadataCard protein={protein} />
-
-      {/* ── Sequence section ── */}
-      <section aria-labelledby="seq-heading">
-        <h2 id="seq-heading" className="text-base font-semibold mb-3 text-foreground">
-          Sequence
-        </h2>
-        <SequenceSection protein={protein} />
-      </section>
+      {/* ── Two-column body ── */}
+      <div className="grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-6 items-start">
+        {/* Main column */}
+        <div className="flex flex-col gap-6 min-w-0">
+          <FunctionSection protein={protein} />
+          <FeaturesSection protein={protein} />
+          <section aria-labelledby="seq-heading">
+            <h2 id="seq-heading" className="text-base font-semibold mb-3 text-foreground">
+              Sequence
+            </h2>
+            <SequenceSection protein={protein} />
+          </section>
+        </div>
+        {/* Side column */}
+        <div className="flex flex-col gap-6 min-w-0">
+          <MetadataCard protein={protein} />
+        </div>
+      </div>
 
       {/* ── Cross-references ── */}
       {protein.cross_references && protein.cross_references.length > 0 && (
