@@ -123,3 +123,36 @@ async def test_bulk_import_captures_features(client: AsyncClient) -> None:
     assert active["end"] == 281
     assert active["feature_id"] == "ACT_SITE_KATG"
     assert active["evidence"] == [{"evidenceCode": "ECO:0000255"}]
+
+
+@pytest.mark.asyncio
+async def test_bulk_import_captures_comments(client: AsyncClient) -> None:
+    organism_id = await _organism(client, ncbi_tax_id=99905)
+    rec = {
+        "primary_accession": "P9WIE9",
+        "organism_id": organism_id,
+        "sequence": "MTEYKLVVVGAGGVGKSALTIQ",
+        "is_reviewed": True,
+        "source": "uniprot",
+        "source_release": "2026_02",
+        "source_record_id": "P9WIE9",
+        "source_record_checksum": "crc1",
+        "comments": [
+            {"comment_type": "FUNCTION", "text": "Catalase-peroxidase."},
+            {
+                "comment_type": "CATALYTIC ACTIVITY",
+                "payload": {"reaction": "2 H2O2 = O2 + 2 H2O", "ec": "1.11.1.21"},
+                "evidence": [{"evidenceCode": "ECO:0000269"}],
+            },
+        ],
+    }
+    resp = await client.post("/api/v1/proteins/bulk", json={"records": [rec]})
+    assert resp.status_code == 200
+    got = (await client.get("/api/v1/proteins/P9WIE9")).json()
+    comments = got.get("comments") or []
+    assert len(comments) == 2
+    func = next(c for c in comments if c["comment_type"] == "FUNCTION")
+    assert func["text"] == "Catalase-peroxidase."
+    cat = next(c for c in comments if c["comment_type"] == "CATALYTIC ACTIVITY")
+    assert cat["payload"]["ec"] == "1.11.1.21"
+    assert cat["evidence"] == [{"evidenceCode": "ECO:0000269"}]

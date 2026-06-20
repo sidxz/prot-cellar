@@ -128,7 +128,9 @@ Positional sequence annotations (`features[]`): Chain, Domain, Binding/Active si
 - **Import/API/Test:** `ProteinImportRecord.features: tuple[ProteinFeature, ...]`; `BulkRecordBody.features: list[FeatureBody]`; `ProteinResponse.features`; round-trip test asserts a Domain feature with start/end/type survives bulk→GET.
 - Migration down_revision `<rev2>`.
 
-## Task 4: Protein comments — `protein_comments`
+## Task 4: Protein comments — `protein_comments`  ✅ DONE
+
+> Status: GREEN. Migration `c4a6b8d0e2f1` (head). `ProteinComment` VO (comment_type + text + JSONB payload + JSONB evidence) as owned collection; structured comment types (CATALYTIC ACTIVITY, SUBCELLULAR LOCATION, ...) ride losslessly in `payload`. Round-trip test green; ruff/mypy clean.
 
 General annotation (`comments[]`): FUNCTION, CATALYTIC ACTIVITY, COFACTOR, SUBCELLULAR LOCATION, PATHWAY, SUBUNIT, INTERACTION, DISEASE, PTM, ALTERNATIVE PRODUCTS, … Many are structured, so store typed + JSONB payload.
 

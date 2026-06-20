@@ -74,6 +74,12 @@ class ProteinModel(Base, EntityModelMixin, WorkspaceIdMixin, VersionMixin, Prove
         foreign_keys="ProteinFeatureModel.protein_id",
         order_by="ProteinFeatureModel.id",
     )
+    comments: Mapped[list[ProteinCommentModel]] = relationship(
+        cascade="all, delete-orphan",
+        lazy="selectin",
+        foreign_keys="ProteinCommentModel.protein_id",
+        order_by="ProteinCommentModel.id",
+    )
 
 
 class ProteinFeatureModel(Base, EntityModelMixin):
@@ -93,4 +99,18 @@ class ProteinFeatureModel(Base, EntityModelMixin):
     feature_id: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True)
     ligand: Mapped[dict[str, object] | None] = mapped_column(JSON, nullable=True)
     alternative_sequence: Mapped[str | None] = mapped_column(Text, nullable=True)
+    evidence: Mapped[list[dict[str, object]] | None] = mapped_column(JSON, nullable=True)
+
+
+class ProteinCommentModel(Base, EntityModelMixin):
+    """A general-annotation comment owned by a Protein (UniProt CC block)."""
+
+    __tablename__ = "protein_comments"
+
+    protein_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("proteins.id"), nullable=False, index=True
+    )
+    comment_type: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+    text: Mapped[str | None] = mapped_column(Text, nullable=True)
+    payload: Mapped[dict[str, object] | None] = mapped_column(JSON, nullable=True)
     evidence: Mapped[list[dict[str, object]] | None] = mapped_column(JSON, nullable=True)

@@ -15,7 +15,11 @@ from protcellar.application.shared.unit_of_work import UnitOfWork
 from protcellar.domain.protein_catalog.enums import ProteinExistence
 from protcellar.domain.protein_catalog.protein import Protein
 from protcellar.domain.protein_catalog.repository import ProteinRepository
-from protcellar.domain.protein_catalog.value_objects import ProteinFeature, ProteinNames
+from protcellar.domain.protein_catalog.value_objects import (
+    ProteinComment,
+    ProteinFeature,
+    ProteinNames,
+)
 from protcellar.domain.shared.cross_reference import CrossReference
 from protcellar.domain.shared.errors import DomainError
 
@@ -46,6 +50,7 @@ class ProteinImportRecord:
     fragment: str | None = None
     uniparc_id: str | None = None
     features: tuple[ProteinFeature, ...] = ()
+    comments: tuple[ProteinComment, ...] = ()
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -104,6 +109,7 @@ class BulkUpsertProteins:
                             fragment=rec.fragment,
                             uniparc_id=rec.uniparc_id,
                             features=list(rec.features),
+                            comments=list(rec.comments),
                         )
                         existing.source_record_checksum = rec.source_record_checksum
                         existing.source_release = rec.source_release
@@ -133,6 +139,7 @@ class BulkUpsertProteins:
                             fragment=rec.fragment,
                             uniparc_id=rec.uniparc_id,
                             features=list(rec.features),
+                            comments=list(rec.comments),
                         )
                         protein.source = rec.source
                         protein.source_record_id = rec.source_record_id

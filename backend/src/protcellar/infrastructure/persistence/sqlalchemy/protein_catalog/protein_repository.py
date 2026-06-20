@@ -9,13 +9,18 @@ from sqlalchemy import select
 from protcellar.domain.protein_catalog.enums import ProteinExistence
 from protcellar.domain.protein_catalog.protein import Protein
 from protcellar.domain.protein_catalog.repository import ProteinRepository
-from protcellar.domain.protein_catalog.value_objects import ProteinFeature, ProteinNames
+from protcellar.domain.protein_catalog.value_objects import (
+    ProteinComment,
+    ProteinFeature,
+    ProteinNames,
+)
 from protcellar.infrastructure.persistence.sqlalchemy.base_repository import SQLAlchemyRepository
 from protcellar.infrastructure.persistence.sqlalchemy.protein_catalog._xref_json import (
     xrefs_from_json,
     xrefs_to_json,
 )
 from protcellar.infrastructure.persistence.sqlalchemy.protein_catalog.models import (
+    ProteinCommentModel,
     ProteinFeatureModel,
     ProteinModel,
 )
@@ -68,6 +73,16 @@ class SQLAlchemyProteinRepository(SQLAlchemyRepository[Protein, ProteinModel], P
                 )
                 for f in model.features
             ],
+            comments=[
+                ProteinComment(
+                    id=c.id,
+                    comment_type=c.comment_type,
+                    text=c.text,
+                    payload=c.payload,
+                    evidence=c.evidence,
+                )
+                for c in model.comments
+            ],
             source=model.source,
             source_release=model.source_release,
             source_record_id=model.source_record_id,
@@ -114,6 +129,7 @@ class SQLAlchemyProteinRepository(SQLAlchemyRepository[Protein, ProteinModel], P
             version=aggregate.version,
         )
         model.features = [self._feature_to_model(f) for f in aggregate.features]
+        model.comments = [self._comment_to_model(c) for c in aggregate.comments]
         return model
 
     def _update_model(self, model: ProteinModel, aggregate: Protein) -> None:
@@ -140,6 +156,7 @@ class SQLAlchemyProteinRepository(SQLAlchemyRepository[Protein, ProteinModel], P
         model.fragment = aggregate.fragment
         model.uniparc_id = aggregate.uniparc_id
         model.features = [self._feature_to_model(f) for f in aggregate.features]
+        model.comments = [self._comment_to_model(c) for c in aggregate.comments]
         model.source = aggregate.source
         model.source_release = aggregate.source_release
         model.source_record_id = aggregate.source_record_id
@@ -160,6 +177,16 @@ class SQLAlchemyProteinRepository(SQLAlchemyRepository[Protein, ProteinModel], P
             ligand=f.ligand,
             alternative_sequence=f.alternative_sequence,
             evidence=f.evidence,
+        )
+
+    @staticmethod
+    def _comment_to_model(c: ProteinComment) -> ProteinCommentModel:
+        return ProteinCommentModel(
+            id=c.id,
+            comment_type=c.comment_type,
+            text=c.text,
+            payload=c.payload,
+            evidence=c.evidence,
         )
 
     async def find_by_accession(self, accession: str) -> Protein | None:

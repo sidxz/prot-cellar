@@ -20,7 +20,11 @@ from protcellar.application.protein_catalog.update_protein import UpdateProteinC
 from protcellar.application.shared.sentinel import UNSET
 from protcellar.domain.protein_catalog.enums import ProteinExistence
 from protcellar.domain.protein_catalog.protein import Protein
-from protcellar.domain.protein_catalog.value_objects import ProteinFeature, ProteinNames
+from protcellar.domain.protein_catalog.value_objects import (
+    ProteinComment,
+    ProteinFeature,
+    ProteinNames,
+)
 from protcellar.domain.shared.cross_reference import CrossReference
 from protcellar.infrastructure.identifiers.registry import IdentifierRegistry
 from protcellar.interface.dependencies import (
@@ -64,6 +68,20 @@ class FeatureBody(BaseModel):
     evidence: list[dict[str, object]] | None = None
 
 
+class CommentResponse(BaseModel):
+    comment_type: str
+    text: str | None = None
+    payload: dict[str, object] | None = None
+    evidence: list[dict[str, object]] | None = None
+
+
+class CommentBody(BaseModel):
+    comment_type: str
+    text: str | None = None
+    payload: dict[str, object] | None = None
+    evidence: list[dict[str, object]] | None = None
+
+
 class ProteinResponse(BaseModel):
     id: uuid.UUID
     primary_accession: str
@@ -87,6 +105,7 @@ class ProteinResponse(BaseModel):
     fragment: str | None = None
     uniparc_id: str | None = None
     features: list[FeatureResponse] = []
+    comments: list[CommentResponse] = []
     version: int
 
     @classmethod
@@ -139,6 +158,15 @@ class ProteinResponse(BaseModel):
                     evidence=f.evidence,
                 )
                 for f in p.features
+            ],
+            comments=[
+                CommentResponse(
+                    comment_type=c.comment_type,
+                    text=c.text,
+                    payload=c.payload,
+                    evidence=c.evidence,
+                )
+                for c in p.comments
             ],
             version=p.version,
         )
@@ -222,6 +250,7 @@ class BulkRecordBody(BaseModel):
     fragment: str | None = None
     uniparc_id: str | None = None
     features: list[FeatureBody] = []
+    comments: list[CommentBody] = []
 
 
 class BulkUpsertBody(BaseModel):
@@ -352,6 +381,15 @@ async def bulk_upsert_proteins(
                         evidence=f.evidence,
                     )
                     for f in r.features
+                ),
+                comments=tuple(
+                    ProteinComment(
+                        comment_type=c.comment_type,
+                        text=c.text,
+                        payload=c.payload,
+                        evidence=c.evidence,
+                    )
+                    for c in r.comments
                 ),
             )
             for r in body.records

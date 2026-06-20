@@ -68,3 +68,21 @@ class ProteinFeature:
     alternative_sequence: str | None = None
     evidence: list[dict[str, object]] | None = None
     id: uuid.UUID = field(default_factory=uuid.uuid4)
+
+
+@dataclass
+class ProteinComment:
+    """A UniProt general-annotation comment (CC block).
+
+    `comment_type` is the UniProt category (FUNCTION, CATALYTIC ACTIVITY,
+    SUBCELLULAR LOCATION, COFACTOR, PATHWAY, SUBUNIT, DISEASE, ...). `text`
+    holds free-text comments; `payload` carries the structured sub-object
+    (reaction + Rhea/ChEBI, location, kinetics, disease) verbatim so the
+    structured comment types are captured losslessly.
+    """
+
+    comment_type: str
+    text: str | None = None
+    payload: dict[str, object] | None = None
+    evidence: list[dict[str, object]] | None = None
+    id: uuid.UUID = field(default_factory=uuid.uuid4)

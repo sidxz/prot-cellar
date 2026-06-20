@@ -9,7 +9,11 @@ from typing import Any
 
 from protcellar.domain.protein_catalog.enums import ProteinExistence
 from protcellar.domain.protein_catalog.events import ProteinCreated, ProteinUpdated
-from protcellar.domain.protein_catalog.value_objects import ProteinFeature, ProteinNames
+from protcellar.domain.protein_catalog.value_objects import (
+    ProteinComment,
+    ProteinFeature,
+    ProteinNames,
+)
 from protcellar.domain.shared.cross_reference import CrossReference
 from protcellar.domain.shared.entity import AggregateRoot
 from protcellar.domain.shared.errors import ValidationError
@@ -49,6 +53,7 @@ class Protein(AggregateRoot):
         fragment: str | None = None,
         uniparc_id: str | None = None,
         features: list[ProteinFeature] | None = None,
+        comments: list[ProteinComment] | None = None,
         source: str | None = None,
         source_release: str | None = None,
         source_record_id: str | None = None,
@@ -89,6 +94,7 @@ class Protein(AggregateRoot):
         self.fragment = fragment
         self.uniparc_id = uniparc_id
         self.features = features if features is not None else []
+        self.comments = comments if comments is not None else []
         self.source = source
         self.source_release = source_release
         self.source_record_id = source_record_id
@@ -119,6 +125,7 @@ class Protein(AggregateRoot):
         fragment: str | None = None,
         uniparc_id: str | None = None,
         features: list[ProteinFeature] | None = None,
+        comments: list[ProteinComment] | None = None,
     ) -> Protein:
         protein = cls(
             primary_accession=primary_accession,
@@ -141,6 +148,7 @@ class Protein(AggregateRoot):
             fragment=fragment,
             uniparc_id=uniparc_id,
             features=features,
+            comments=comments,
         )
         protein.register_event(
             ProteinCreated(
@@ -194,6 +202,8 @@ class Protein(AggregateRoot):
             self.uniparc_id = fields["uniparc_id"]
         if "features" in fields:
             self.features = list(fields["features"] or [])
+        if "comments" in fields:
+            self.comments = list(fields["comments"] or [])
         self._touch()
 
     def to_fasta(self) -> str:
