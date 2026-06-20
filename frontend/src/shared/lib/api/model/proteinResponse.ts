@@ -14,7 +14,7 @@ import type { ProteinResponseSeqCrc64 } from './proteinResponseSeqCrc64';
 import type { ProteinResponseProteinExistence } from './proteinResponseProteinExistence';
 import type { ProteinResponseEntryVersion } from './proteinResponseEntryVersion';
 import type { ProteinResponseSequenceVersion } from './proteinResponseSequenceVersion';
-import type { ProteinResponseCrossReferencesItem } from './proteinResponseCrossReferencesItem';
+import type { ProteinXrefResponse } from './proteinXrefResponse';
 import type { ProteinResponseAnnotationScore } from './proteinResponseAnnotationScore';
 import type { ProteinResponseFragment } from './proteinResponseFragment';
 import type { ProteinResponseUniparcId } from './proteinResponseUniparcId';
@@ -42,7 +42,7 @@ export interface ProteinResponse {
   keywords: string[];
   entry_version?: ProteinResponseEntryVersion;
   sequence_version?: ProteinResponseSequenceVersion;
-  cross_references: ProteinResponseCrossReferencesItem[];
+  cross_references: ProteinXrefResponse[];
   annotation_score?: ProteinResponseAnnotationScore;
   fragment?: ProteinResponseFragment;
   uniparc_id?: ProteinResponseUniparcId;

@@ -141,6 +141,14 @@ class CitationBody(BaseModel):
     reference_comments: list[dict[str, object]] | None = None
 
 
+class ProteinXrefResponse(BaseModel):
+    database: str
+    accession: str
+    curie: str | None = None
+    url: str | None = None
+    properties: dict[str, str] = {}
+
+
 class ProteinResponse(BaseModel):
     id: uuid.UUID
     primary_accession: str
@@ -159,7 +167,7 @@ class ProteinResponse(BaseModel):
     keywords: list[str]
     entry_version: int | None = None
     sequence_version: int | None = None
-    cross_references: list[dict[str, str | None]]
+    cross_references: list[ProteinXrefResponse]
     annotation_score: int | None = None
     fragment: str | None = None
     uniparc_id: str | None = None
@@ -176,12 +184,13 @@ class ProteinResponse(BaseModel):
         uniprot_url = registry.resolve_url("uniprot", p.primary_accession)
         protein_names = p.protein_names.to_dict()
         cross_references = [
-            {
-                "database": x.database,
-                "accession": x.accession,
-                "curie": x.to_curie(),
-                "url": registry.resolve_url(x.database, x.accession),
-            }
+            ProteinXrefResponse(
+                database=x.database,
+                accession=x.accession,
+                curie=x.to_curie(),
+                url=registry.resolve_url(x.database, x.accession),
+                properties=dict(x.properties or {}),
+            )
             for x in p.cross_references
         ]
         return cls(

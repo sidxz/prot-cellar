@@ -4235,17 +4235,7 @@
           },
           "cross_references": {
             "items": {
-              "additionalProperties": {
-                "anyOf": [
-                  {
-                    "type": "string"
-                  },
-                  {
-                    "type": "null"
-                  }
-                ]
-              },
-              "type": "object"
+              "$ref": "#/components/schemas/ProteinXrefResponse"
             },
             "type": "array",
             "title": "Cross References"
@@ -4342,6 +4332,54 @@
           "version"
         ],
         "title": "ProteinResponse"
+      },
+      "ProteinXrefResponse": {
+        "properties": {
+          "database": {
+            "type": "string",
+            "title": "Database"
+          },
+          "accession": {
+            "type": "string",
+            "title": "Accession"
+          },
+          "curie": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Curie"
+          },
+          "url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Url"
+          },
+          "properties": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object",
+            "title": "Properties",
+            "default": {}
+          }
+        },
+        "type": "object",
+        "required": [
+          "database",
+          "accession"
+        ],
+        "title": "ProteinXrefResponse"
       },
       "ProteomeResponse": {
         "properties": {
