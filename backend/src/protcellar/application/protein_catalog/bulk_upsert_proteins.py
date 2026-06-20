@@ -42,6 +42,9 @@ class ProteinImportRecord:
     entry_version: int | None = None
     sequence_version: int | None = None
     cross_references: tuple[CrossReference, ...] = ()
+    annotation_score: int | None = None
+    fragment: str | None = None
+    uniparc_id: str | None = None
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -96,6 +99,9 @@ class BulkUpsertProteins:
                             entry_version=rec.entry_version,
                             sequence_version=rec.sequence_version,
                             cross_references=list(rec.cross_references),
+                            annotation_score=rec.annotation_score,
+                            fragment=rec.fragment,
+                            uniparc_id=rec.uniparc_id,
                         )
                         existing.source_record_checksum = rec.source_record_checksum
                         existing.source_release = rec.source_release
@@ -121,6 +127,9 @@ class BulkUpsertProteins:
                             entry_version=rec.entry_version,
                             sequence_version=rec.sequence_version,
                             cross_references=list(rec.cross_references),
+                            annotation_score=rec.annotation_score,
+                            fragment=rec.fragment,
+                            uniparc_id=rec.uniparc_id,
                         )
                         protein.source = rec.source
                         protein.source_record_id = rec.source_record_id

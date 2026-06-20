@@ -63,3 +63,27 @@ async def test_bulk_dry_run_does_not_persist(client: AsyncClient) -> None:
     # Not persisted
     missing = await client.get("/api/v1/proteins/Q8N158")
     assert missing.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_bulk_import_captures_annotation_scalars(client: AsyncClient) -> None:
+    organism_id = await _organism(client, ncbi_tax_id=99903)
+    rec = {
+        "primary_accession": "P9WIE5",
+        "organism_id": organism_id,
+        "sequence": "MPEQHPPITETTTGAASNGCPV",
+        "is_reviewed": True,
+        "source": "uniprot",
+        "source_release": "2026_02",
+        "source_record_id": "P9WIE5",
+        "source_record_checksum": "crc1",
+        "annotation_score": 5,
+        "fragment": "single",
+        "uniparc_id": "UPI000012706D",
+    }
+    resp = await client.post("/api/v1/proteins/bulk", json={"records": [rec]})
+    assert resp.status_code == 200
+    got = (await client.get("/api/v1/proteins/P9WIE5")).json()
+    assert got.get("annotation_score") == 5
+    assert got.get("fragment") == "single"
+    assert got.get("uniparc_id") == "UPI000012706D"

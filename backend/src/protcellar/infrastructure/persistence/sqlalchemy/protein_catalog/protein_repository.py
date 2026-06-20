@@ -46,6 +46,9 @@ class SQLAlchemyProteinRepository(SQLAlchemyRepository[Protein, ProteinModel], P
             entry_version=model.entry_version,
             sequence_version=model.sequence_version,
             cross_references=xrefs_from_json(model.cross_references),
+            annotation_score=model.annotation_score,
+            fragment=model.fragment,
+            uniparc_id=model.uniparc_id,
             source=model.source,
             source_release=model.source_release,
             source_record_id=model.source_record_id,
@@ -81,6 +84,9 @@ class SQLAlchemyProteinRepository(SQLAlchemyRepository[Protein, ProteinModel], P
             entry_version=aggregate.entry_version,
             sequence_version=aggregate.sequence_version,
             cross_references=xrefs_to_json(aggregate.cross_references) or None,
+            annotation_score=aggregate.annotation_score,
+            fragment=aggregate.fragment,
+            uniparc_id=aggregate.uniparc_id,
             source=aggregate.source,
             source_release=aggregate.source_release,
             source_record_id=aggregate.source_record_id,
@@ -109,6 +115,9 @@ class SQLAlchemyProteinRepository(SQLAlchemyRepository[Protein, ProteinModel], P
         model.entry_version = aggregate.entry_version
         model.sequence_version = aggregate.sequence_version
         model.cross_references = xrefs_to_json(aggregate.cross_references) or None
+        model.annotation_score = aggregate.annotation_score
+        model.fragment = aggregate.fragment
+        model.uniparc_id = aggregate.uniparc_id
         model.source = aggregate.source
         model.source_release = aggregate.source_release
         model.source_record_id = aggregate.source_record_id

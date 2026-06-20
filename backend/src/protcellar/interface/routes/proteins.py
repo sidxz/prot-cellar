@@ -57,6 +57,9 @@ class ProteinResponse(BaseModel):
     entry_version: int | None = None
     sequence_version: int | None = None
     cross_references: list[dict[str, str | None]]
+    annotation_score: int | None = None
+    fragment: str | None = None
+    uniparc_id: str | None = None
     version: int
 
     @classmethod
@@ -92,6 +95,9 @@ class ProteinResponse(BaseModel):
             entry_version=p.entry_version,
             sequence_version=p.sequence_version,
             cross_references=cross_references,
+            annotation_score=p.annotation_score,
+            fragment=p.fragment,
+            uniparc_id=p.uniparc_id,
             version=p.version,
         )
 
@@ -170,6 +176,9 @@ class BulkRecordBody(BaseModel):
     entry_version: int | None = None
     sequence_version: int | None = None
     cross_references: list[CrossReferenceBody] = []
+    annotation_score: int | None = None
+    fragment: str | None = None
+    uniparc_id: str | None = None
 
 
 class BulkUpsertBody(BaseModel):
@@ -283,6 +292,9 @@ async def bulk_upsert_proteins(
                     )
                     for xr in r.cross_references
                 ),
+                annotation_score=r.annotation_score,
+                fragment=r.fragment,
+                uniparc_id=r.uniparc_id,
             )
             for r in body.records
         ),

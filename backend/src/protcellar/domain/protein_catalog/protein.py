@@ -45,6 +45,9 @@ class Protein(AggregateRoot):
         entry_version: int | None = None,
         sequence_version: int | None = None,
         cross_references: list[CrossReference] | None = None,
+        annotation_score: int | None = None,
+        fragment: str | None = None,
+        uniparc_id: str | None = None,
         source: str | None = None,
         source_release: str | None = None,
         source_record_id: str | None = None,
@@ -81,6 +84,9 @@ class Protein(AggregateRoot):
         self.entry_version = entry_version
         self.sequence_version = sequence_version
         self.cross_references = cross_references if cross_references is not None else []
+        self.annotation_score = annotation_score
+        self.fragment = fragment
+        self.uniparc_id = uniparc_id
         self.source = source
         self.source_release = source_release
         self.source_record_id = source_record_id
@@ -107,6 +113,9 @@ class Protein(AggregateRoot):
         entry_version: int | None = None,
         sequence_version: int | None = None,
         cross_references: list[CrossReference] | None = None,
+        annotation_score: int | None = None,
+        fragment: str | None = None,
+        uniparc_id: str | None = None,
     ) -> Protein:
         protein = cls(
             primary_accession=primary_accession,
@@ -125,6 +134,9 @@ class Protein(AggregateRoot):
             entry_version=entry_version,
             sequence_version=sequence_version,
             cross_references=cross_references,
+            annotation_score=annotation_score,
+            fragment=fragment,
+            uniparc_id=uniparc_id,
         )
         protein.register_event(
             ProteinCreated(
@@ -170,6 +182,12 @@ class Protein(AggregateRoot):
             self.sequence_version = fields["sequence_version"]
         if "cross_references" in fields:
             self.cross_references = list(fields["cross_references"] or [])
+        if "annotation_score" in fields:
+            self.annotation_score = fields["annotation_score"]
+        if "fragment" in fields:
+            self.fragment = fields["fragment"]
+        if "uniparc_id" in fields:
+            self.uniparc_id = fields["uniparc_id"]
         self._touch()
 
     def to_fasta(self) -> str:

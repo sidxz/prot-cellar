@@ -65,3 +65,6 @@ class ProteinModel(Base, EntityModelMixin, WorkspaceIdMixin, VersionMixin, Prove
     entry_version: Mapped[int | None] = mapped_column(Integer, nullable=True)
     sequence_version: Mapped[int | None] = mapped_column(Integer, nullable=True)
     cross_references: Mapped[list[dict[str, object]] | None] = mapped_column(JSON, nullable=True)
+    annotation_score: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    fragment: Mapped[str | None] = mapped_column(String(16), nullable=True)
+    uniparc_id: Mapped[str | None] = mapped_column(String(16), nullable=True, index=True)
