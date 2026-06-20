@@ -70,7 +70,9 @@
 - [ ] Compose into the side column; full `pnpm test` + tsc + biome.
 - [ ] Commit `feat(protein-viewer): GO terms, keywords, citations, isoforms sections`.
 
-## Task 5 (3b): GoGraphCard — QuickGO graph image (+ test)
+## Task 5 (3b): GoGraphCard — QuickGO graph image (+ test)  ✅ DONE
+
+> Status: GREEN. Client component renders the QuickGO chart image (`.../ontology/go/terms/{ids}/chart`, capped 12 ids) with an `onError` → "View on QuickGO" fallback; `null` when no GO ids. Composed into the main column. 81 tests; tsc/biome clean. (Plain `<img>` — biome has no `noImgElement` rule; next/image is wrong for an external dynamic chart.)
 
 **Files:** create `components/sections/go-graph-card.tsx` + test.
 
