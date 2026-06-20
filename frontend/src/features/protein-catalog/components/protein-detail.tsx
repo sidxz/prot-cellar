@@ -13,8 +13,12 @@ import { useEffect } from "react";
 import { useProtein, useProteinFasta, useResolveProtein } from "../hooks/use-proteins";
 import { proteinExistenceLabel } from "../lib/protein-format";
 import type { Protein } from "../types";
+import { CitationsSection } from "./sections/citations-section";
 import { FeaturesSection } from "./sections/features-section";
 import { FunctionSection } from "./sections/function-section";
+import { GoTermsSection } from "./sections/go-terms-section";
+import { IsoformsSection } from "./sections/isoforms-section";
+import { KeywordsSection } from "./sections/keywords-section";
 
 // ---------------------------------------------------------------------------
 // Sub-components
@@ -141,19 +145,6 @@ function MetadataCard({ protein }: MetadataCardProps) {
                 {protein.entry_version != null && protein.sequence_version != null ? " · " : ""}
                 {protein.sequence_version != null ? `Seq v${protein.sequence_version}` : ""}
               </span>
-            </MetadataRow>
-          )}
-
-          {/* Keywords */}
-          {protein.keywords && protein.keywords.length > 0 && (
-            <MetadataRow label="Keywords">
-              <div className="flex flex-wrap gap-1">
-                {protein.keywords.map((kw) => (
-                  <Badge key={kw} variant="secondary" className="text-xs">
-                    {kw}
-                  </Badge>
-                ))}
-              </div>
             </MetadataRow>
           )}
 
@@ -315,6 +306,10 @@ export function ProteinDetailPage({ accession }: ProteinDetailPageProps) {
         {/* Side column */}
         <div className="flex flex-col gap-6 min-w-0">
           <MetadataCard protein={protein} />
+          <GoTermsSection protein={protein} />
+          <KeywordsSection protein={protein} />
+          <CitationsSection protein={protein} />
+          <IsoformsSection protein={protein} />
         </div>
       </div>
 

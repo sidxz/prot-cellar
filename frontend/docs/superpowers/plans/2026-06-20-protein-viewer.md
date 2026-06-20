@@ -55,7 +55,9 @@
 - [ ] Update `protein-detail.test.tsx` if layout assertions shift; full `pnpm test` + tsc + biome.
 - [ ] Commit `feat(protein-viewer): function + features sections, two-column detail layout`.
 
-## Task 4: GoTermsSection + KeywordsSection + CitationsSection + IsoformsSection (+ tests)
+## Task 4: GoTermsSection + KeywordsSection + CitationsSection + IsoformsSection (+ tests)  ✅ DONE
+
+> Status: GREEN. Side-column sections: `GoTermsSection` (aspect-grouped chips linking to QuickGO), `KeywordsSection` (named keyword badges), `CitationsSection` (title/journal/year + PubMed/DOI links, capped 5), `IsoformsSection` (accession/name/canonical/note). Composed into the side column; removed the redundant raw-keyword row from MetadataCard. 78 tests; tsc/biome clean.
 
 **Files:** create `components/sections/{go-terms,keywords,citations,isoforms}-section.tsx` + tests; compose into `protein-detail.tsx` (side column).
 
