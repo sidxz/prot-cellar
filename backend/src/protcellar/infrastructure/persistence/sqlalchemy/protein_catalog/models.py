@@ -64,7 +64,6 @@ class ProteinModel(Base, EntityModelMixin, WorkspaceIdMixin, VersionMixin, Prove
     keywords: Mapped[list[str] | None] = mapped_column(ARRAY(String), nullable=True)
     entry_version: Mapped[int | None] = mapped_column(Integer, nullable=True)
     sequence_version: Mapped[int | None] = mapped_column(Integer, nullable=True)
-    cross_references: Mapped[list[dict[str, object]] | None] = mapped_column(JSON, nullable=True)
     annotation_score: Mapped[int | None] = mapped_column(Integer, nullable=True)
     fragment: Mapped[str | None] = mapped_column(String(16), nullable=True)
     uniparc_id: Mapped[str | None] = mapped_column(String(16), nullable=True, index=True)
@@ -97,6 +96,12 @@ class ProteinModel(Base, EntityModelMixin, WorkspaceIdMixin, VersionMixin, Prove
         lazy="selectin",
         foreign_keys="ProteinCitationModel.protein_id",
         order_by="ProteinCitationModel.id",
+    )
+    cross_reference_rows: Mapped[list[ProteinCrossReferenceModel]] = relationship(
+        cascade="all, delete-orphan",
+        lazy="selectin",
+        foreign_keys="ProteinCrossReferenceModel.protein_id",
+        order_by="ProteinCrossReferenceModel.id",
     )
 
 
@@ -181,3 +186,18 @@ class ProteinCitationModel(Base, EntityModelMixin):
     reference_number: Mapped[int | None] = mapped_column(Integer, nullable=True)
     positions: Mapped[list[str] | None] = mapped_column(JSON, nullable=True)
     reference_comments: Mapped[list[dict[str, object]] | None] = mapped_column(JSON, nullable=True)
+
+
+class ProteinCrossReferenceModel(Base, EntityModelMixin):
+    """A normalized cross-reference owned by a Protein (UniProt DR line)."""
+
+    __tablename__ = "protein_cross_references"
+    __table_args__ = (Index("ix_protein_xrefs_db_accession", "database", "accession"),)
+
+    protein_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("proteins.id"), nullable=False, index=True
+    )
+    database: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+    accession: Mapped[str] = mapped_column(String(128), nullable=False)
+    properties: Mapped[dict[str, str] | None] = mapped_column(JSON, nullable=True)
+    evidence: Mapped[str | None] = mapped_column(String(64), nullable=True)

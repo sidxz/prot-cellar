@@ -17,14 +17,12 @@ from protcellar.domain.protein_catalog.value_objects import (
     ProteinKeyword,
     ProteinNames,
 )
+from protcellar.domain.shared.cross_reference import CrossReference
 from protcellar.infrastructure.persistence.sqlalchemy.base_repository import SQLAlchemyRepository
-from protcellar.infrastructure.persistence.sqlalchemy.protein_catalog._xref_json import (
-    xrefs_from_json,
-    xrefs_to_json,
-)
 from protcellar.infrastructure.persistence.sqlalchemy.protein_catalog.models import (
     ProteinCitationModel,
     ProteinCommentModel,
+    ProteinCrossReferenceModel,
     ProteinFeatureModel,
     ProteinIsoformModel,
     ProteinKeywordModel,
@@ -59,7 +57,15 @@ class SQLAlchemyProteinRepository(SQLAlchemyRepository[Protein, ProteinModel], P
             keywords=list(model.keywords) if model.keywords else [],
             entry_version=model.entry_version,
             sequence_version=model.sequence_version,
-            cross_references=xrefs_from_json(model.cross_references),
+            cross_references=[
+                CrossReference(
+                    database=x.database,
+                    accession=x.accession,
+                    properties=x.properties,
+                    evidence=x.evidence,
+                )
+                for x in model.cross_reference_rows
+            ],
             annotation_score=model.annotation_score,
             fragment=model.fragment,
             uniparc_id=model.uniparc_id,
@@ -160,7 +166,6 @@ class SQLAlchemyProteinRepository(SQLAlchemyRepository[Protein, ProteinModel], P
             keywords=aggregate.keywords or None,
             entry_version=aggregate.entry_version,
             sequence_version=aggregate.sequence_version,
-            cross_references=xrefs_to_json(aggregate.cross_references) or None,
             annotation_score=aggregate.annotation_score,
             fragment=aggregate.fragment,
             uniparc_id=aggregate.uniparc_id,
@@ -176,6 +181,7 @@ class SQLAlchemyProteinRepository(SQLAlchemyRepository[Protein, ProteinModel], P
         model.isoforms = [self._isoform_to_model(i) for i in aggregate.isoforms]
         model.keyword_refs = [self._keyword_to_model(k) for k in aggregate.keyword_refs]
         model.citations = [self._citation_to_model(ct) for ct in aggregate.citations]
+        model.cross_reference_rows = [self._xref_to_model(x) for x in aggregate.cross_references]
         return model
 
     def _update_model(self, model: ProteinModel, aggregate: Protein) -> None:
@@ -197,7 +203,7 @@ class SQLAlchemyProteinRepository(SQLAlchemyRepository[Protein, ProteinModel], P
         model.keywords = aggregate.keywords or None
         model.entry_version = aggregate.entry_version
         model.sequence_version = aggregate.sequence_version
-        model.cross_references = xrefs_to_json(aggregate.cross_references) or None
+        model.cross_reference_rows = [self._xref_to_model(x) for x in aggregate.cross_references]
         model.annotation_score = aggregate.annotation_score
         model.fragment = aggregate.fragment
         model.uniparc_id = aggregate.uniparc_id
@@ -273,6 +279,15 @@ class SQLAlchemyProteinRepository(SQLAlchemyRepository[Protein, ProteinModel], P
             reference_number=ct.reference_number,
             positions=ct.positions,
             reference_comments=ct.reference_comments,
+        )
+
+    @staticmethod
+    def _xref_to_model(x: CrossReference) -> ProteinCrossReferenceModel:
+        return ProteinCrossReferenceModel(
+            database=x.database,
+            accession=x.accession,
+            properties=x.properties,
+            evidence=x.evidence,
         )
 
     async def find_by_accession(self, accession: str) -> Protein | None:

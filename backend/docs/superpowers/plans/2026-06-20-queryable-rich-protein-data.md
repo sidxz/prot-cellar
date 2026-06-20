@@ -30,7 +30,9 @@
 
 ---
 
-## Task 1: Normalize `cross_references` → `protein_cross_references` table
+## Task 1: Normalize `cross_references` → `protein_cross_references` table  ✅ DONE
+
+> Status: GREEN. Migration `d4f6a8c0e2b4` (head) — creates the table, data-migrates JSON→rows, drops the column. `ProteinCrossReferenceModel` owned collection; repo maps `cross_reference_rows` (retired `_xref_json` use — kept for gene). DB-level RED test + existing API round-trip both green; full suite 103; ruff/mypy clean. (`properties` typed `dict[str,str]` to match the `CrossReference` VO.)
 
 **Files:**
 - Modify: `src/protcellar/infrastructure/persistence/sqlalchemy/protein_catalog/models.py`
