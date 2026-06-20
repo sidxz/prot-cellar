@@ -19,7 +19,9 @@
 > citations (PubMed/DOI), cross-references (incl GO). 7 unit tests green; ruff/mypy clean.
 > `source_record_checksum` = `e{entryVersion}s{sequenceVersion}` for idempotent re-sync.
 
-## Task B: Fetcher — `infrastructure/ingestion/uniprot_client.py`  ⬜ TODO
+## Task B: Fetcher — `infrastructure/ingestion/uniprot_client.py`  ✅ DONE
+
+> Status: GREEN. `UniProtClient(httpx.AsyncClient)` with `fetch_proteome` + `iter_entries` (cursor-paginated via the `Link: rel="next"` header; client injected for testability). 2 unit tests with `httpx.MockTransport` — no real network; ruff/mypy clean.
 
 - `class UniProtClient` wrapping `httpx.AsyncClient`.
 - `async def fetch_proteome(proteome_id) -> dict` → GET `/proteomes/{id}` JSON.
