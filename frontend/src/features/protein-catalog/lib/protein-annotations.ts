@@ -130,3 +130,32 @@ export function featuresByCategory(p: Protein): Record<string, FeatureResponse[]
   }
   return out;
 }
+
+function readLocationValue(entry: unknown): string | undefined {
+  if (entry && typeof entry === "object") {
+    const loc = (entry as Record<string, unknown>).location;
+    if (loc && typeof loc === "object") {
+      const value = (loc as Record<string, unknown>).value;
+      return typeof value === "string" ? value : undefined;
+    }
+  }
+  return undefined;
+}
+
+/** Distinct subcellular location names from SUBCELLULAR LOCATION comment payloads. */
+export function subcellularLocations(p: Protein): string[] {
+  const out: string[] = [];
+  for (const c of commentsByType(p)["SUBCELLULAR LOCATION"] ?? []) {
+    const payload = c.payload;
+    if (payload && typeof payload === "object") {
+      const locs = (payload as Record<string, unknown>).subcellularLocations;
+      if (Array.isArray(locs)) {
+        for (const entry of locs) {
+          const value = readLocationValue(entry);
+          if (value) out.push(value);
+        }
+      }
+    }
+  }
+  return [...new Set(out)];
+}

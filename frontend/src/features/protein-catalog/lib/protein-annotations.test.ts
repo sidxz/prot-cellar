@@ -6,6 +6,7 @@ import {
   featuresByCategory,
   goTermsByAspect,
   structures,
+  subcellularLocations,
 } from "./protein-annotations";
 
 const fixture = {
@@ -89,5 +90,23 @@ describe("protein-annotations", () => {
     expect(goTermsByAspect(empty)).toEqual({ F: [], P: [], C: [] });
     expect(structures(empty)).toEqual({ pdb: [], alphafold: [], emdb: [] });
     expect(featuresByCategory(empty)).toEqual({});
+  });
+
+  it("extracts subcellular location names from the comment payload", () => {
+    const p = {
+      comments: [
+        {
+          comment_type: "SUBCELLULAR LOCATION",
+          payload: {
+            subcellularLocations: [
+              { location: { value: "Cell membrane" } },
+              { location: { value: "Cytoplasm" } },
+            ],
+          },
+        },
+      ],
+    } as unknown as Protein;
+    expect(subcellularLocations(p)).toEqual(["Cell membrane", "Cytoplasm"]);
+    expect(subcellularLocations({} as unknown as Protein)).toEqual([]);
   });
 });

@@ -21,6 +21,7 @@ import { GoTermsSection } from "./sections/go-terms-section";
 import { IsoformsSection } from "./sections/isoforms-section";
 import { KeywordsSection } from "./sections/keywords-section";
 import { StructureViewerCard } from "./sections/structure-viewer-card";
+import { SubcellularLocationCard } from "./sections/subcellular-location-card";
 
 // ---------------------------------------------------------------------------
 // Sub-components
@@ -311,6 +312,7 @@ export function ProteinDetailPage({ accession }: ProteinDetailPageProps) {
         <div className="flex flex-col gap-6 min-w-0">
           <MetadataCard protein={protein} />
           <GoTermsSection protein={protein} />
+          <SubcellularLocationCard protein={protein} />
           <KeywordsSection protein={protein} />
           <CitationsSection protein={protein} />
           <IsoformsSection protein={protein} />

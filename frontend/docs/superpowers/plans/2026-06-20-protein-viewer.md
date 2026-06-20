@@ -92,7 +92,11 @@
 - [ ] Failing test: mock the web component (don't load the CDN in jsdom) → assert the first PDB id is passed + the id `<Select>` lists all; no-structure fixture → card absent. Implement. Green + tsc + biome.
 - [ ] Commit `feat(protein-viewer): 3D structure viewer (pdbe-molstar) card`.
 
-## Task 7 (3b): SubcellularLocationCard — Swiss-BioPics (+ test)
+## ✅ SUB-PROJECT 3 COMPLETE — all 7 tasks; 87 frontend tests green, tsc/biome clean. Completes the 3-sub-project program (queryable rich data → GO ontology → viewer).
+
+## Task 7 (3b): SubcellularLocationCard — Swiss-BioPics (+ test)  ✅ DONE
+
+> Status: GREEN. Tested `subcellularLocations` view-model extractor (location names from SUBCELLULAR LOCATION comment payloads) + `SubcellularLocationCard` (location list + "View location diagram on UniProt" link). Inline Swiss-BioPics SVG deferred: needs the NCBI taxid (not on the protein DTO) + SL→template mapping + visual verification — the spec-allowed text+link fallback ships instead. 87 tests; tsc/biome clean.
 
 **Files:** create `components/sections/subcellular-location-card.tsx` + test.
 
