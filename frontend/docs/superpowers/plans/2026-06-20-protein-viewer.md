@@ -21,7 +21,9 @@
 
 > Status: GREEN. Added `backend/.../scripts/export_openapi.py` (dumps `app.openapi()` → `frontend/openapi.json`, 20 paths). Ran `pnpm generate:api`; `ProteinResponse` now carries `features`/`comments`/`isoforms`/`keyword_refs`/`citations`; widened `Protein.protein_names` with `short_names`/`ec_numbers`. typecheck clean; 62 tests pass.
 
-## Task 2: View-model `protein-annotations.ts` (+ tests)
+## Task 2: View-model `protein-annotations.ts` (+ tests)  ✅ DONE
+
+> Status: GREEN. `commentsByType` / `goTermsByAspect` (parses `GoTerm` → aspect+name+evidence) / `structures` (PDB/AlphaFoldDB/EMDB with method/resolution/chains) / `featuresByCategory` (feature_type → category map). Confirmed DTO shapes: `CommentResponse{comment_type,text,payload,evidence}`, `FeatureResponse{feature_type,start,end,description,...}`, `ProteinXrefResponse{database,accession,curie,url,properties}`. 5 tests; tsc/biome clean.
 
 **Files:** create `src/features/protein-catalog/lib/protein-annotations.ts`, `...lib/protein-annotations.test.ts`.
 
