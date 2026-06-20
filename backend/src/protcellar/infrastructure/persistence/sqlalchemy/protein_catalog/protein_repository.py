@@ -10,6 +10,7 @@ from protcellar.domain.protein_catalog.enums import ProteinExistence
 from protcellar.domain.protein_catalog.protein import Protein
 from protcellar.domain.protein_catalog.repository import ProteinRepository
 from protcellar.domain.protein_catalog.value_objects import (
+    ProteinCitation,
     ProteinComment,
     ProteinFeature,
     ProteinIsoform,
@@ -22,6 +23,7 @@ from protcellar.infrastructure.persistence.sqlalchemy.protein_catalog._xref_json
     xrefs_to_json,
 )
 from protcellar.infrastructure.persistence.sqlalchemy.protein_catalog.models import (
+    ProteinCitationModel,
     ProteinCommentModel,
     ProteinFeatureModel,
     ProteinIsoformModel,
@@ -108,6 +110,22 @@ class SQLAlchemyProteinRepository(SQLAlchemyRepository[Protein, ProteinModel], P
                 )
                 for k in model.keyword_refs
             ],
+            citations=[
+                ProteinCitation(
+                    id=ct.id,
+                    citation_type=ct.citation_type,
+                    title=ct.title,
+                    journal=ct.journal,
+                    authors=ct.authors,
+                    publication_date=ct.publication_date,
+                    pubmed_id=ct.pubmed_id,
+                    doi=ct.doi,
+                    reference_number=ct.reference_number,
+                    positions=ct.positions,
+                    reference_comments=ct.reference_comments,
+                )
+                for ct in model.citations
+            ],
             source=model.source,
             source_release=model.source_release,
             source_record_id=model.source_record_id,
@@ -157,6 +175,7 @@ class SQLAlchemyProteinRepository(SQLAlchemyRepository[Protein, ProteinModel], P
         model.comments = [self._comment_to_model(c) for c in aggregate.comments]
         model.isoforms = [self._isoform_to_model(i) for i in aggregate.isoforms]
         model.keyword_refs = [self._keyword_to_model(k) for k in aggregate.keyword_refs]
+        model.citations = [self._citation_to_model(ct) for ct in aggregate.citations]
         return model
 
     def _update_model(self, model: ProteinModel, aggregate: Protein) -> None:
@@ -186,6 +205,7 @@ class SQLAlchemyProteinRepository(SQLAlchemyRepository[Protein, ProteinModel], P
         model.comments = [self._comment_to_model(c) for c in aggregate.comments]
         model.isoforms = [self._isoform_to_model(i) for i in aggregate.isoforms]
         model.keyword_refs = [self._keyword_to_model(k) for k in aggregate.keyword_refs]
+        model.citations = [self._citation_to_model(ct) for ct in aggregate.citations]
         model.source = aggregate.source
         model.source_release = aggregate.source_release
         model.source_record_id = aggregate.source_record_id
@@ -237,6 +257,22 @@ class SQLAlchemyProteinRepository(SQLAlchemyRepository[Protein, ProteinModel], P
             kw_id=k.kw_id,
             name=k.name,
             category=k.category,
+        )
+
+    @staticmethod
+    def _citation_to_model(ct: ProteinCitation) -> ProteinCitationModel:
+        return ProteinCitationModel(
+            id=ct.id,
+            citation_type=ct.citation_type,
+            title=ct.title,
+            journal=ct.journal,
+            authors=ct.authors,
+            publication_date=ct.publication_date,
+            pubmed_id=ct.pubmed_id,
+            doi=ct.doi,
+            reference_number=ct.reference_number,
+            positions=ct.positions,
+            reference_comments=ct.reference_comments,
         )
 
     async def find_by_accession(self, accession: str) -> Protein | None:

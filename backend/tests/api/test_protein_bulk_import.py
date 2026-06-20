@@ -217,3 +217,39 @@ async def test_bulk_import_captures_structured_keywords(client: AsyncClient) -> 
     ox = next(k for k in krefs if k["kw_id"] == "KW-0560")
     assert ox["name"] == "Oxidoreductase"
     assert ox["category"] == "Molecular function"
+
+
+@pytest.mark.asyncio
+async def test_bulk_import_captures_citations(client: AsyncClient) -> None:
+    organism_id = await _organism(client, ncbi_tax_id=99908)
+    rec = {
+        "primary_accession": "P9WGE7",
+        "organism_id": organism_id,
+        "sequence": "MSHHHKLVNGAGTVDPAR",
+        "is_reviewed": True,
+        "source": "uniprot",
+        "source_release": "2026_02",
+        "source_record_id": "P9WGE7",
+        "source_record_checksum": "crc1",
+        "citations": [
+            {
+                "citation_type": "journal article",
+                "title": "The complete genome sequence of M. tuberculosis.",
+                "journal": "Nature",
+                "authors": ["Cole S.T.", "Brosch R."],
+                "pubmed_id": "9634230",
+                "doi": "10.1038/31159",
+                "reference_number": 1,
+                "positions": ["NUCLEOTIDE SEQUENCE"],
+            }
+        ],
+    }
+    resp = await client.post("/api/v1/proteins/bulk", json={"records": [rec]})
+    assert resp.status_code == 200
+    got = (await client.get("/api/v1/proteins/P9WGE7")).json()
+    cits = got.get("citations") or []
+    assert len(cits) == 1
+    c = cits[0]
+    assert c["pubmed_id"] == "9634230"
+    assert c["title"].startswith("The complete genome")
+    assert c["authors"] == ["Cole S.T.", "Brosch R."]

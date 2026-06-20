@@ -92,6 +92,12 @@ class ProteinModel(Base, EntityModelMixin, WorkspaceIdMixin, VersionMixin, Prove
         foreign_keys="ProteinKeywordModel.protein_id",
         order_by="ProteinKeywordModel.id",
     )
+    citations: Mapped[list[ProteinCitationModel]] = relationship(
+        cascade="all, delete-orphan",
+        lazy="selectin",
+        foreign_keys="ProteinCitationModel.protein_id",
+        order_by="ProteinCitationModel.id",
+    )
 
 
 class ProteinFeatureModel(Base, EntityModelMixin):
@@ -155,3 +161,23 @@ class ProteinKeywordModel(Base, EntityModelMixin):
     kw_id: Mapped[str] = mapped_column(String(16), nullable=False, index=True)
     name: Mapped[str | None] = mapped_column(String(256), nullable=True)
     category: Mapped[str | None] = mapped_column(String(64), nullable=True)
+
+
+class ProteinCitationModel(Base, EntityModelMixin):
+    """A literature reference owned by a Protein (UniProt reference block)."""
+
+    __tablename__ = "protein_citations"
+
+    protein_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("proteins.id"), nullable=False, index=True
+    )
+    citation_type: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    title: Mapped[str | None] = mapped_column(Text, nullable=True)
+    journal: Mapped[str | None] = mapped_column(String(512), nullable=True)
+    authors: Mapped[list[str] | None] = mapped_column(JSON, nullable=True)
+    publication_date: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    pubmed_id: Mapped[str | None] = mapped_column(String(32), nullable=True, index=True)
+    doi: Mapped[str | None] = mapped_column(String(128), nullable=True, index=True)
+    reference_number: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    positions: Mapped[list[str] | None] = mapped_column(JSON, nullable=True)
+    reference_comments: Mapped[list[dict[str, object]] | None] = mapped_column(JSON, nullable=True)

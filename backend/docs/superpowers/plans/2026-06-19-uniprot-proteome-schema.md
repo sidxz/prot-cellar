@@ -157,7 +157,9 @@ Today `proteins.keywords` is `ARRAY(String)` (names only — loses `KW-id` + cat
 - **Domain:** `Protein.keyword_refs: list[Keyword]` VO (`kw_id`, `category`, `name`); keep the flat `keywords` names for back-compat or derive from refs.
 - **Data migration** (down_revision `<rev5>`): no destructive change required (additive); optionally backfill vocab from existing arrays. Round-trip test on a `{KW-0560, Molecular function, Oxidoreductase}` keyword.
 
-## Task 7: Citations — `citations` + `protein_citations`
+## Task 7: Citations — `protein_citations` (owned collection)  ✅ DONE
+
+> Status: GREEN. Migration `b0d2f4a6c8e0` (head). **Simplified from deduped-shared-table+join to an owned collection** — `ProteinCitation` VO (citation_type, title, journal, authors JSON, pubmed_id, doi, reference_number, positions JSON, reference_comments JSON). Lossless; cross-protein PubMed dedup is a deferred storage optimization. Round-trip test green; full suite 89 green; ruff/mypy clean.
 
 `references[]` with PubMed/DOI. Deduplicate citations (same PubMed recurs across thousands of entries).
 

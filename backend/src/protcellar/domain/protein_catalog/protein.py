@@ -10,6 +10,7 @@ from typing import Any
 from protcellar.domain.protein_catalog.enums import ProteinExistence
 from protcellar.domain.protein_catalog.events import ProteinCreated, ProteinUpdated
 from protcellar.domain.protein_catalog.value_objects import (
+    ProteinCitation,
     ProteinComment,
     ProteinFeature,
     ProteinIsoform,
@@ -58,6 +59,7 @@ class Protein(AggregateRoot):
         comments: list[ProteinComment] | None = None,
         isoforms: list[ProteinIsoform] | None = None,
         keyword_refs: list[ProteinKeyword] | None = None,
+        citations: list[ProteinCitation] | None = None,
         source: str | None = None,
         source_release: str | None = None,
         source_record_id: str | None = None,
@@ -101,6 +103,7 @@ class Protein(AggregateRoot):
         self.comments = comments if comments is not None else []
         self.isoforms = isoforms if isoforms is not None else []
         self.keyword_refs = keyword_refs if keyword_refs is not None else []
+        self.citations = citations if citations is not None else []
         self.source = source
         self.source_release = source_release
         self.source_record_id = source_record_id
@@ -134,6 +137,7 @@ class Protein(AggregateRoot):
         comments: list[ProteinComment] | None = None,
         isoforms: list[ProteinIsoform] | None = None,
         keyword_refs: list[ProteinKeyword] | None = None,
+        citations: list[ProteinCitation] | None = None,
     ) -> Protein:
         protein = cls(
             primary_accession=primary_accession,
@@ -159,6 +163,7 @@ class Protein(AggregateRoot):
             comments=comments,
             isoforms=isoforms,
             keyword_refs=keyword_refs,
+            citations=citations,
         )
         protein.register_event(
             ProteinCreated(
@@ -218,6 +223,8 @@ class Protein(AggregateRoot):
             self.isoforms = list(fields["isoforms"] or [])
         if "keyword_refs" in fields:
             self.keyword_refs = list(fields["keyword_refs"] or [])
+        if "citations" in fields:
+            self.citations = list(fields["citations"] or [])
         self._touch()
 
     def to_fasta(self) -> str:

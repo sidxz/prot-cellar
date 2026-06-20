@@ -16,6 +16,7 @@ from protcellar.domain.protein_catalog.enums import ProteinExistence
 from protcellar.domain.protein_catalog.protein import Protein
 from protcellar.domain.protein_catalog.repository import ProteinRepository
 from protcellar.domain.protein_catalog.value_objects import (
+    ProteinCitation,
     ProteinComment,
     ProteinFeature,
     ProteinIsoform,
@@ -55,6 +56,7 @@ class ProteinImportRecord:
     comments: tuple[ProteinComment, ...] = ()
     isoforms: tuple[ProteinIsoform, ...] = ()
     keyword_refs: tuple[ProteinKeyword, ...] = ()
+    citations: tuple[ProteinCitation, ...] = ()
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -116,6 +118,7 @@ class BulkUpsertProteins:
                             comments=list(rec.comments),
                             isoforms=list(rec.isoforms),
                             keyword_refs=list(rec.keyword_refs),
+                            citations=list(rec.citations),
                         )
                         existing.source_record_checksum = rec.source_record_checksum
                         existing.source_release = rec.source_release
@@ -148,6 +151,7 @@ class BulkUpsertProteins:
                             comments=list(rec.comments),
                             isoforms=list(rec.isoforms),
                             keyword_refs=list(rec.keyword_refs),
+                            citations=list(rec.citations),
                         )
                         protein.source = rec.source
                         protein.source_record_id = rec.source_record_id

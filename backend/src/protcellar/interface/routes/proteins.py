@@ -21,6 +21,7 @@ from protcellar.application.shared.sentinel import UNSET
 from protcellar.domain.protein_catalog.enums import ProteinExistence
 from protcellar.domain.protein_catalog.protein import Protein
 from protcellar.domain.protein_catalog.value_objects import (
+    ProteinCitation,
     ProteinComment,
     ProteinFeature,
     ProteinIsoform,
@@ -114,6 +115,32 @@ class KeywordRefBody(BaseModel):
     category: str | None = None
 
 
+class CitationResponse(BaseModel):
+    citation_type: str | None = None
+    title: str | None = None
+    journal: str | None = None
+    authors: list[str] | None = None
+    publication_date: str | None = None
+    pubmed_id: str | None = None
+    doi: str | None = None
+    reference_number: int | None = None
+    positions: list[str] | None = None
+    reference_comments: list[dict[str, object]] | None = None
+
+
+class CitationBody(BaseModel):
+    citation_type: str | None = None
+    title: str | None = None
+    journal: str | None = None
+    authors: list[str] | None = None
+    publication_date: str | None = None
+    pubmed_id: str | None = None
+    doi: str | None = None
+    reference_number: int | None = None
+    positions: list[str] | None = None
+    reference_comments: list[dict[str, object]] | None = None
+
+
 class ProteinResponse(BaseModel):
     id: uuid.UUID
     primary_accession: str
@@ -140,6 +167,7 @@ class ProteinResponse(BaseModel):
     comments: list[CommentResponse] = []
     isoforms: list[IsoformResponse] = []
     keyword_refs: list[KeywordRefResponse] = []
+    citations: list[CitationResponse] = []
     version: int
 
     @classmethod
@@ -220,6 +248,21 @@ class ProteinResponse(BaseModel):
                     category=k.category,
                 )
                 for k in p.keyword_refs
+            ],
+            citations=[
+                CitationResponse(
+                    citation_type=ct.citation_type,
+                    title=ct.title,
+                    journal=ct.journal,
+                    authors=ct.authors,
+                    publication_date=ct.publication_date,
+                    pubmed_id=ct.pubmed_id,
+                    doi=ct.doi,
+                    reference_number=ct.reference_number,
+                    positions=ct.positions,
+                    reference_comments=ct.reference_comments,
+                )
+                for ct in p.citations
             ],
             version=p.version,
         )
@@ -306,6 +349,7 @@ class BulkRecordBody(BaseModel):
     comments: list[CommentBody] = []
     isoforms: list[IsoformBody] = []
     keyword_refs: list[KeywordRefBody] = []
+    citations: list[CitationBody] = []
 
 
 class BulkUpsertBody(BaseModel):
@@ -464,6 +508,21 @@ async def bulk_upsert_proteins(
                         category=k.category,
                     )
                     for k in r.keyword_refs
+                ),
+                citations=tuple(
+                    ProteinCitation(
+                        citation_type=ct.citation_type,
+                        title=ct.title,
+                        journal=ct.journal,
+                        authors=ct.authors,
+                        publication_date=ct.publication_date,
+                        pubmed_id=ct.pubmed_id,
+                        doi=ct.doi,
+                        reference_number=ct.reference_number,
+                        positions=ct.positions,
+                        reference_comments=ct.reference_comments,
+                    )
+                    for ct in r.citations
                 ),
             )
             for r in body.records

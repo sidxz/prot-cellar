@@ -119,3 +119,24 @@ class ProteinKeyword:
     name: str | None = None
     category: str | None = None
     id: uuid.UUID = field(default_factory=uuid.uuid4)
+
+
+@dataclass
+class ProteinCitation:
+    """A literature reference owned by a Protein (UniProt reference block).
+
+    PubMed id / DOI are kept flat for lookup; `authors`, `positions` and
+    `reference_comments` carry the list-valued sub-fields verbatim (JSONB).
+    """
+
+    citation_type: str | None = None
+    title: str | None = None
+    journal: str | None = None
+    authors: list[str] | None = None
+    publication_date: str | None = None
+    pubmed_id: str | None = None
+    doi: str | None = None
+    reference_number: int | None = None
+    positions: list[str] | None = None
+    reference_comments: list[dict[str, object]] | None = None
+    id: uuid.UUID = field(default_factory=uuid.uuid4)
