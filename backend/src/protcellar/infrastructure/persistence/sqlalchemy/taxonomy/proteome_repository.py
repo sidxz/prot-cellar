@@ -4,12 +4,14 @@ from __future__ import annotations
 
 import uuid
 
+from sqlalchemy import delete as sa_delete
 from sqlalchemy import select
 
 from protcellar.domain.taxonomy.enums import ProteomeType
 from protcellar.domain.taxonomy.proteome import Proteome
 from protcellar.domain.taxonomy.repository import ProteomeRepository
 from protcellar.infrastructure.persistence.sqlalchemy.base_repository import SQLAlchemyRepository
+from protcellar.infrastructure.persistence.sqlalchemy.protein_catalog.models import ProteinModel
 from protcellar.infrastructure.persistence.sqlalchemy.taxonomy.models import (
     ProteomeModel,
     ProteomeProteinModel,
@@ -108,3 +110,19 @@ class SQLAlchemyProteomeRepository(
         )
         rows = await self._session.execute(stmt)
         return [row[0] for row in rows.all()]
+
+    async def remove_protein(self, proteome_id: uuid.UUID, protein_id: uuid.UUID) -> None:
+        await self._session.execute(
+            sa_delete(ProteomeProteinModel).where(
+                ProteomeProteinModel.proteome_id == proteome_id,
+                ProteomeProteinModel.protein_id == protein_id,
+            )
+        )
+
+    async def list_members(self, proteome_id: uuid.UUID) -> list[tuple[uuid.UUID, str]]:
+        stmt = (
+            select(ProteomeProteinModel.protein_id, ProteinModel.primary_accession)
+            .join(ProteinModel, ProteinModel.id == ProteomeProteinModel.protein_id)
+            .where(ProteomeProteinModel.proteome_id == proteome_id)
+        )
+        return [(r[0], r[1]) for r in (await self._session.execute(stmt)).all()]

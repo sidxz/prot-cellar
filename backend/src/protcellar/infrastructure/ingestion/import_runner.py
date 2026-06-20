@@ -52,6 +52,8 @@ class ImportSummary:
     skipped: int = 0
     failed: int = 0
     members_linked: int = 0
+    members_pruned: int = 0
+    skipped_unchanged: bool = False
 
 
 class ProteomeImportRunner:
@@ -74,16 +76,20 @@ class ProteomeImportRunner:
         *,
         dry_run: bool = False,
         limit: int | None = None,
+        force: bool = False,
         auth: AuthContext | None = None,
     ) -> ImportSummary:
         meta = await self._client.fetch_proteome(proteome_id)
         source_release = str(meta.get("modified") or "")
+        if not force and not dry_run and await self._is_unchanged(proteome_id, meta):
+            return ImportSummary(proteome_id=proteome_id, skipped_unchanged=True)
         organism_id = await self._ensure_organism(meta, dry_run=dry_run)
         proteome_db_id = await self._ensure_proteome(
             proteome_id, organism_id, meta, dry_run=dry_run
         )
 
         summary = ImportSummary(proteome_id=proteome_id)
+        seen: set[str] = set()
         chunk: list[ProteinImportRecord] = []
         async for entry in self._client.iter_entries(proteome_id):
             chunk.append(
@@ -94,6 +100,7 @@ class ProteomeImportRunner:
                     source_release=source_release,
                 )
             )
+            seen.add(entry["primaryAccession"])
             summary.entries += 1
             if len(chunk) >= self._chunk_size:
                 await self._load_chunk(chunk, proteome_db_id, summary, dry_run=dry_run, auth=auth)
@@ -102,6 +109,8 @@ class ProteomeImportRunner:
                 break
         if chunk:
             await self._load_chunk(chunk, proteome_db_id, summary, dry_run=dry_run, auth=auth)
+        if not dry_run and limit is None:
+            await self._reconcile_membership(proteome_db_id, seen, summary)
         return summary
 
     async def _ensure_organism(self, meta: dict[str, Any], *, dry_run: bool) -> uuid.UUID:
@@ -133,17 +142,40 @@ class ProteomeImportRunner:
             repo = SQLAlchemyProteomeRepository(self._uow)
             existing = await repo.find_by_proteome_id(proteome_id)
             if existing is not None:
+                if not dry_run and existing.source_version != meta.get("modified"):
+                    existing.update(source_version=meta.get("modified"))
+                    await repo.save(existing)
+                    await self._uow.commit()
                 return existing.id
             proteome = Proteome.create(
                 uniprot_proteome_id=proteome_id,
                 organism_id=organism_id,
                 proteome_type=ProteomeType.REFERENCE if is_reference else ProteomeType.REDUNDANT,
                 is_reference=is_reference,
+                source_version=meta.get("modified"),
             )
             if not dry_run:
                 await repo.save(proteome)
                 await self._uow.commit()
             return proteome.id
+
+    async def _is_unchanged(self, proteome_id: str, meta: dict[str, Any]) -> bool:
+        async with self._uow:
+            existing = await SQLAlchemyProteomeRepository(self._uow).find_by_proteome_id(
+                proteome_id
+            )
+            return existing is not None and existing.source_version == meta.get("modified")
+
+    async def _reconcile_membership(
+        self, proteome_db_id: uuid.UUID, seen: set[str], summary: ImportSummary
+    ) -> None:
+        async with self._uow:
+            repo = SQLAlchemyProteomeRepository(self._uow)
+            for protein_id, accession in await repo.list_members(proteome_db_id):
+                if accession not in seen:
+                    await repo.remove_protein(proteome_db_id, protein_id)
+                    summary.members_pruned += 1
+            await self._uow.commit()
 
     async def _load_chunk(
         self,

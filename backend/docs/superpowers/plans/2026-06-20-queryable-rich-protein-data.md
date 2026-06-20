@@ -234,7 +234,9 @@ _STRUCTURE_DBS = ("PDB", "PDBsum", "AlphaFoldDB", "EMDB", "SMR")
 
 ---
 
-## Task 3: Re-sync version gate (`--force`)
+## Task 3: Re-sync version gate (`--force`)  ✅ DONE
+
+> Status: GREEN. `run(..., force=False)` no-ops with `skipped_unchanged=True` when the stored `Proteome.source_version` matches the live `modified`; `_ensure_proteome` now sets/advances `source_version`; CLI `--force` bypasses. Test green.
 
 **Files:**
 - Modify: `src/protcellar/infrastructure/ingestion/import_runner.py`
@@ -252,7 +254,11 @@ _STRUCTURE_DBS = ("PDB", "PDBsum", "AlphaFoldDB", "EMDB", "SMR")
 
 ---
 
-## Task 4: Re-sync membership reconciliation
+## ✅ SUB-PROJECT 1 COMPLETE — all 4 tasks done; full suite 106 green, ruff/mypy clean. Next: piece 2 (GO ontology) / piece 3 (frontend viewer), each its own spec.
+
+## Task 4: Re-sync membership reconciliation  ✅ DONE
+
+> Status: GREEN. `ProteomeRepository.remove_protein` + `list_members(proteome_id) -> [(id, accession)]`; the runner tracks accessions seen this run and prunes membership for departed ones (`members_pruned`), on full syncs only (skipped under `--limit`/`--dry-run`). Test green.
 
 **Files:**
 - Modify: `src/protcellar/domain/taxonomy/repository.py` (protocol)

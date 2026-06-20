@@ -29,13 +29,25 @@ from protcellar.infrastructure.persistence.unit_of_work import AsyncUnitOfWork
 from tests.fakes.fake_auth import FakeAuth
 
 
-def _meta(proteome_id: str, tax_id: int) -> dict[str, Any]:
+def _meta(proteome_id: str, tax_id: int, modified: str = "2026-01-01") -> dict[str, Any]:
     return {
         "id": proteome_id,
         "taxonomy": {"taxonId": tax_id, "scientificName": "Importus testus"},
         "proteomeType": "Reference proteome",
-        "modified": "2026-01-01",
+        "modified": modified,
     }
+
+
+def _simple_entries(*accs: str) -> list[dict[str, Any]]:
+    return [
+        {
+            "primaryAccession": a,
+            "entryType": "UniProtKB reviewed (Swiss-Prot)",
+            "sequence": {"value": "MKTAYIAKQR"},
+            "entryAudit": {"entryVersion": 1, "sequenceVersion": 1},
+        }
+        for a in accs
+    ]
 
 
 def _entries(acc1: str, acc2: str) -> list[dict[str, Any]]:
@@ -138,3 +150,42 @@ async def test_import_dry_run_persists_nothing(import_uow: AsyncUnitOfWork) -> N
     async with import_uow:
         repo = SQLAlchemyProteinRepository(import_uow)
         assert await repo.find_by_accession("P0DK03") is None
+
+
+@pytest.mark.asyncio
+async def test_version_gate_skips_unchanged(import_uow: AsyncUnitOfWork) -> None:
+    runner, _ = _runner(import_uow, _meta("UP000000088", 99975), _entries("P0DW01", "P0DW02"))
+    first = await runner.run("UP000000088", auth=FakeAuth(role="admin"))
+    assert first.created == 2
+
+    runner2, _ = _runner(import_uow, _meta("UP000000088", 99975), _entries("P0DW01", "P0DW02"))
+    second = await runner2.run("UP000000088", auth=FakeAuth(role="admin"))
+    assert second.skipped_unchanged is True
+    assert second.entries == 0
+
+    third = await runner2.run("UP000000088", auth=FakeAuth(role="admin"), force=True)
+    assert third.skipped_unchanged is False
+    assert third.entries == 2
+
+
+@pytest.mark.asyncio
+async def test_reconcile_prunes_departed_members(import_uow: AsyncUnitOfWork) -> None:
+    runner, _ = _runner(
+        import_uow, _meta("UP000000077", 99976), _simple_entries("P0DW10", "P0DW11", "P0DW12")
+    )
+    first = await runner.run("UP000000077", auth=FakeAuth(role="admin"))
+    assert first.members_linked == 3
+
+    runner2, _ = _runner(
+        import_uow,
+        _meta("UP000000077", 99976, modified="2026-02-02"),
+        _simple_entries("P0DW10", "P0DW11"),
+    )
+    second = await runner2.run("UP000000077", auth=FakeAuth(role="admin"))
+    assert second.members_pruned == 1
+
+    async with import_uow:
+        prepo = SQLAlchemyProteomeRepository(import_uow)
+        proteome = await prepo.find_by_proteome_id("UP000000077")
+        assert proteome is not None
+        assert len(await prepo.list_protein_ids(proteome.id)) == 2

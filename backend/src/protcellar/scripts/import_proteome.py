@@ -61,7 +61,7 @@ class _NoopDispatcher:
 
 
 async def import_proteome(
-    proteome_id: str, *, dry_run: bool = False, limit: int | None = None
+    proteome_id: str, *, dry_run: bool = False, limit: int | None = None, force: bool = False
 ) -> ImportSummary:
     settings = DatabaseSettings()  # type: ignore[call-arg]
     engine = create_async_engine(settings.database_url)
@@ -73,7 +73,7 @@ async def import_proteome(
             bulk = BulkUpsertProteins(uow, protein_repo, _NoopDispatcher())
             runner = ProteomeImportRunner(uow, UniProtClient(http), bulk)
             return await runner.run(
-                proteome_id, dry_run=dry_run, limit=limit, auth=_ServiceAuth()
+                proteome_id, dry_run=dry_run, limit=limit, force=force, auth=_ServiceAuth()
             )
     finally:
         await engine.dispose()
@@ -90,9 +90,14 @@ def main() -> None:
     parser.add_argument(
         "--limit", type=int, default=None, help="Import only the first N entries (smoke test)"
     )
+    parser.add_argument(
+        "--force", action="store_true", help="Re-import even if the release version is unchanged"
+    )
     args = parser.parse_args()
     summary = asyncio.run(
-        import_proteome(args.proteome_id, dry_run=args.dry_run, limit=args.limit)
+        import_proteome(
+            args.proteome_id, dry_run=args.dry_run, limit=args.limit, force=args.force
+        )
     )
     print(
         f"[{summary.proteome_id}] entries={summary.entries} created={summary.created} "
