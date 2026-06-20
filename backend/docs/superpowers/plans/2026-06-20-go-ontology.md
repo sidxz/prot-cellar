@@ -75,7 +75,9 @@
 - [ ] **Step 4 — green** + ruff + mypy.
 - [ ] **Step 5 — commit:** `feat(ingestion): obonet GO OBO parser`.
 
-## Task 4: GO import runner + CLI
+## Task 4: GO import runner + CLI  ✅ DONE
+
+> Status: GREEN. `GoImportRunner` (injectable `read_obo`/`probe_version`, run in a thread): cheap Range-probe of `data-version` → version-gate (`--force`) → `read_obo` → `parse_obo` → upsert terms + replace edges → commit; `GoImportSummary`. CLI `python -m protcellar.scripts.import_go_ontology [--force]`. Test (gate + obsolete + descendants) green; ruff/mypy clean; `--help` verified.
 
 **Files:** create `infrastructure/ingestion/go_import_runner.py`, `scripts/import_go_ontology.py`; test `tests/unit/infrastructure/test_go_import_runner.py`.
 
