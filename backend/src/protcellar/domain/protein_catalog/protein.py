@@ -13,6 +13,7 @@ from protcellar.domain.protein_catalog.value_objects import (
     ProteinComment,
     ProteinFeature,
     ProteinIsoform,
+    ProteinKeyword,
     ProteinNames,
 )
 from protcellar.domain.shared.cross_reference import CrossReference
@@ -56,6 +57,7 @@ class Protein(AggregateRoot):
         features: list[ProteinFeature] | None = None,
         comments: list[ProteinComment] | None = None,
         isoforms: list[ProteinIsoform] | None = None,
+        keyword_refs: list[ProteinKeyword] | None = None,
         source: str | None = None,
         source_release: str | None = None,
         source_record_id: str | None = None,
@@ -98,6 +100,7 @@ class Protein(AggregateRoot):
         self.features = features if features is not None else []
         self.comments = comments if comments is not None else []
         self.isoforms = isoforms if isoforms is not None else []
+        self.keyword_refs = keyword_refs if keyword_refs is not None else []
         self.source = source
         self.source_release = source_release
         self.source_record_id = source_record_id
@@ -130,6 +133,7 @@ class Protein(AggregateRoot):
         features: list[ProteinFeature] | None = None,
         comments: list[ProteinComment] | None = None,
         isoforms: list[ProteinIsoform] | None = None,
+        keyword_refs: list[ProteinKeyword] | None = None,
     ) -> Protein:
         protein = cls(
             primary_accession=primary_accession,
@@ -154,6 +158,7 @@ class Protein(AggregateRoot):
             features=features,
             comments=comments,
             isoforms=isoforms,
+            keyword_refs=keyword_refs,
         )
         protein.register_event(
             ProteinCreated(
@@ -211,6 +216,8 @@ class Protein(AggregateRoot):
             self.comments = list(fields["comments"] or [])
         if "isoforms" in fields:
             self.isoforms = list(fields["isoforms"] or [])
+        if "keyword_refs" in fields:
+            self.keyword_refs = list(fields["keyword_refs"] or [])
         self._touch()
 
     def to_fasta(self) -> str:

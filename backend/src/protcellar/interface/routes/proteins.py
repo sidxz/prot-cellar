@@ -24,6 +24,7 @@ from protcellar.domain.protein_catalog.value_objects import (
     ProteinComment,
     ProteinFeature,
     ProteinIsoform,
+    ProteinKeyword,
     ProteinNames,
 )
 from protcellar.domain.shared.cross_reference import CrossReference
@@ -101,6 +102,18 @@ class IsoformBody(BaseModel):
     note: str | None = None
 
 
+class KeywordRefResponse(BaseModel):
+    kw_id: str
+    name: str | None = None
+    category: str | None = None
+
+
+class KeywordRefBody(BaseModel):
+    kw_id: str
+    name: str | None = None
+    category: str | None = None
+
+
 class ProteinResponse(BaseModel):
     id: uuid.UUID
     primary_accession: str
@@ -126,6 +139,7 @@ class ProteinResponse(BaseModel):
     features: list[FeatureResponse] = []
     comments: list[CommentResponse] = []
     isoforms: list[IsoformResponse] = []
+    keyword_refs: list[KeywordRefResponse] = []
     version: int
 
     @classmethod
@@ -198,6 +212,14 @@ class ProteinResponse(BaseModel):
                     note=i.note,
                 )
                 for i in p.isoforms
+            ],
+            keyword_refs=[
+                KeywordRefResponse(
+                    kw_id=k.kw_id,
+                    name=k.name,
+                    category=k.category,
+                )
+                for k in p.keyword_refs
             ],
             version=p.version,
         )
@@ -283,6 +305,7 @@ class BulkRecordBody(BaseModel):
     features: list[FeatureBody] = []
     comments: list[CommentBody] = []
     isoforms: list[IsoformBody] = []
+    keyword_refs: list[KeywordRefBody] = []
 
 
 class BulkUpsertBody(BaseModel):
@@ -433,6 +456,14 @@ async def bulk_upsert_proteins(
                         note=i.note,
                     )
                     for i in r.isoforms
+                ),
+                keyword_refs=tuple(
+                    ProteinKeyword(
+                        kw_id=k.kw_id,
+                        name=k.name,
+                        category=k.category,
+                    )
+                    for k in r.keyword_refs
                 ),
             )
             for r in body.records

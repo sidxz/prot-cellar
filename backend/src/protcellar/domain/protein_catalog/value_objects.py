@@ -105,3 +105,17 @@ class ProteinIsoform:
     event: str | None = None
     note: str | None = None
     id: uuid.UUID = field(default_factory=uuid.uuid4)
+
+
+@dataclass
+class ProteinKeyword:
+    """A UniProt controlled-vocabulary keyword owned by a Protein.
+
+    `kw_id` is the stable accession (e.g. "KW-0560"); `category` is the
+    keyword category (e.g. "Molecular function", "Technical term").
+    """
+
+    kw_id: str
+    name: str | None = None
+    category: str | None = None
+    id: uuid.UUID = field(default_factory=uuid.uuid4)

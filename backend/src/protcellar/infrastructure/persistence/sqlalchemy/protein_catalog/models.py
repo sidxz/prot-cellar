@@ -86,6 +86,12 @@ class ProteinModel(Base, EntityModelMixin, WorkspaceIdMixin, VersionMixin, Prove
         foreign_keys="ProteinIsoformModel.protein_id",
         order_by="ProteinIsoformModel.id",
     )
+    keyword_refs: Mapped[list[ProteinKeywordModel]] = relationship(
+        cascade="all, delete-orphan",
+        lazy="selectin",
+        foreign_keys="ProteinKeywordModel.protein_id",
+        order_by="ProteinKeywordModel.id",
+    )
 
 
 class ProteinFeatureModel(Base, EntityModelMixin):
@@ -136,3 +142,16 @@ class ProteinIsoformModel(Base, EntityModelMixin):
     sequence: Mapped[str | None] = mapped_column(Text, nullable=True)
     event: Mapped[str | None] = mapped_column(String(64), nullable=True)
     note: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+
+class ProteinKeywordModel(Base, EntityModelMixin):
+    """A UniProt controlled-vocabulary keyword owned by a Protein."""
+
+    __tablename__ = "protein_keywords"
+
+    protein_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("proteins.id"), nullable=False, index=True
+    )
+    kw_id: Mapped[str] = mapped_column(String(16), nullable=False, index=True)
+    name: Mapped[str | None] = mapped_column(String(256), nullable=True)
+    category: Mapped[str | None] = mapped_column(String(64), nullable=True)

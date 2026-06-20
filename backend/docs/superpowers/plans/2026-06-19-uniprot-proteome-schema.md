@@ -147,7 +147,9 @@ The single highest-volume category (PDB, InterPro, Pfam, KEGG, STRING, **GO**, �
 - **Test:** existing `test_bulk_upsert_is_idempotent` xref round-trip must still pass; add a GO-term round-trip + a "filter proteins by xref database" query test.
 - ⚠ Touches working code — run the **whole** `tests/api/test_protein_bulk_import.py` + `tests/api/test_proteins.py` green.
 
-## Task 6: Structured keywords — `keywords` vocab + `protein_keywords`
+## Task 6: Structured keywords — `protein_keywords` (owned collection)  ✅ DONE
+
+> Status: GREEN. Migration `a8c0e2f4b6d8` (head). **Simplified from vocab+join to an owned collection** — `ProteinKeyword` VO (kw_id, name, category) on the aggregate as attribute `keyword_refs` (flat `keywords` String array stays for back-compat). Lossless; dedup into a shared vocab table is a deferred storage optimization. Round-trip test green; ruff/mypy clean.
 
 Today `proteins.keywords` is `ARRAY(String)` (names only — loses `KW-id` + category).
 

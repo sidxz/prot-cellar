@@ -13,6 +13,7 @@ from protcellar.domain.protein_catalog.value_objects import (
     ProteinComment,
     ProteinFeature,
     ProteinIsoform,
+    ProteinKeyword,
     ProteinNames,
 )
 from protcellar.infrastructure.persistence.sqlalchemy.base_repository import SQLAlchemyRepository
@@ -24,6 +25,7 @@ from protcellar.infrastructure.persistence.sqlalchemy.protein_catalog.models imp
     ProteinCommentModel,
     ProteinFeatureModel,
     ProteinIsoformModel,
+    ProteinKeywordModel,
     ProteinModel,
 )
 
@@ -97,6 +99,15 @@ class SQLAlchemyProteinRepository(SQLAlchemyRepository[Protein, ProteinModel], P
                 )
                 for i in model.isoforms
             ],
+            keyword_refs=[
+                ProteinKeyword(
+                    id=k.id,
+                    kw_id=k.kw_id,
+                    name=k.name,
+                    category=k.category,
+                )
+                for k in model.keyword_refs
+            ],
             source=model.source,
             source_release=model.source_release,
             source_record_id=model.source_record_id,
@@ -145,6 +156,7 @@ class SQLAlchemyProteinRepository(SQLAlchemyRepository[Protein, ProteinModel], P
         model.features = [self._feature_to_model(f) for f in aggregate.features]
         model.comments = [self._comment_to_model(c) for c in aggregate.comments]
         model.isoforms = [self._isoform_to_model(i) for i in aggregate.isoforms]
+        model.keyword_refs = [self._keyword_to_model(k) for k in aggregate.keyword_refs]
         return model
 
     def _update_model(self, model: ProteinModel, aggregate: Protein) -> None:
@@ -173,6 +185,7 @@ class SQLAlchemyProteinRepository(SQLAlchemyRepository[Protein, ProteinModel], P
         model.features = [self._feature_to_model(f) for f in aggregate.features]
         model.comments = [self._comment_to_model(c) for c in aggregate.comments]
         model.isoforms = [self._isoform_to_model(i) for i in aggregate.isoforms]
+        model.keyword_refs = [self._keyword_to_model(k) for k in aggregate.keyword_refs]
         model.source = aggregate.source
         model.source_release = aggregate.source_release
         model.source_record_id = aggregate.source_record_id
@@ -215,6 +228,15 @@ class SQLAlchemyProteinRepository(SQLAlchemyRepository[Protein, ProteinModel], P
             sequence=i.sequence,
             event=i.event,
             note=i.note,
+        )
+
+    @staticmethod
+    def _keyword_to_model(k: ProteinKeyword) -> ProteinKeywordModel:
+        return ProteinKeywordModel(
+            id=k.id,
+            kw_id=k.kw_id,
+            name=k.name,
+            category=k.category,
         )
 
     async def find_by_accession(self, accession: str) -> Protein | None:

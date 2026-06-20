@@ -190,3 +190,30 @@ async def test_bulk_import_captures_isoforms(client: AsyncClient) -> None:
     beta = next(i for i in isos if i["isoform_accession"] == "P9WPX3-2")
     assert beta["event"] == "Alternative initiation"
     assert beta["is_displayed"] is False
+
+
+@pytest.mark.asyncio
+async def test_bulk_import_captures_structured_keywords(client: AsyncClient) -> None:
+    organism_id = await _organism(client, ncbi_tax_id=99907)
+    rec = {
+        "primary_accession": "P9WGE9",
+        "organism_id": organism_id,
+        "sequence": "MAQTVTLNGNAVTLDTAR",
+        "is_reviewed": True,
+        "source": "uniprot",
+        "source_release": "2026_02",
+        "source_record_id": "P9WGE9",
+        "source_record_checksum": "crc1",
+        "keyword_refs": [
+            {"kw_id": "KW-0560", "name": "Oxidoreductase", "category": "Molecular function"},
+            {"kw_id": "KW-1185", "name": "Reference proteome", "category": "Technical term"},
+        ],
+    }
+    resp = await client.post("/api/v1/proteins/bulk", json={"records": [rec]})
+    assert resp.status_code == 200
+    got = (await client.get("/api/v1/proteins/P9WGE9")).json()
+    krefs = got.get("keyword_refs") or []
+    assert len(krefs) == 2
+    ox = next(k for k in krefs if k["kw_id"] == "KW-0560")
+    assert ox["name"] == "Oxidoreductase"
+    assert ox["category"] == "Molecular function"
