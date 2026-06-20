@@ -17,6 +17,39 @@ async def _organism(client: AsyncClient, tax_id: int, name: str) -> str:
 
 
 @pytest.mark.asyncio
+async def test_protein_catalog_filters(client: AsyncClient) -> None:
+    org = await _organism(client, 99930, "Filter testus")
+    rich = {
+        "primary_accession": "P0DV10", "organism_id": org, "sequence": "MKTAYIAKQR",
+        "is_reviewed": True, "source": "uniprot", "source_release": "x",
+        "source_record_id": "P0DV10", "source_record_checksum": "c",
+        "cross_references": [
+            {"database": "PDB", "accession": "1XYZ"},
+            {"database": "GO", "accession": "GO:0016491"},
+        ],
+        "keyword_refs": [{"kw_id": "KW-0560"}],
+    }
+    bare = {
+        **rich, "primary_accession": "P0DV11", "source_record_id": "P0DV11",
+        "cross_references": [], "keyword_refs": [],
+    }
+    assert (await client.post("/api/v1/proteins/bulk", json={"records": [rich, bare]})).status_code == 200
+
+    async def accs(q: str) -> set[str]:
+        items = (await client.get(f"/api/v1/proteins{q}&limit=200")).json()["items"]
+        return {p["primary_accession"] for p in items}
+
+    pdb = await accs("?xref_db=PDB")
+    assert "P0DV10" in pdb and "P0DV11" not in pdb
+    structures = await accs("?has_structure=true")
+    assert "P0DV10" in structures and "P0DV11" not in structures
+    go = await accs("?go_term=GO:0016491")
+    assert "P0DV10" in go and "P0DV11" not in go
+    kw = await accs("?keyword=KW-0560")
+    assert "P0DV10" in kw and "P0DV11" not in kw
+
+
+@pytest.mark.asyncio
 async def test_create_get_fasta_and_resolve_protein(client: AsyncClient) -> None:
     organism_id = await _organism(client, 9606, "Homo sapiens")
     created = await client.post(

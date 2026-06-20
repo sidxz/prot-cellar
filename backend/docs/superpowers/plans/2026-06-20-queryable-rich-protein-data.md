@@ -168,7 +168,9 @@ def downgrade() -> None:
 
 ---
 
-## Task 2: Catalog filters on `GET /api/v1/proteins`
+## Task 2: Catalog filters on `GET /api/v1/proteins`  ✅ DONE
+
+> Status: GREEN. `xref_db` / `has_structure` / `go_term` / `keyword` threaded through `ListProteinsQuery` → use-case → `ProteinRepository` protocol → `find_all` (indexed `EXISTS` subqueries over `protein_cross_references` / `protein_keywords`) → route params. Filter test (rich vs bare protein) green; ruff/mypy clean.
 
 **Files:**
 - Modify: `src/protcellar/application/protein_catalog/list_proteins.py` (`ListProteinsQuery`)

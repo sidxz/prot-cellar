@@ -401,6 +401,10 @@ async def list_proteins(
     reviewed: bool | None = None,
     min_length: int | None = None,
     max_length: int | None = None,
+    xref_db: str | None = None,
+    has_structure: bool | None = None,
+    go_term: str | None = None,
+    keyword: str | None = None,
     cursor: str | None = None,
     limit: int | None = None,
 ) -> PaginatedResponse[ProteinResponse]:
@@ -412,6 +416,10 @@ async def list_proteins(
         is_reviewed=reviewed,
         min_length=min_length,
         max_length=max_length,
+        xref_db=xref_db,
+        has_structure=has_structure,
+        go_term=go_term,
+        keyword=keyword,
     )
     page = result_to_response(await use_case(query, auth=auth))
     return PaginatedResponse(

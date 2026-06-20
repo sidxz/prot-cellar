@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import uuid
 
-from sqlalchemy import select
+from sqlalchemy import exists, select
 
 from protcellar.domain.protein_catalog.enums import ProteinExistence
 from protcellar.domain.protein_catalog.protein import Protein
@@ -28,6 +28,8 @@ from protcellar.infrastructure.persistence.sqlalchemy.protein_catalog.models imp
     ProteinKeywordModel,
     ProteinModel,
 )
+
+_STRUCTURE_DBS = ("PDB", "PDBsum", "AlphaFoldDB", "EMDB", "SMR")
 
 
 class SQLAlchemyProteinRepository(SQLAlchemyRepository[Protein, ProteinModel], ProteinRepository):
@@ -325,6 +327,10 @@ class SQLAlchemyProteinRepository(SQLAlchemyRepository[Protein, ProteinModel], P
         is_reviewed: bool | None = None,
         min_length: int | None = None,
         max_length: int | None = None,
+        xref_db: str | None = None,
+        has_structure: bool | None = None,
+        go_term: str | None = None,
+        keyword: str | None = None,
     ) -> list[Protein]:
         stmt = select(ProteinModel).order_by(ProteinModel.id)
         if organism_id is not None:
@@ -337,6 +343,35 @@ class SQLAlchemyProteinRepository(SQLAlchemyRepository[Protein, ProteinModel], P
             stmt = stmt.where(ProteinModel.seq_length >= min_length)
         if max_length is not None:
             stmt = stmt.where(ProteinModel.seq_length <= max_length)
+        if xref_db is not None:
+            stmt = stmt.where(
+                exists().where(
+                    ProteinCrossReferenceModel.protein_id == ProteinModel.id,
+                    ProteinCrossReferenceModel.database == xref_db,
+                )
+            )
+        if has_structure:
+            stmt = stmt.where(
+                exists().where(
+                    ProteinCrossReferenceModel.protein_id == ProteinModel.id,
+                    ProteinCrossReferenceModel.database.in_(_STRUCTURE_DBS),
+                )
+            )
+        if go_term is not None:
+            stmt = stmt.where(
+                exists().where(
+                    ProteinCrossReferenceModel.protein_id == ProteinModel.id,
+                    ProteinCrossReferenceModel.database == "GO",
+                    ProteinCrossReferenceModel.accession == go_term,
+                )
+            )
+        if keyword is not None:
+            stmt = stmt.where(
+                exists().where(
+                    ProteinKeywordModel.protein_id == ProteinModel.id,
+                    ProteinKeywordModel.kw_id == keyword,
+                )
+            )
         if cursor_id is not None:
             stmt = stmt.where(ProteinModel.id > cursor_id)
         if limit is not None:

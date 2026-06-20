@@ -25,6 +25,10 @@ class ListProteinsQuery(Query):
     is_reviewed: bool | None = None
     min_length: int | None = None
     max_length: int | None = None
+    xref_db: str | None = None
+    has_structure: bool | None = None
+    go_term: str | None = None
+    keyword: str | None = None
 
 
 class ListProteins:
@@ -47,6 +51,10 @@ class ListProteins:
                 is_reviewed=input.is_reviewed,
                 min_length=input.min_length,
                 max_length=input.max_length,
+                xref_db=input.xref_db,
+                has_structure=input.has_structure,
+                go_term=input.go_term,
+                keyword=input.keyword,
             )
 
             next_cursor: str | None = None

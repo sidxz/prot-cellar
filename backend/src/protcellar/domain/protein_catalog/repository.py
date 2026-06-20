@@ -60,6 +60,10 @@ class ProteinRepository(Protocol):
         is_reviewed: bool | None = None,
         min_length: int | None = None,
         max_length: int | None = None,
+        xref_db: str | None = None,
+        has_structure: bool | None = None,
+        go_term: str | None = None,
+        keyword: str | None = None,
     ) -> list[Protein]: ...
 
     async def save(self, aggregate: Protein) -> None: ...
