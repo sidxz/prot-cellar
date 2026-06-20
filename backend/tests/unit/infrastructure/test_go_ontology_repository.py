@@ -59,3 +59,19 @@ async def test_upsert_terms_replace_edges_and_version(go_uow: AsyncUnitOfWork) -
         updated = await repo.find_term("GO:0016491")
         assert updated is not None
         assert updated.name == "renamed"
+
+
+@pytest.mark.asyncio
+async def test_descendants(go_uow: AsyncUnitOfWork) -> None:
+    async with go_uow as uow:
+        repo = SQLAlchemyGoOntologyRepository(uow)
+        # A is_a B, B is_a C  (edges stored child -> parent)
+        await repo.replace_edges(
+            [
+                GoEdge(child_go_id="GO:0000001", parent_go_id="GO:0000002", relation="is_a"),
+                GoEdge(child_go_id="GO:0000002", parent_go_id="GO:0000003", relation="is_a"),
+            ]
+        )
+        assert await repo.descendants("GO:0000003") == {"GO:0000001", "GO:0000002"}
+        assert await repo.descendants("GO:0000002") == {"GO:0000001"}
+        assert await repo.descendants("GO:0000001") == set()

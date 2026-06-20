@@ -103,3 +103,17 @@ class SQLAlchemyGoOntologyRepository:
     async def latest_source_version(self) -> str | None:
         result = await self._session.execute(select(func.max(GoTermModel.source_version)))
         return result.scalar_one_or_none()
+
+    async def descendants(self, go_id: str) -> set[str]:
+        """All transitive descendants of ``go_id`` (terms that are_a/part_of it)."""
+        base = (
+            select(GoEdgeModel.child_go_id.label("go_id"))
+            .where(GoEdgeModel.parent_go_id == go_id)
+            .cte(name="descendants", recursive=True)
+        )
+        recursive = select(GoEdgeModel.child_go_id.label("go_id")).join(
+            base, GoEdgeModel.parent_go_id == base.c.go_id
+        )
+        cte = base.union(recursive)
+        result = await self._session.execute(select(cte.c.go_id))
+        return {row[0] for row in result.all()}

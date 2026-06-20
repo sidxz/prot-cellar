@@ -47,7 +47,9 @@
 - [ ] **Step 7 — run green** (`pytest test_go_ontology_repository.py`), ruff, mypy.
 - [ ] **Step 8 — commit:** `feat(gene-ontology): go_terms/go_edges tables + bulk-upsert repository`.
 
-## Task 2: `descendants()` recursive CTE
+## Task 2: `descendants()` recursive CTE  ✅ DONE
+
+> Status: GREEN. Recursive CTE over `go_edges` (walk `parent_go_id == seed` → collect `child_go_id`, recurse), `UNION` terminates cycles. Test: A is_a B is_a C → `descendants("C") == {A, B}`. ruff/mypy clean.
 
 **Files:** modify `go_ontology_repository.py` + protocol; test in the same test file.
 
