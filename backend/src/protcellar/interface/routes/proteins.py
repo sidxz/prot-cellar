@@ -23,6 +23,7 @@ from protcellar.domain.protein_catalog.protein import Protein
 from protcellar.domain.protein_catalog.value_objects import (
     ProteinComment,
     ProteinFeature,
+    ProteinIsoform,
     ProteinNames,
 )
 from protcellar.domain.shared.cross_reference import CrossReference
@@ -82,6 +83,24 @@ class CommentBody(BaseModel):
     evidence: list[dict[str, object]] | None = None
 
 
+class IsoformResponse(BaseModel):
+    isoform_accession: str
+    name: str | None = None
+    is_displayed: bool = False
+    sequence: str | None = None
+    event: str | None = None
+    note: str | None = None
+
+
+class IsoformBody(BaseModel):
+    isoform_accession: str
+    name: str | None = None
+    is_displayed: bool = False
+    sequence: str | None = None
+    event: str | None = None
+    note: str | None = None
+
+
 class ProteinResponse(BaseModel):
     id: uuid.UUID
     primary_accession: str
@@ -106,6 +125,7 @@ class ProteinResponse(BaseModel):
     uniparc_id: str | None = None
     features: list[FeatureResponse] = []
     comments: list[CommentResponse] = []
+    isoforms: list[IsoformResponse] = []
     version: int
 
     @classmethod
@@ -167,6 +187,17 @@ class ProteinResponse(BaseModel):
                     evidence=c.evidence,
                 )
                 for c in p.comments
+            ],
+            isoforms=[
+                IsoformResponse(
+                    isoform_accession=i.isoform_accession,
+                    name=i.name,
+                    is_displayed=i.is_displayed,
+                    sequence=i.sequence,
+                    event=i.event,
+                    note=i.note,
+                )
+                for i in p.isoforms
             ],
             version=p.version,
         )
@@ -251,6 +282,7 @@ class BulkRecordBody(BaseModel):
     uniparc_id: str | None = None
     features: list[FeatureBody] = []
     comments: list[CommentBody] = []
+    isoforms: list[IsoformBody] = []
 
 
 class BulkUpsertBody(BaseModel):
@@ -390,6 +422,17 @@ async def bulk_upsert_proteins(
                         evidence=c.evidence,
                     )
                     for c in r.comments
+                ),
+                isoforms=tuple(
+                    ProteinIsoform(
+                        isoform_accession=i.isoform_accession,
+                        name=i.name,
+                        is_displayed=i.is_displayed,
+                        sequence=i.sequence,
+                        event=i.event,
+                        note=i.note,
+                    )
+                    for i in r.isoforms
                 ),
             )
             for r in body.records

@@ -156,3 +156,37 @@ async def test_bulk_import_captures_comments(client: AsyncClient) -> None:
     cat = next(c for c in comments if c["comment_type"] == "CATALYTIC ACTIVITY")
     assert cat["payload"]["ec"] == "1.11.1.21"
     assert cat["evidence"] == [{"evidenceCode": "ECO:0000269"}]
+
+
+@pytest.mark.asyncio
+async def test_bulk_import_captures_isoforms(client: AsyncClient) -> None:
+    organism_id = await _organism(client, ncbi_tax_id=99906)
+    rec = {
+        "primary_accession": "P9WPX3",
+        "organism_id": organism_id,
+        "sequence": "MSDLVNRDPVLAQAGLNRR",
+        "is_reviewed": True,
+        "source": "uniprot",
+        "source_release": "2026_02",
+        "source_record_id": "P9WPX3",
+        "source_record_checksum": "crc1",
+        "isoforms": [
+            {"isoform_accession": "P9WPX3-1", "name": "Alpha", "is_displayed": True},
+            {
+                "isoform_accession": "P9WPX3-2",
+                "name": "Beta",
+                "is_displayed": False,
+                "event": "Alternative initiation",
+            },
+        ],
+    }
+    resp = await client.post("/api/v1/proteins/bulk", json={"records": [rec]})
+    assert resp.status_code == 200
+    got = (await client.get("/api/v1/proteins/P9WPX3")).json()
+    isos = got.get("isoforms") or []
+    assert len(isos) == 2
+    displayed = next(i for i in isos if i["is_displayed"])
+    assert displayed["isoform_accession"] == "P9WPX3-1"
+    beta = next(i for i in isos if i["isoform_accession"] == "P9WPX3-2")
+    assert beta["event"] == "Alternative initiation"
+    assert beta["is_displayed"] is False

@@ -12,6 +12,7 @@ from protcellar.domain.protein_catalog.repository import ProteinRepository
 from protcellar.domain.protein_catalog.value_objects import (
     ProteinComment,
     ProteinFeature,
+    ProteinIsoform,
     ProteinNames,
 )
 from protcellar.infrastructure.persistence.sqlalchemy.base_repository import SQLAlchemyRepository
@@ -22,6 +23,7 @@ from protcellar.infrastructure.persistence.sqlalchemy.protein_catalog._xref_json
 from protcellar.infrastructure.persistence.sqlalchemy.protein_catalog.models import (
     ProteinCommentModel,
     ProteinFeatureModel,
+    ProteinIsoformModel,
     ProteinModel,
 )
 
@@ -83,6 +85,18 @@ class SQLAlchemyProteinRepository(SQLAlchemyRepository[Protein, ProteinModel], P
                 )
                 for c in model.comments
             ],
+            isoforms=[
+                ProteinIsoform(
+                    id=i.id,
+                    isoform_accession=i.isoform_accession,
+                    name=i.name,
+                    is_displayed=i.is_displayed,
+                    sequence=i.sequence,
+                    event=i.event,
+                    note=i.note,
+                )
+                for i in model.isoforms
+            ],
             source=model.source,
             source_release=model.source_release,
             source_record_id=model.source_record_id,
@@ -130,6 +144,7 @@ class SQLAlchemyProteinRepository(SQLAlchemyRepository[Protein, ProteinModel], P
         )
         model.features = [self._feature_to_model(f) for f in aggregate.features]
         model.comments = [self._comment_to_model(c) for c in aggregate.comments]
+        model.isoforms = [self._isoform_to_model(i) for i in aggregate.isoforms]
         return model
 
     def _update_model(self, model: ProteinModel, aggregate: Protein) -> None:
@@ -157,6 +172,7 @@ class SQLAlchemyProteinRepository(SQLAlchemyRepository[Protein, ProteinModel], P
         model.uniparc_id = aggregate.uniparc_id
         model.features = [self._feature_to_model(f) for f in aggregate.features]
         model.comments = [self._comment_to_model(c) for c in aggregate.comments]
+        model.isoforms = [self._isoform_to_model(i) for i in aggregate.isoforms]
         model.source = aggregate.source
         model.source_release = aggregate.source_release
         model.source_record_id = aggregate.source_record_id
@@ -187,6 +203,18 @@ class SQLAlchemyProteinRepository(SQLAlchemyRepository[Protein, ProteinModel], P
             text=c.text,
             payload=c.payload,
             evidence=c.evidence,
+        )
+
+    @staticmethod
+    def _isoform_to_model(i: ProteinIsoform) -> ProteinIsoformModel:
+        return ProteinIsoformModel(
+            id=i.id,
+            isoform_accession=i.isoform_accession,
+            name=i.name,
+            is_displayed=i.is_displayed,
+            sequence=i.sequence,
+            event=i.event,
+            note=i.note,
         )
 
     async def find_by_accession(self, accession: str) -> Protein | None:

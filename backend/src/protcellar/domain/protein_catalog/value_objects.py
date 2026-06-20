@@ -86,3 +86,22 @@ class ProteinComment:
     payload: dict[str, object] | None = None
     evidence: list[dict[str, object]] | None = None
     id: uuid.UUID = field(default_factory=uuid.uuid4)
+
+
+@dataclass
+class ProteinIsoform:
+    """A UniProt ALTERNATIVE PRODUCTS isoform owned by a Protein.
+
+    `isoform_accession` is the canonical accession with a `-N` suffix; the
+    `is_displayed` isoform is the one whose sequence matches the entry's
+    canonical sequence. `event` is the alternative-products event (e.g.
+    "Alternative initiation", "Alternative splicing").
+    """
+
+    isoform_accession: str
+    name: str | None = None
+    is_displayed: bool = False
+    sequence: str | None = None
+    event: str | None = None
+    note: str | None = None
+    id: uuid.UUID = field(default_factory=uuid.uuid4)

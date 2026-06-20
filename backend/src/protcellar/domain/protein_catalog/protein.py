@@ -12,6 +12,7 @@ from protcellar.domain.protein_catalog.events import ProteinCreated, ProteinUpda
 from protcellar.domain.protein_catalog.value_objects import (
     ProteinComment,
     ProteinFeature,
+    ProteinIsoform,
     ProteinNames,
 )
 from protcellar.domain.shared.cross_reference import CrossReference
@@ -54,6 +55,7 @@ class Protein(AggregateRoot):
         uniparc_id: str | None = None,
         features: list[ProteinFeature] | None = None,
         comments: list[ProteinComment] | None = None,
+        isoforms: list[ProteinIsoform] | None = None,
         source: str | None = None,
         source_release: str | None = None,
         source_record_id: str | None = None,
@@ -95,6 +97,7 @@ class Protein(AggregateRoot):
         self.uniparc_id = uniparc_id
         self.features = features if features is not None else []
         self.comments = comments if comments is not None else []
+        self.isoforms = isoforms if isoforms is not None else []
         self.source = source
         self.source_release = source_release
         self.source_record_id = source_record_id
@@ -126,6 +129,7 @@ class Protein(AggregateRoot):
         uniparc_id: str | None = None,
         features: list[ProteinFeature] | None = None,
         comments: list[ProteinComment] | None = None,
+        isoforms: list[ProteinIsoform] | None = None,
     ) -> Protein:
         protein = cls(
             primary_accession=primary_accession,
@@ -149,6 +153,7 @@ class Protein(AggregateRoot):
             uniparc_id=uniparc_id,
             features=features,
             comments=comments,
+            isoforms=isoforms,
         )
         protein.register_event(
             ProteinCreated(
@@ -204,6 +209,8 @@ class Protein(AggregateRoot):
             self.features = list(fields["features"] or [])
         if "comments" in fields:
             self.comments = list(fields["comments"] or [])
+        if "isoforms" in fields:
+            self.isoforms = list(fields["isoforms"] or [])
         self._touch()
 
     def to_fasta(self) -> str:

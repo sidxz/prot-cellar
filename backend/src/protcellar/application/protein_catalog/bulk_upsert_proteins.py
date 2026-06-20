@@ -18,6 +18,7 @@ from protcellar.domain.protein_catalog.repository import ProteinRepository
 from protcellar.domain.protein_catalog.value_objects import (
     ProteinComment,
     ProteinFeature,
+    ProteinIsoform,
     ProteinNames,
 )
 from protcellar.domain.shared.cross_reference import CrossReference
@@ -51,6 +52,7 @@ class ProteinImportRecord:
     uniparc_id: str | None = None
     features: tuple[ProteinFeature, ...] = ()
     comments: tuple[ProteinComment, ...] = ()
+    isoforms: tuple[ProteinIsoform, ...] = ()
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -110,6 +112,7 @@ class BulkUpsertProteins:
                             uniparc_id=rec.uniparc_id,
                             features=list(rec.features),
                             comments=list(rec.comments),
+                            isoforms=list(rec.isoforms),
                         )
                         existing.source_record_checksum = rec.source_record_checksum
                         existing.source_release = rec.source_release
@@ -140,6 +143,7 @@ class BulkUpsertProteins:
                             uniparc_id=rec.uniparc_id,
                             features=list(rec.features),
                             comments=list(rec.comments),
+                            isoforms=list(rec.isoforms),
                         )
                         protein.source = rec.source
                         protein.source_record_id = rec.source_record_id

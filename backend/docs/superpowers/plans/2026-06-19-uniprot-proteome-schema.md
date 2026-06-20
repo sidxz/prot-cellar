@@ -163,7 +163,9 @@ Today `proteins.keywords` is `ARRAY(String)` (names only — loses `KW-id` + cat
 - **Repo:** upsert-by-(pubmed_id|doi) so the citation row is shared. Round-trip test: two proteins citing the same PubMed → one `citations` row, two joins.
 - Migration down_revision `<rev6>`.
 
-## Task 8: Isoforms — `protein_isoforms`
+## Task 8: Isoforms — `protein_isoforms`  ✅ DONE
+
+> Status: GREEN. Migration `e6f8a0c2d4b6` (head). `ProteinIsoform` VO (isoform_accession, name, is_displayed, sequence, event, note) as owned collection. Round-trip test green; ruff/mypy clean. **Done out of order** (after comments) — reuses the collection template.
 
 `ALTERNATIVE PRODUCTS` (only ~4 in this proteome, but part of "all").
 

@@ -80,6 +80,12 @@ class ProteinModel(Base, EntityModelMixin, WorkspaceIdMixin, VersionMixin, Prove
         foreign_keys="ProteinCommentModel.protein_id",
         order_by="ProteinCommentModel.id",
     )
+    isoforms: Mapped[list[ProteinIsoformModel]] = relationship(
+        cascade="all, delete-orphan",
+        lazy="selectin",
+        foreign_keys="ProteinIsoformModel.protein_id",
+        order_by="ProteinIsoformModel.id",
+    )
 
 
 class ProteinFeatureModel(Base, EntityModelMixin):
@@ -114,3 +120,19 @@ class ProteinCommentModel(Base, EntityModelMixin):
     text: Mapped[str | None] = mapped_column(Text, nullable=True)
     payload: Mapped[dict[str, object] | None] = mapped_column(JSON, nullable=True)
     evidence: Mapped[list[dict[str, object]] | None] = mapped_column(JSON, nullable=True)
+
+
+class ProteinIsoformModel(Base, EntityModelMixin):
+    """An alternative-products isoform owned by a Protein (UniProt -N accession)."""
+
+    __tablename__ = "protein_isoforms"
+
+    protein_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("proteins.id"), nullable=False, index=True
+    )
+    isoform_accession: Mapped[str] = mapped_column(String(20), nullable=False, index=True)
+    name: Mapped[str | None] = mapped_column(String(256), nullable=True)
+    is_displayed: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    sequence: Mapped[str | None] = mapped_column(Text, nullable=True)
+    event: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    note: Mapped[str | None] = mapped_column(Text, nullable=True)
