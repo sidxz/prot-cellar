@@ -106,7 +106,9 @@ async def test_bulk_import_captures_annotation_scalars(client: AsyncClient) -> N
 
 ---
 
-## Task 2: Proteome ↔ Protein membership — `proteome_proteins`
+## Task 2: Proteome ↔ Protein membership — `proteome_proteins`  ✅ DONE
+
+> Status: GREEN. Migration `c2e4a6f8b0d2` (head). `ProteomeProteinModel` link table + `ProteomeRepository.add_protein` (idempotent) / `list_protein_ids`. Tested via a **function-scoped UoW integration test** (`tests/unit/infrastructure/test_proteome_membership.py`) — the shared session-scoped `uow` fixture can't be used directly (engine lives in a different event loop), so a per-test engine is built from `database_url`. REST exposure + import-time population are deferred to the pipeline. Full suite 90 green; ruff/mypy clean.
 
 UniProt tells us exactly which entries belong to `UP000001584`; today membership is only implicit via `organism_id`. Add an explicit many:many join so "the proteome's proteins" is a first-class query.
 

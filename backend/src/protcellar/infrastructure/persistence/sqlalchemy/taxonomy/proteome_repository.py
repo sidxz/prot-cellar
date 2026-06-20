@@ -10,7 +10,10 @@ from protcellar.domain.taxonomy.enums import ProteomeType
 from protcellar.domain.taxonomy.proteome import Proteome
 from protcellar.domain.taxonomy.repository import ProteomeRepository
 from protcellar.infrastructure.persistence.sqlalchemy.base_repository import SQLAlchemyRepository
-from protcellar.infrastructure.persistence.sqlalchemy.taxonomy.models import ProteomeModel
+from protcellar.infrastructure.persistence.sqlalchemy.taxonomy.models import (
+    ProteomeModel,
+    ProteomeProteinModel,
+)
 
 
 class SQLAlchemyProteomeRepository(
@@ -83,3 +86,25 @@ class SQLAlchemyProteomeRepository(
         if limit is not None:
             stmt = stmt.limit(limit)
         return [self._to_domain_tracked(m) for m in (await self._session.execute(stmt)).scalars()]
+
+    async def add_protein(self, proteome_id: uuid.UUID, protein_id: uuid.UUID) -> None:
+        """Link a protein to a proteome (idempotent on the (proteome, protein) pair)."""
+        existing = await self._session.execute(
+            select(ProteomeProteinModel.id).where(
+                ProteomeProteinModel.proteome_id == proteome_id,
+                ProteomeProteinModel.protein_id == protein_id,
+            )
+        )
+        if existing.scalar_one_or_none() is not None:
+            return
+        self._session.add(ProteomeProteinModel(proteome_id=proteome_id, protein_id=protein_id))
+
+    async def list_protein_ids(self, proteome_id: uuid.UUID) -> list[uuid.UUID]:
+        """Return the ids of all proteins that belong to the given proteome."""
+        stmt = (
+            select(ProteomeProteinModel.protein_id)
+            .where(ProteomeProteinModel.proteome_id == proteome_id)
+            .order_by(ProteomeProteinModel.protein_id)
+        )
+        rows = await self._session.execute(stmt)
+        return [row[0] for row in rows.all()]
