@@ -29,7 +29,9 @@
 - Test with a mocked transport (httpx `MockTransport`) returning a 2-entry page + a no-next page — no real network in tests. Assert it yields both entries and stops.
 - Keep ret/timeout simple; this is I/O glue, the mapper holds the logic.
 
-## Task C: Runner — `application/protein_catalog/import_proteome.py` (+ a thin CLI script)  ⬜ TODO
+## Task C: Runner — `infrastructure/ingestion/import_runner.py`  ✅ DONE (CLI entrypoint pending)
+
+> Status: GREEN. `ProteomeImportRunner(uow, client, bulk_upsert)` orchestrates fetch → ensure organism + proteome → stream/map → chunked `BulkUpsertProteins` → link membership, each step in its own short UoW transaction (resumable/idempotent at chunk granularity). `ImportSummary` reports created/updated/skipped/failed/members_linked + `dry_run`/`limit`. 2 integration tests (fake fetcher, real DB) incl. dry-run-persists-nothing; full suite 102 green; ruff/mypy clean. **Remaining:** a thin CLI entrypoint (`python -m protcellar.scripts.import_proteome UP000001584 [--dry-run] [--limit N]`) wiring the real httpx client + DB settings + an admin auth context to run against live UniProt.
 
 Orchestrate (the only piece that needs DB + network together):
 1. Fetch proteome metadata; resolve-or-create the `Organism` from `taxonId` + `scientificName`; create-or-update the `Proteome` row (idempotent on `uniprot_proteome_id`).
