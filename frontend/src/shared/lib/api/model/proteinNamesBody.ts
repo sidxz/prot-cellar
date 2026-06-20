@@ -10,4 +10,6 @@ export interface ProteinNamesBody {
   recommended?: ProteinNamesBodyRecommended;
   alternative?: string[];
   submitted?: string[];
+  short_names?: string[];
+  ec_numbers?: string[];
 }

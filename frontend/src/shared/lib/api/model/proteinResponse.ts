@@ -15,6 +15,14 @@ import type { ProteinResponseProteinExistence } from './proteinResponseProteinEx
 import type { ProteinResponseEntryVersion } from './proteinResponseEntryVersion';
 import type { ProteinResponseSequenceVersion } from './proteinResponseSequenceVersion';
 import type { ProteinResponseCrossReferencesItem } from './proteinResponseCrossReferencesItem';
+import type { ProteinResponseAnnotationScore } from './proteinResponseAnnotationScore';
+import type { ProteinResponseFragment } from './proteinResponseFragment';
+import type { ProteinResponseUniparcId } from './proteinResponseUniparcId';
+import type { FeatureResponse } from './featureResponse';
+import type { CommentResponse } from './commentResponse';
+import type { IsoformResponse } from './isoformResponse';
+import type { KeywordRefResponse } from './keywordRefResponse';
+import type { CitationResponse } from './citationResponse';
 
 export interface ProteinResponse {
   id: string;
@@ -35,5 +43,13 @@ export interface ProteinResponse {
   entry_version?: ProteinResponseEntryVersion;
   sequence_version?: ProteinResponseSequenceVersion;
   cross_references: ProteinResponseCrossReferencesItem[];
+  annotation_score?: ProteinResponseAnnotationScore;
+  fragment?: ProteinResponseFragment;
+  uniparc_id?: ProteinResponseUniparcId;
+  features?: FeatureResponse[];
+  comments?: CommentResponse[];
+  isoforms?: IsoformResponse[];
+  keyword_refs?: KeywordRefResponse[];
+  citations?: CitationResponse[];
   version: number;
 }

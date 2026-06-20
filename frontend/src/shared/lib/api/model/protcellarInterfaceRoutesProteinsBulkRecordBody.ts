@@ -14,6 +14,14 @@ import type { ProtcellarInterfaceRoutesProteinsBulkRecordBodyProteinExistence } 
 import type { ProtcellarInterfaceRoutesProteinsBulkRecordBodyEntryVersion } from './protcellarInterfaceRoutesProteinsBulkRecordBodyEntryVersion';
 import type { ProtcellarInterfaceRoutesProteinsBulkRecordBodySequenceVersion } from './protcellarInterfaceRoutesProteinsBulkRecordBodySequenceVersion';
 import type { CrossReferenceBody } from './crossReferenceBody';
+import type { ProtcellarInterfaceRoutesProteinsBulkRecordBodyAnnotationScore } from './protcellarInterfaceRoutesProteinsBulkRecordBodyAnnotationScore';
+import type { ProtcellarInterfaceRoutesProteinsBulkRecordBodyFragment } from './protcellarInterfaceRoutesProteinsBulkRecordBodyFragment';
+import type { ProtcellarInterfaceRoutesProteinsBulkRecordBodyUniparcId } from './protcellarInterfaceRoutesProteinsBulkRecordBodyUniparcId';
+import type { FeatureBody } from './featureBody';
+import type { CommentBody } from './commentBody';
+import type { IsoformBody } from './isoformBody';
+import type { KeywordRefBody } from './keywordRefBody';
+import type { CitationBody } from './citationBody';
 
 export interface ProtcellarInterfaceRoutesProteinsBulkRecordBody {
   primary_accession: string;
@@ -36,4 +44,12 @@ export interface ProtcellarInterfaceRoutesProteinsBulkRecordBody {
   entry_version?: ProtcellarInterfaceRoutesProteinsBulkRecordBodyEntryVersion;
   sequence_version?: ProtcellarInterfaceRoutesProteinsBulkRecordBodySequenceVersion;
   cross_references?: CrossReferenceBody[];
+  annotation_score?: ProtcellarInterfaceRoutesProteinsBulkRecordBodyAnnotationScore;
+  fragment?: ProtcellarInterfaceRoutesProteinsBulkRecordBodyFragment;
+  uniparc_id?: ProtcellarInterfaceRoutesProteinsBulkRecordBodyUniparcId;
+  features?: FeatureBody[];
+  comments?: CommentBody[];
+  isoforms?: IsoformBody[];
+  keyword_refs?: KeywordRefBody[];
+  citations?: CitationBody[];
 }

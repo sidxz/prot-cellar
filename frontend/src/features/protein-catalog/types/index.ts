@@ -9,6 +9,8 @@ export type Protein = Omit<ProteinResponse, "protein_names"> & {
     recommended?: string | null;
     alternative?: string[];
     submitted?: string[];
+    short_names?: string[];
+    ec_numbers?: string[];
   };
 };
 
