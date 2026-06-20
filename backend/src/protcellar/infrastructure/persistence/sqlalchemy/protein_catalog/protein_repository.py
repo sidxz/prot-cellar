@@ -9,13 +9,16 @@ from sqlalchemy import select
 from protcellar.domain.protein_catalog.enums import ProteinExistence
 from protcellar.domain.protein_catalog.protein import Protein
 from protcellar.domain.protein_catalog.repository import ProteinRepository
-from protcellar.domain.protein_catalog.value_objects import ProteinNames
+from protcellar.domain.protein_catalog.value_objects import ProteinFeature, ProteinNames
 from protcellar.infrastructure.persistence.sqlalchemy.base_repository import SQLAlchemyRepository
 from protcellar.infrastructure.persistence.sqlalchemy.protein_catalog._xref_json import (
     xrefs_from_json,
     xrefs_to_json,
 )
-from protcellar.infrastructure.persistence.sqlalchemy.protein_catalog.models import ProteinModel
+from protcellar.infrastructure.persistence.sqlalchemy.protein_catalog.models import (
+    ProteinFeatureModel,
+    ProteinModel,
+)
 
 
 class SQLAlchemyProteinRepository(SQLAlchemyRepository[Protein, ProteinModel], ProteinRepository):
@@ -49,6 +52,22 @@ class SQLAlchemyProteinRepository(SQLAlchemyRepository[Protein, ProteinModel], P
             annotation_score=model.annotation_score,
             fragment=model.fragment,
             uniparc_id=model.uniparc_id,
+            features=[
+                ProteinFeature(
+                    id=f.id,
+                    feature_type=f.feature_type,
+                    start=f.start_pos,
+                    end=f.end_pos,
+                    start_modifier=f.start_modifier,
+                    end_modifier=f.end_modifier,
+                    description=f.description,
+                    feature_id=f.feature_id,
+                    ligand=f.ligand,
+                    alternative_sequence=f.alternative_sequence,
+                    evidence=f.evidence,
+                )
+                for f in model.features
+            ],
             source=model.source,
             source_release=model.source_release,
             source_record_id=model.source_record_id,
@@ -60,7 +79,7 @@ class SQLAlchemyProteinRepository(SQLAlchemyRepository[Protein, ProteinModel], P
         )
 
     def _to_model(self, aggregate: Protein) -> ProteinModel:
-        return ProteinModel(
+        model = ProteinModel(
             id=aggregate.id,
             workspace_id=aggregate.workspace_id,
             primary_accession=aggregate.primary_accession,
@@ -94,6 +113,8 @@ class SQLAlchemyProteinRepository(SQLAlchemyRepository[Protein, ProteinModel], P
             imported_at=aggregate.imported_at,
             version=aggregate.version,
         )
+        model.features = [self._feature_to_model(f) for f in aggregate.features]
+        return model
 
     def _update_model(self, model: ProteinModel, aggregate: Protein) -> None:
         model.primary_accession = aggregate.primary_accession
@@ -118,11 +139,28 @@ class SQLAlchemyProteinRepository(SQLAlchemyRepository[Protein, ProteinModel], P
         model.annotation_score = aggregate.annotation_score
         model.fragment = aggregate.fragment
         model.uniparc_id = aggregate.uniparc_id
+        model.features = [self._feature_to_model(f) for f in aggregate.features]
         model.source = aggregate.source
         model.source_release = aggregate.source_release
         model.source_record_id = aggregate.source_record_id
         model.source_record_checksum = aggregate.source_record_checksum
         model.imported_at = aggregate.imported_at
+
+    @staticmethod
+    def _feature_to_model(f: ProteinFeature) -> ProteinFeatureModel:
+        return ProteinFeatureModel(
+            id=f.id,
+            feature_type=f.feature_type,
+            start_pos=f.start,
+            end_pos=f.end,
+            start_modifier=f.start_modifier,
+            end_modifier=f.end_modifier,
+            description=f.description,
+            feature_id=f.feature_id,
+            ligand=f.ligand,
+            alternative_sequence=f.alternative_sequence,
+            evidence=f.evidence,
+        )
 
     async def find_by_accession(self, accession: str) -> Protein | None:
         # Primary first, then secondary (resolves merged/demerged accessions).

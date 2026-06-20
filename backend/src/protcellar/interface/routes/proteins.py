@@ -20,7 +20,7 @@ from protcellar.application.protein_catalog.update_protein import UpdateProteinC
 from protcellar.application.shared.sentinel import UNSET
 from protcellar.domain.protein_catalog.enums import ProteinExistence
 from protcellar.domain.protein_catalog.protein import Protein
-from protcellar.domain.protein_catalog.value_objects import ProteinNames
+from protcellar.domain.protein_catalog.value_objects import ProteinFeature, ProteinNames
 from protcellar.domain.shared.cross_reference import CrossReference
 from protcellar.infrastructure.identifiers.registry import IdentifierRegistry
 from protcellar.interface.dependencies import (
@@ -36,6 +36,32 @@ from protcellar.interface.error_handlers import result_to_response
 from protcellar.interface.pagination import PaginatedResponse, clamp_limit, parse_cursor
 
 router = APIRouter(prefix="/api/v1/proteins", tags=["proteins"])
+
+
+class FeatureResponse(BaseModel):
+    feature_type: str
+    start: int | None = None
+    end: int | None = None
+    start_modifier: str | None = None
+    end_modifier: str | None = None
+    description: str | None = None
+    feature_id: str | None = None
+    ligand: dict[str, object] | None = None
+    alternative_sequence: str | None = None
+    evidence: list[dict[str, object]] | None = None
+
+
+class FeatureBody(BaseModel):
+    feature_type: str
+    start: int | None = None
+    end: int | None = None
+    start_modifier: str | None = None
+    end_modifier: str | None = None
+    description: str | None = None
+    feature_id: str | None = None
+    ligand: dict[str, object] | None = None
+    alternative_sequence: str | None = None
+    evidence: list[dict[str, object]] | None = None
 
 
 class ProteinResponse(BaseModel):
@@ -60,6 +86,7 @@ class ProteinResponse(BaseModel):
     annotation_score: int | None = None
     fragment: str | None = None
     uniparc_id: str | None = None
+    features: list[FeatureResponse] = []
     version: int
 
     @classmethod
@@ -98,6 +125,21 @@ class ProteinResponse(BaseModel):
             annotation_score=p.annotation_score,
             fragment=p.fragment,
             uniparc_id=p.uniparc_id,
+            features=[
+                FeatureResponse(
+                    feature_type=f.feature_type,
+                    start=f.start,
+                    end=f.end,
+                    start_modifier=f.start_modifier,
+                    end_modifier=f.end_modifier,
+                    description=f.description,
+                    feature_id=f.feature_id,
+                    ligand=f.ligand,
+                    alternative_sequence=f.alternative_sequence,
+                    evidence=f.evidence,
+                )
+                for f in p.features
+            ],
             version=p.version,
         )
 
@@ -179,6 +221,7 @@ class BulkRecordBody(BaseModel):
     annotation_score: int | None = None
     fragment: str | None = None
     uniparc_id: str | None = None
+    features: list[FeatureBody] = []
 
 
 class BulkUpsertBody(BaseModel):
@@ -295,6 +338,21 @@ async def bulk_upsert_proteins(
                 annotation_score=r.annotation_score,
                 fragment=r.fragment,
                 uniparc_id=r.uniparc_id,
+                features=tuple(
+                    ProteinFeature(
+                        feature_type=f.feature_type,
+                        start=f.start,
+                        end=f.end,
+                        start_modifier=f.start_modifier,
+                        end_modifier=f.end_modifier,
+                        description=f.description,
+                        feature_id=f.feature_id,
+                        ligand=f.ligand,
+                        alternative_sequence=f.alternative_sequence,
+                        evidence=f.evidence,
+                    )
+                    for f in r.features
+                ),
             )
             for r in body.records
         ),

@@ -115,7 +115,9 @@ UniProt tells us exactly which entries belong to `UP000001584`; today membership
 - **Test:** create proteome + protein, link, assert `list_protein_ids` returns it; re-link is idempotent (no dup).
 - Files: `.../taxonomy/models.py`, new migration (down_revision `<rev1>`), `.../taxonomy/proteome_repository.py`, `tests/api/test_proteomes.py` or new `tests/unit/...`.
 
-## Task 3: Protein features — `protein_features` (owned 1:many) — TEMPLATE for collections
+## Task 3: Protein features — `protein_features` (owned 1:many) — TEMPLATE for collections  ✅ DONE
+
+> Status: GREEN. Migration `b2e4f6a8c1d3` (head). Owned collection on the Protein aggregate (mirrors `organism_names`): `ProteinFeature` VO + `ProteinFeatureModel` + repo clear-and-rebuild + `FeatureBody`/`FeatureResponse` API + bulk-import round-trip test. ruff/mypy clean. **Built ahead of Task 2** (membership) so the collection template lands first; Tasks 4/8 reuse it verbatim. Note: model columns are `start_pos`/`end_pos` (avoid SQL reserved `end`); domain VO keeps `start`/`end`.
 
 Positional sequence annotations (`features[]`): Chain, Domain, Binding/Active site, Transmembrane, Signal, Modified residue, Natural variant, secondary structure, … (~tens of thousands of rows for this proteome).
 

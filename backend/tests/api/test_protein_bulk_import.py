@@ -87,3 +87,39 @@ async def test_bulk_import_captures_annotation_scalars(client: AsyncClient) -> N
     assert got.get("annotation_score") == 5
     assert got.get("fragment") == "single"
     assert got.get("uniparc_id") == "UPI000012706D"
+
+
+@pytest.mark.asyncio
+async def test_bulk_import_captures_features(client: AsyncClient) -> None:
+    organism_id = await _organism(client, ncbi_tax_id=99904)
+    rec = {
+        "primary_accession": "P9WIE7",
+        "organism_id": organism_id,
+        "sequence": "MPEQHPPITETTTGAASNGCPVVGHM",
+        "is_reviewed": True,
+        "source": "uniprot",
+        "source_release": "2026_02",
+        "source_record_id": "P9WIE7",
+        "source_record_checksum": "crc1",
+        "features": [
+            {
+                "feature_type": "Active site",
+                "start": 281,
+                "end": 281,
+                "description": "Proton acceptor",
+                "feature_id": "ACT_SITE_KATG",
+                "evidence": [{"evidenceCode": "ECO:0000255"}],
+            },
+            {"feature_type": "Binding site", "start": 100, "end": 102, "feature_id": "BIND_1"},
+        ],
+    }
+    resp = await client.post("/api/v1/proteins/bulk", json={"records": [rec]})
+    assert resp.status_code == 200
+    got = (await client.get("/api/v1/proteins/P9WIE7")).json()
+    feats = got.get("features") or []
+    assert len(feats) == 2
+    active = next(f for f in feats if f["feature_type"] == "Active site")
+    assert active["start"] == 281
+    assert active["end"] == 281
+    assert active["feature_id"] == "ACT_SITE_KATG"
+    assert active["evidence"] == [{"evidenceCode": "ECO:0000255"}]

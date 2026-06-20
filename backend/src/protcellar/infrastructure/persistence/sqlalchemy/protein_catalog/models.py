@@ -6,7 +6,7 @@ import uuid
 
 from sqlalchemy import JSON, Boolean, ForeignKey, Index, Integer, String, Text
 from sqlalchemy.dialects.postgresql import ARRAY
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from protcellar.infrastructure.persistence.sqlalchemy.base import (
     Base,
@@ -68,3 +68,29 @@ class ProteinModel(Base, EntityModelMixin, WorkspaceIdMixin, VersionMixin, Prove
     annotation_score: Mapped[int | None] = mapped_column(Integer, nullable=True)
     fragment: Mapped[str | None] = mapped_column(String(16), nullable=True)
     uniparc_id: Mapped[str | None] = mapped_column(String(16), nullable=True, index=True)
+    features: Mapped[list[ProteinFeatureModel]] = relationship(
+        cascade="all, delete-orphan",
+        lazy="selectin",
+        foreign_keys="ProteinFeatureModel.protein_id",
+        order_by="ProteinFeatureModel.id",
+    )
+
+
+class ProteinFeatureModel(Base, EntityModelMixin):
+    """A positional sequence feature owned by a Protein (UniProt FT line)."""
+
+    __tablename__ = "protein_features"
+
+    protein_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("proteins.id"), nullable=False, index=True
+    )
+    feature_type: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+    start_pos: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    end_pos: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    start_modifier: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    end_modifier: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    feature_id: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True)
+    ligand: Mapped[dict[str, object] | None] = mapped_column(JSON, nullable=True)
+    alternative_sequence: Mapped[str | None] = mapped_column(Text, nullable=True)
+    evidence: Mapped[list[dict[str, object]] | None] = mapped_column(JSON, nullable=True)
