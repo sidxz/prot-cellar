@@ -30,7 +30,9 @@
 
 ---
 
-## Task 1: `gene_ontology` context — models, migration, bulk-upsert repository
+## Task 1: `gene_ontology` context — models, migration, bulk-upsert repository  ✅ DONE
+
+> Status: GREEN. Migration `e6a8c0d2f4b6` (head). `GoTerm`/`GoEdge` records + `GoOntologyRepository` protocol + `go_terms`/`go_edges` models + `SQLAlchemyGoOntologyRepository` (chunked `pg_insert.on_conflict_do_update` upsert / `replace_edges` / `find_term` / `latest_source_version`). `obonet` added. Test green; ruff/mypy clean.
 
 **Files:** create `domain/gene_ontology/__init__.py`, `domain/gene_ontology/go_term.py`, `domain/gene_ontology/repository.py`, `.../sqlalchemy/gene_ontology/__init__.py`, `.../sqlalchemy/gene_ontology/models.py`, `.../sqlalchemy/gene_ontology/go_ontology_repository.py`, `alembic/versions/<rev>_go_ontology_tables.py`; test `tests/unit/infrastructure/test_go_ontology_repository.py`.
 
