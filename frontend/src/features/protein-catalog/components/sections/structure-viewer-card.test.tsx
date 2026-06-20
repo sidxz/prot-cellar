@@ -20,7 +20,10 @@ const withStructures = {
 describe("StructureViewerCard", () => {
   it("renders a viewer for the first PDB structure + a switcher listing all structures", () => {
     const { container } = render(<StructureViewerCard protein={withStructures} />);
-    expect(container.querySelector("[data-structure-id='1ABC']")).toBeInTheDocument();
+    const host = container.querySelector("[data-structure-id='1ABC']");
+    expect(host).toBeInTheDocument();
+    // must be a positioned, fixed-height container so the Mol* canvas can't take over the screen
+    expect(host).toHaveClass("relative");
     expect(screen.getByRole("button", { name: /PDB 2XYZ/i })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /AlphaFold P12345/i })).toBeInTheDocument();
     expect(screen.getByText("X-ray")).toBeInTheDocument();

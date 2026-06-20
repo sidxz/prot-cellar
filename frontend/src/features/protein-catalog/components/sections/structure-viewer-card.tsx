@@ -64,9 +64,13 @@ function MolstarViewer({ structure }: { structure: ViewerStructure }) {
           el.setAttribute("molecule-id", structure.id.toLowerCase());
         }
         el.setAttribute("hide-controls", "true");
+        // Mol* lays its canvas out as position:absolute inset:0 — fill the
+        // (position:relative) host so it never escapes to the viewport.
+        el.style.position = "absolute";
+        el.style.top = "0";
+        el.style.left = "0";
         el.style.width = "100%";
         el.style.height = "100%";
-        el.style.display = "block";
         host.appendChild(el);
       })
       .catch(() => {
@@ -81,7 +85,7 @@ function MolstarViewer({ structure }: { structure: ViewerStructure }) {
     <div
       ref={ref}
       data-structure-id={structure.id}
-      className="h-[360px] w-full overflow-hidden rounded-md border border-border bg-white"
+      className="relative h-[360px] w-full overflow-hidden rounded-md border border-border bg-white"
     />
   );
 }
