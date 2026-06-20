@@ -29,7 +29,7 @@
 - Test with a mocked transport (httpx `MockTransport`) returning a 2-entry page + a no-next page — no real network in tests. Assert it yields both entries and stops.
 - Keep ret/timeout simple; this is I/O glue, the mapper holds the logic.
 
-## Task C: Runner — `infrastructure/ingestion/import_runner.py`  ✅ DONE (CLI entrypoint pending)
+## Task C: Runner — `infrastructure/ingestion/import_runner.py`  ✅ DONE
 
 > Status: GREEN. `ProteomeImportRunner(uow, client, bulk_upsert)` orchestrates fetch → ensure organism + proteome → stream/map → chunked `BulkUpsertProteins` → link membership, each step in its own short UoW transaction (resumable/idempotent at chunk granularity). `ImportSummary` reports created/updated/skipped/failed/members_linked + `dry_run`/`limit`. 2 integration tests (fake fetcher, real DB) incl. dry-run-persists-nothing; full suite 102 green; ruff/mypy clean. **Remaining:** a thin CLI entrypoint (`python -m protcellar.scripts.import_proteome UP000001584 [--dry-run] [--limit N]`) wiring the real httpx client + DB settings + an admin auth context to run against live UniProt.
 
@@ -41,5 +41,11 @@ Orchestrate (the only piece that needs DB + network together):
 5. Return a summary (created/updated/skipped/failed counts).
 - Expose as a CLI: `python -m protcellar.scripts.import_proteome UP000001584 [--dry-run] [--limit N]`.
 - Test the orchestration with a fake fetcher (in-memory entries) + real repos/uow (function-scoped engine, as in `test_proteome_membership.py`); assert proteins + membership land. `--limit` keeps a smoke test cheap.
+
+## Task D: CLI entrypoint — `scripts/import_proteome.py`  ✅ DONE
+
+> `python -m protcellar.scripts.import_proteome UP000001584 [--dry-run] [--limit N]`. Wires the real `httpx` client + `DatabaseSettings` + an admin service-auth around the runner; prints an `ImportSummary`. `--help` verified; ruff/mypy clean (159 files). I/O glue (no unit test); the runner it drives is covered.
+
+## ✅ PIPELINE COMPLETE — mapper + fetcher + runner + CLI. Run against a live DB to import UP000001584.
 
 **Open decision (deferred):** durable workflow (Temporal) vs. a plain async script. Start with the script; Temporal can wrap the runner later if resumability across crashes is needed (3,997 entries / ~6 MB gz is small enough that a script with chunked idempotent upserts is fine).
