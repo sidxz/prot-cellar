@@ -61,7 +61,9 @@
 - [ ] **Step 4 — green** + ruff + mypy.
 - [ ] **Step 5 — commit:** `feat(gene-ontology): descendants() recursive subtree query`.
 
-## Task 3: OBO parser (obonet)
+## Task 3: OBO parser (obonet)  ✅ DONE
+
+> Status: GREEN. `go_obo.read_obo` (obonet, `ignore_obsolete=False` to keep obsolete terms) + pure `parse_obo(graph) -> (terms, edges, version)`. Verified empirically: obonet edges are `(child, parent, relation)`; obsolete node data is `is_obsolete='true'`, `replaced_by=[...]`. Test green; ruff/mypy clean.
 
 **Files:** create `infrastructure/ingestion/go_obo.py`; test `tests/unit/infrastructure/test_go_obo.py`.
 
