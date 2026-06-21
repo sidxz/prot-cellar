@@ -32,6 +32,7 @@ from protcellar.application.protein_catalog.bulk_upsert_proteins import (
 from protcellar.domain.taxonomy.enums import OrganismSource, ProteomeType
 from protcellar.domain.taxonomy.organism import Organism
 from protcellar.domain.taxonomy.proteome import Proteome
+from protcellar.domain.taxonomy.strain import Strain
 from protcellar.infrastructure.ingestion.uniprot_mapper import (
     gene_key_for_entry,
     map_uniprot_entry,
@@ -43,7 +44,22 @@ from protcellar.infrastructure.persistence.sqlalchemy.taxonomy.organism_reposito
 from protcellar.infrastructure.persistence.sqlalchemy.taxonomy.proteome_repository import (
     SQLAlchemyProteomeRepository,
 )
+from protcellar.infrastructure.persistence.sqlalchemy.taxonomy.strain_repository import (
+    SQLAlchemyStrainRepository,
+)
 from protcellar.infrastructure.persistence.unit_of_work import AsyncUnitOfWork
+
+
+def _species_from_lineage(lineage: list[dict[str, Any]]) -> dict[str, Any] | None:
+    """The ``rank == "species"`` node in a UniProt ``taxonLineage``, if present.
+
+    UniProt's top-level proteome taxon is often a *strain* (e.g. 83332 = H37Rv);
+    the species (e.g. 1773 = M. tuberculosis) lives in the lineage.
+    """
+    for node in lineage:
+        if str(node.get("rank") or "").lower() == "species":
+            return node
+    return None
 
 
 class ProteomeFetcher(Protocol):
@@ -97,7 +113,7 @@ class ProteomeImportRunner:
         source_release = str(meta.get("modified") or "")
         if not force and not dry_run and await self._is_unchanged(proteome_id, meta):
             return ImportSummary(proteome_id=proteome_id, skipped_unchanged=True)
-        organism_id = await self._ensure_organism(meta, dry_run=dry_run)
+        organism_id, strain_id = await self._resolve_taxa(meta, dry_run=dry_run, auth=auth)
         proteome_db_id = await self._ensure_proteome(
             proteome_id, organism_id, meta, dry_run=dry_run
         )
@@ -116,6 +132,7 @@ class ProteomeImportRunner:
                     chunk,
                     proteome_db_id,
                     organism_id,
+                    strain_id,
                     tax_id,
                     source_release,
                     summary,
@@ -130,6 +147,7 @@ class ProteomeImportRunner:
                 chunk,
                 proteome_db_id,
                 organism_id,
+                strain_id,
                 tax_id,
                 source_release,
                 summary,
@@ -140,26 +158,134 @@ class ProteomeImportRunner:
             await self._reconcile_membership(proteome_db_id, seen, summary)
         return summary
 
-    async def _ensure_organism(self, meta: dict[str, Any], *, dry_run: bool) -> uuid.UUID:
+    async def _resolve_taxa(
+        self, meta: dict[str, Any], *, dry_run: bool, auth: AuthContext | None
+    ) -> tuple[uuid.UUID, uuid.UUID | None]:
+        """Resolve the organism (a *species* Organism) and, for strain-level
+        proteomes, a Strain anchored to it.
+
+        UniProt's top-level proteome ``taxonomy`` is frequently a *strain* taxon
+        (e.g. 83332 = M. tuberculosis H37Rv); the species (e.g. 1773) is the
+        ``rank == "species"`` node in ``taxonLineage``. Genes and proteins anchor
+        to the species (``organism_id``); strain-specificity is carried on the
+        protein via ``strain_id``.
+
+        Returns ``(organism_id, strain_id)``. ``strain_id`` is ``None`` when the
+        proteome taxon is itself a species, the lineage lacks a species node, or
+        there is no workspace (auth) to scope the workspace-owned Strain under.
+        """
         tax = meta.get("taxonomy") or {}
-        tax_id = tax.get("taxonId")
-        scientific_name = tax.get("scientificName")
+        top_tax_id = tax.get("taxonId")
+        species = _species_from_lineage(meta.get("taxonLineage") or [])
+
+        if species is None:
+            # No species ancestor in the lineage — treat the proteome taxon as the
+            # organism (legacy behaviour); create no strain.
+            organism_id = await self._find_or_create_organism(
+                tax_id=top_tax_id,
+                rank="species",
+                scientific_name=tax.get("scientificName"),
+                dry_run=dry_run,
+            )
+            return organism_id, None
+
+        species_id = await self._find_or_create_organism(
+            tax_id=species.get("taxonId"),
+            rank="species",
+            scientific_name=species.get("scientificName"),
+            dry_run=dry_run,
+        )
+
+        if top_tax_id is None or top_tax_id == species.get("taxonId") or auth is None:
+            return species_id, None
+
+        # Strain-level: preserve the strain taxon as its own Organism node and
+        # register a workspace-owned Strain anchored to the species.
+        strain_org_id = await self._find_or_create_organism(
+            tax_id=top_tax_id,
+            rank="strain",
+            scientific_name=tax.get("scientificName"),
+            parent_id=species_id,
+            dry_run=dry_run,
+        )
+        strain_id = await self._ensure_strain(
+            meta,
+            species_id=species_id,
+            strain_org_id=strain_org_id,
+            workspace_id=auth.workspace_id,
+            dry_run=dry_run,
+        )
+        return species_id, strain_id
+
+    async def _find_or_create_organism(
+        self,
+        *,
+        tax_id: int | None,
+        rank: str,
+        scientific_name: str | None,
+        parent_id: uuid.UUID | None = None,
+        dry_run: bool,
+    ) -> uuid.UUID:
         async with self._uow:
             repo = SQLAlchemyOrganismRepository(self._uow)
             if tax_id is not None:
                 existing = await repo.find_by_tax_id(tax_id)
                 if existing is not None:
+                    # Correct a previously mis-ranked node — e.g. a strain taxon an
+                    # older import created as rank "species".
+                    changes: dict[str, Any] = {}
+                    if existing.rank != rank:
+                        changes["rank"] = rank
+                    if parent_id is not None and existing.parent_id != parent_id:
+                        changes["parent_id"] = parent_id
+                    if changes and not dry_run:
+                        existing.update(**changes)
+                        await repo.save(existing)
+                        await self._uow.commit()
                     return existing.id
             organism = Organism.create(
                 ncbi_tax_id=tax_id,
-                rank="species",
+                rank=rank,
                 scientific_name=scientific_name or (f"taxon {tax_id}" if tax_id else "unknown"),
                 source=OrganismSource.LOCAL,
+                parent_id=parent_id,
             )
             if not dry_run:
                 await repo.save(organism)
                 await self._uow.commit()
             return organism.id
+
+    async def _ensure_strain(
+        self,
+        meta: dict[str, Any],
+        *,
+        species_id: uuid.UUID,
+        strain_org_id: uuid.UUID,
+        workspace_id: uuid.UUID,
+        dry_run: bool,
+    ) -> uuid.UUID:
+        tax = meta.get("taxonomy") or {}
+        label = meta.get("strain") or tax.get("scientificName") or "unknown strain"
+        assembly = (meta.get("genomeAssembly") or {}).get("assemblyId")
+        async with self._uow:
+            repo = SQLAlchemyStrainRepository(self._uow)
+            for existing in await repo.find_by_species(workspace_id, species_id):
+                if existing.strain_organism_id == strain_org_id or (
+                    assembly is not None and existing.assembly_acc == assembly
+                ):
+                    return existing.id
+            strain = Strain.create(
+                workspace_id=workspace_id,
+                species_organism_id=species_id,
+                strain_organism_id=strain_org_id,
+                name=label,
+                isolate=meta.get("strain"),
+                assembly_acc=assembly,
+            )
+            if not dry_run:
+                await repo.save(strain)
+                await self._uow.commit()
+            return strain.id
 
     async def _ensure_proteome(
         self, proteome_id: str, organism_id: uuid.UUID, meta: dict[str, Any], *, dry_run: bool
@@ -209,6 +335,7 @@ class ProteomeImportRunner:
         entries: list[dict[str, Any]],
         proteome_db_id: uuid.UUID,
         organism_id: uuid.UUID,
+        strain_id: uuid.UUID | None,
         tax_id: Any,
         source_release: str,
         summary: ImportSummary,
@@ -225,6 +352,8 @@ class ProteomeImportRunner:
             rec = map_uniprot_entry(
                 entry, organism_id=organism_id, source="uniprot", source_release=source_release
             )
+            if strain_id is not None:
+                rec = replace(rec, strain_id=strain_id)
             if self._gene_bulk is not None:
                 key = gene_key_for_entry(entry, tax_id=tax_id)
                 gid = gene_id_by_key.get(key) if key else None

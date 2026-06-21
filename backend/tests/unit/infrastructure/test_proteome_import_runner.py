@@ -26,8 +26,14 @@ from protcellar.infrastructure.persistence.sqlalchemy.protein_catalog.gene_repos
 from protcellar.infrastructure.persistence.sqlalchemy.protein_catalog.protein_repository import (
     SQLAlchemyProteinRepository,
 )
+from protcellar.infrastructure.persistence.sqlalchemy.taxonomy.organism_repository import (
+    SQLAlchemyOrganismRepository,
+)
 from protcellar.infrastructure.persistence.sqlalchemy.taxonomy.proteome_repository import (
     SQLAlchemyProteomeRepository,
+)
+from protcellar.infrastructure.persistence.sqlalchemy.taxonomy.strain_repository import (
+    SQLAlchemyStrainRepository,
 )
 from protcellar.infrastructure.persistence.unit_of_work import AsyncUnitOfWork
 from tests.fakes.fake_auth import FakeAuth
@@ -252,3 +258,87 @@ async def test_import_creates_and_links_genes(import_uow: AsyncUnitOfWork) -> No
         p2 = await protein_repo.find_by_accession("P0DG02")
         assert p1 is not None and p1.gene_id == gene.id
         assert p2 is not None and p2.gene_id == gene.id
+
+
+def _meta_strain(
+    proteome_id: str, species_tax: int, strain_tax: int, modified: str = "2026-01-01"
+) -> dict[str, Any]:
+    """UniProt proteome metadata for a *strain-level* proteome — the top-level
+    taxon is the strain, and the species is the ``rank == "species"`` lineage node."""
+    return {
+        "id": proteome_id,
+        "taxonomy": {"taxonId": strain_tax, "scientificName": "Testus microbus (strain XYZ)"},
+        "strain": "ATCC 111 / XYZ",
+        "genomeAssembly": {"assemblyId": "GCA_TEST.1"},
+        "taxonLineage": [
+            {"taxonId": 2, "scientificName": "Bacteria", "rank": "domain"},
+            {"taxonId": species_tax, "scientificName": "Testus microbus", "rank": "species"},
+        ],
+        "proteomeType": "Reference proteome",
+        "modified": modified,
+    }
+
+
+@pytest.mark.asyncio
+async def test_import_resolves_species_and_strain(import_uow: AsyncUnitOfWork) -> None:
+    auth = FakeAuth(role="admin")
+    runner, protein_repo = _runner(
+        import_uow,
+        _meta_strain("UP000007710", 771000, 771001),
+        _gene_entries("P0DX01", "P0DX02", 771001),
+        with_genes=True,
+    )
+
+    summary = await runner.run("UP000007710", auth=auth)
+    assert summary.created == 2
+
+    async with import_uow:
+        org_repo = SQLAlchemyOrganismRepository(import_uow)
+        species = await org_repo.find_by_tax_id(771000)
+        assert species is not None
+        assert species.rank == "species"  # the species, correctly ranked
+        strain_org = await org_repo.find_by_tax_id(771001)
+        assert strain_org is not None
+        assert strain_org.rank == "strain"  # the strain taxon, no longer mislabelled
+
+        strain_repo = SQLAlchemyStrainRepository(import_uow)
+        strains = await strain_repo.find_by_species(auth.workspace_id, species.id)
+        assert len(strains) == 1
+        strain = strains[0]
+        assert strain.assembly_acc == "GCA_TEST.1"
+        assert strain.strain_organism_id == strain_org.id
+
+        # Proteins anchor to the SPECIES and carry the strain on strain_id.
+        p1 = await protein_repo.find_by_accession("P0DX01")
+        assert p1 is not None
+        assert p1.organism_id == species.id
+        assert p1.strain_id == strain.id
+
+        # Genes anchor to the species too.
+        grepo = SQLAlchemyGeneRepository(import_uow)
+        gene = await grepo.find_by_source_record_id("uniprot", "771001:Rv1908c")
+        assert gene is not None
+        assert gene.organism_id == species.id
+
+
+@pytest.mark.asyncio
+async def test_import_species_level_proteome_creates_no_strain(
+    import_uow: AsyncUnitOfWork,
+) -> None:
+    """A proteome whose taxon has no species ancestor in the lineage falls back to
+    treating that taxon as the organism, and creates no strain."""
+    auth = FakeAuth(role="admin")
+    runner, protein_repo = _runner(
+        import_uow, _meta("UP000007720", 772000), _entries("P0DX10", "P0DX11")
+    )
+
+    await runner.run("UP000007720", auth=auth)
+
+    async with import_uow:
+        org_repo = SQLAlchemyOrganismRepository(import_uow)
+        org = await org_repo.find_by_tax_id(772000)
+        assert org is not None
+        strain_repo = SQLAlchemyStrainRepository(import_uow)
+        assert await strain_repo.find_by_species(auth.workspace_id, org.id) == []
+        p = await protein_repo.find_by_accession("P0DX10")
+        assert p is not None and p.strain_id is None
