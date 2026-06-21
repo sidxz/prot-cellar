@@ -17,6 +17,7 @@ from protcellar.application.protein_catalog.list_genes import ListGenesQuery
 from protcellar.application.protein_catalog.update_gene import UpdateGeneCommand
 from protcellar.application.shared.sentinel import UNSET
 from protcellar.domain.protein_catalog.gene import Gene
+from protcellar.domain.protein_catalog.gene_annotation import GeneAnnotation
 from protcellar.domain.shared.cross_reference import CrossReference
 from protcellar.infrastructure.identifiers.registry import IdentifierRegistry
 from protcellar.interface.dependencies import (
@@ -40,6 +41,32 @@ class CrossReferenceResponse(BaseModel):
     url: str | None = None
 
 
+class GeneAnnotationResponse(BaseModel):
+    axis: str
+    key: str
+    value: str
+    value_type: str
+    dataset: str | None = None
+    condition: str | None = None
+    evidence: str | None = None
+    source: str | None = None
+    source_url: str | None = None
+
+    @classmethod
+    def from_domain(cls, a: GeneAnnotation) -> GeneAnnotationResponse:
+        return cls(
+            axis=a.axis.value,
+            key=a.key,
+            value=a.value,
+            value_type=a.value_type,
+            dataset=a.dataset,
+            condition=a.condition,
+            evidence=a.evidence,
+            source=a.source,
+            source_url=a.source_url,
+        )
+
+
 class GeneResponse(BaseModel):
     id: uuid.UUID
     primary_name: str
@@ -51,6 +78,13 @@ class GeneResponse(BaseModel):
     ensembl_url: str | None = None
     hgnc_id: str | None = None
     cross_references: list[CrossReferenceResponse]
+    genomic_accession: str | None = None
+    genomic_start: int | None = None
+    genomic_end: int | None = None
+    genomic_strand: str | None = None
+    assembly: str | None = None
+    length_bp: int | None = None
+    annotations: list[GeneAnnotationResponse]
     version: int
 
     @classmethod
@@ -84,6 +118,13 @@ class GeneResponse(BaseModel):
                 )
                 for x in g.cross_references
             ],
+            genomic_accession=g.genomic_accession,
+            genomic_start=g.genomic_start,
+            genomic_end=g.genomic_end,
+            genomic_strand=g.genomic_strand,
+            assembly=g.assembly,
+            length_bp=g.length_bp,
+            annotations=[GeneAnnotationResponse.from_domain(a) for a in g.annotations],
             version=g.version,
         )
 
