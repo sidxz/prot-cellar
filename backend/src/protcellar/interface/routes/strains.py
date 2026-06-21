@@ -30,7 +30,7 @@ class StrainResponse(BaseModel):
     id: uuid.UUID
     workspace_id: uuid.UUID
     species_organism_id: uuid.UUID
-    strain_organism_id: uuid.UUID | None = None
+    ncbi_taxon_id: int | None = None
     name: str
     isolate: str | None = None
     biosample_acc: str | None = None
@@ -46,7 +46,7 @@ class StrainResponse(BaseModel):
             id=strain.id,
             workspace_id=strain.workspace_id,
             species_organism_id=strain.species_organism_id,
-            strain_organism_id=strain.strain_organism_id,
+            ncbi_taxon_id=strain.ncbi_taxon_id,
             name=strain.name,
             isolate=strain.isolate,
             biosample_acc=strain.biosample_acc,
@@ -61,7 +61,7 @@ class StrainResponse(BaseModel):
 class CreateStrainBody(BaseModel):
     species_organism_id: uuid.UUID
     name: str
-    strain_organism_id: uuid.UUID | None = None
+    ncbi_taxon_id: int | None = None
     isolate: str | None = None
     biosample_acc: str | None = None
     assembly_acc: str | None = None
@@ -72,7 +72,7 @@ class CreateStrainBody(BaseModel):
 
 class UpdateStrainBody(BaseModel):
     name: str | None = None
-    strain_organism_id: uuid.UUID | None = None
+    ncbi_taxon_id: int | None = None
     isolate: str | None = None
     biosample_acc: str | None = None
     assembly_acc: str | None = None
@@ -123,7 +123,7 @@ async def create_strain(
         workspace_id=auth.workspace_id,
         species_organism_id=body.species_organism_id,
         name=body.name,
-        strain_organism_id=body.strain_organism_id,
+        ncbi_taxon_id=body.ncbi_taxon_id,
         isolate=body.isolate,
         biosample_acc=body.biosample_acc,
         assembly_acc=body.assembly_acc,
@@ -147,7 +147,7 @@ async def update_strain(
         workspace_id=auth.workspace_id,
         strain_id=strain_id,
         name=body.name if "name" in provided else None,
-        strain_organism_id=body.strain_organism_id if "strain_organism_id" in provided else UNSET,
+        ncbi_taxon_id=body.ncbi_taxon_id if "ncbi_taxon_id" in provided else UNSET,
         isolate=body.isolate if "isolate" in provided else UNSET,
         biosample_acc=body.biosample_acc if "biosample_acc" in provided else UNSET,
         assembly_acc=body.assembly_acc if "assembly_acc" in provided else UNSET,

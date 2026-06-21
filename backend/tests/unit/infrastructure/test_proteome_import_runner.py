@@ -297,16 +297,16 @@ async def test_import_resolves_species_and_strain(import_uow: AsyncUnitOfWork) -
         species = await org_repo.find_by_tax_id(771000)
         assert species is not None
         assert species.rank == "species"  # the species, correctly ranked
-        strain_org = await org_repo.find_by_tax_id(771001)
-        assert strain_org is not None
-        assert strain_org.rank == "strain"  # the strain taxon, no longer mislabelled
+        # No separate Organism node is created for the strain taxon — the Strain
+        # entity is the sole representation, carrying the taxon id as a scalar.
+        assert await org_repo.find_by_tax_id(771001) is None
 
         strain_repo = SQLAlchemyStrainRepository(import_uow)
         strains = await strain_repo.find_by_species(auth.workspace_id, species.id)
         assert len(strains) == 1
         strain = strains[0]
         assert strain.assembly_acc == "GCA_TEST.1"
-        assert strain.strain_organism_id == strain_org.id
+        assert strain.ncbi_taxon_id == 771001
 
         # Proteins anchor to the SPECIES and carry the strain on strain_id.
         p1 = await protein_repo.find_by_accession("P0DX01")

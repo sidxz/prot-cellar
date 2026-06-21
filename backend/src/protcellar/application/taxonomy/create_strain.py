@@ -21,7 +21,7 @@ class CreateStrainCommand(Command):
     workspace_id: uuid.UUID
     species_organism_id: uuid.UUID
     name: str
-    strain_organism_id: uuid.UUID | None = None
+    ncbi_taxon_id: int | None = None
     isolate: str | None = None
     biosample_acc: str | None = None
     assembly_acc: str | None = None
@@ -52,7 +52,7 @@ class CreateStrain:
                 workspace_id=input.workspace_id,
                 species_organism_id=input.species_organism_id,
                 name=input.name,
-                strain_organism_id=input.strain_organism_id,
+                ncbi_taxon_id=input.ncbi_taxon_id,
                 isolate=input.isolate,
                 biosample_acc=input.biosample_acc,
                 assembly_acc=input.assembly_acc,

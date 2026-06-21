@@ -23,7 +23,7 @@ class UpdateStrainCommand(Command):
     workspace_id: uuid.UUID
     strain_id: uuid.UUID
     name: str | None = None
-    strain_organism_id: uuid.UUID | None | object = UNSET
+    ncbi_taxon_id: int | None | object = UNSET
     isolate: str | None | object = UNSET
     biosample_acc: str | None | object = UNSET
     assembly_acc: str | None | object = UNSET
@@ -57,8 +57,8 @@ class UpdateStrain:
             fields: dict[str, Any] = {}
             if input.name is not None:
                 fields["name"] = input.name
-            if input.strain_organism_id is not UNSET:
-                fields["strain_organism_id"] = input.strain_organism_id
+            if input.ncbi_taxon_id is not UNSET:
+                fields["ncbi_taxon_id"] = input.ncbi_taxon_id
             if input.isolate is not UNSET:
                 fields["isolate"] = input.isolate
             if input.biosample_acc is not UNSET:

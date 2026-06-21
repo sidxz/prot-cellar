@@ -24,7 +24,7 @@ class SQLAlchemyStrainRepository(SQLAlchemyRepository[Strain, StrainModel]):
             id=model.id,
             workspace_id=model.workspace_id,
             species_organism_id=model.species_organism_id,
-            strain_organism_id=model.strain_organism_id,
+            ncbi_taxon_id=model.ncbi_taxon_id,
             name=model.name,
             isolate=model.isolate,
             biosample_acc=model.biosample_acc,
@@ -42,7 +42,7 @@ class SQLAlchemyStrainRepository(SQLAlchemyRepository[Strain, StrainModel]):
             id=aggregate.id,
             workspace_id=aggregate.workspace_id,
             species_organism_id=aggregate.species_organism_id,
-            strain_organism_id=aggregate.strain_organism_id,
+            ncbi_taxon_id=aggregate.ncbi_taxon_id,
             name=aggregate.name,
             isolate=aggregate.isolate,
             biosample_acc=aggregate.biosample_acc,
@@ -55,7 +55,7 @@ class SQLAlchemyStrainRepository(SQLAlchemyRepository[Strain, StrainModel]):
 
     def _update_model(self, model: StrainModel, aggregate: Strain) -> None:
         model.species_organism_id = aggregate.species_organism_id
-        model.strain_organism_id = aggregate.strain_organism_id
+        model.ncbi_taxon_id = aggregate.ncbi_taxon_id
         model.name = aggregate.name
         model.isolate = aggregate.isolate
         model.biosample_acc = aggregate.biosample_acc

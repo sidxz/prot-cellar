@@ -199,19 +199,14 @@ class ProteomeImportRunner:
         if top_tax_id is None or top_tax_id == species.get("taxonId") or auth is None:
             return species_id, None
 
-        # Strain-level: preserve the strain taxon as its own Organism node and
-        # register a workspace-owned Strain anchored to the species.
-        strain_org_id = await self._find_or_create_organism(
-            tax_id=top_tax_id,
-            rank="strain",
-            scientific_name=tax.get("scientificName"),
-            parent_id=species_id,
-            dry_run=dry_run,
-        )
+        # Strain-level: register a workspace-owned Strain anchored to the species,
+        # carrying the strain's NCBI taxon id as provenance. The strain is the sole
+        # representation of the strain — we do NOT create a separate Organism node
+        # for the strain taxon (the species Organism is the only taxonomy anchor).
         strain_id = await self._ensure_strain(
             meta,
             species_id=species_id,
-            strain_org_id=strain_org_id,
+            ncbi_taxon_id=top_tax_id,
             workspace_id=auth.workspace_id,
             dry_run=dry_run,
         )
@@ -260,7 +255,7 @@ class ProteomeImportRunner:
         meta: dict[str, Any],
         *,
         species_id: uuid.UUID,
-        strain_org_id: uuid.UUID,
+        ncbi_taxon_id: int | None,
         workspace_id: uuid.UUID,
         dry_run: bool,
     ) -> uuid.UUID:
@@ -270,14 +265,14 @@ class ProteomeImportRunner:
         async with self._uow:
             repo = SQLAlchemyStrainRepository(self._uow)
             for existing in await repo.find_by_species(workspace_id, species_id):
-                if existing.strain_organism_id == strain_org_id or (
+                if (ncbi_taxon_id is not None and existing.ncbi_taxon_id == ncbi_taxon_id) or (
                     assembly is not None and existing.assembly_acc == assembly
                 ):
                     return existing.id
             strain = Strain.create(
                 workspace_id=workspace_id,
                 species_organism_id=species_id,
-                strain_organism_id=strain_org_id,
+                ncbi_taxon_id=ncbi_taxon_id,
                 name=label,
                 isolate=meta.get("strain"),
                 assembly_acc=assembly,

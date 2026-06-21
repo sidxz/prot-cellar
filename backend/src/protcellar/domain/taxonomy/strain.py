@@ -24,7 +24,7 @@ class Strain(AggregateRoot):
         workspace_id: uuid.UUID,
         species_organism_id: uuid.UUID,
         name: str,
-        strain_organism_id: uuid.UUID | None = None,
+        ncbi_taxon_id: int | None = None,
         isolate: str | None = None,
         biosample_acc: str | None = None,
         assembly_acc: str | None = None,
@@ -40,7 +40,7 @@ class Strain(AggregateRoot):
             raise ValidationError("Strain name must not be empty")
         self.workspace_id = workspace_id
         self.species_organism_id = species_organism_id
-        self.strain_organism_id = strain_organism_id
+        self.ncbi_taxon_id = ncbi_taxon_id
         self.name = name.strip()
         self.isolate = isolate
         self.biosample_acc = biosample_acc
@@ -56,7 +56,7 @@ class Strain(AggregateRoot):
         workspace_id: uuid.UUID,
         species_organism_id: uuid.UUID,
         name: str,
-        strain_organism_id: uuid.UUID | None = None,
+        ncbi_taxon_id: int | None = None,
         isolate: str | None = None,
         biosample_acc: str | None = None,
         assembly_acc: str | None = None,
@@ -68,7 +68,7 @@ class Strain(AggregateRoot):
             workspace_id=workspace_id,
             species_organism_id=species_organism_id,
             name=name,
-            strain_organism_id=strain_organism_id,
+            ncbi_taxon_id=ncbi_taxon_id,
             isolate=isolate,
             biosample_acc=biosample_acc,
             assembly_acc=assembly_acc,
@@ -90,7 +90,7 @@ class Strain(AggregateRoot):
     def update(self, **fields: object) -> None:
         """Partial update — only keys present in ``fields`` are changed.
 
-        Accepted keys: name, strain_organism_id, isolate, biosample_acc,
+        Accepted keys: name, ncbi_taxon_id, isolate, biosample_acc,
         assembly_acc, culture_collection, host_organism_id, metadata.
         """
         if "name" in fields:
@@ -98,8 +98,8 @@ class Strain(AggregateRoot):
             if not name or not str(name).strip():
                 raise ValidationError("Strain name must not be empty")
             self.name = str(name).strip()
-        if "strain_organism_id" in fields:
-            self.strain_organism_id = fields["strain_organism_id"]  # type: ignore[assignment]
+        if "ncbi_taxon_id" in fields:
+            self.ncbi_taxon_id = fields["ncbi_taxon_id"]  # type: ignore[assignment]
         if "isolate" in fields:
             self.isolate = fields["isolate"]  # type: ignore[assignment]
         if "biosample_acc" in fields:

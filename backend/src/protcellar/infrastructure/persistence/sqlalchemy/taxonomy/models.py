@@ -64,9 +64,7 @@ class StrainModel(Base, EntityModelMixin, WorkspaceIdMixin, VersionMixin):
     species_organism_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("organisms.id"), nullable=False, index=True
     )
-    strain_organism_id: Mapped[uuid.UUID | None] = mapped_column(
-        ForeignKey("organisms.id"), nullable=True
-    )
+    ncbi_taxon_id: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
     name: Mapped[str] = mapped_column(String(512), nullable=False)
     isolate: Mapped[str | None] = mapped_column(String(256), nullable=True)
     biosample_acc: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True)
