@@ -36,7 +36,8 @@ async def test_protein_catalog_filters(client: AsyncClient) -> None:
         **rich, "primary_accession": "P0DV11", "source_record_id": "P0DV11",
         "cross_references": [], "keyword_refs": [],
     }
-    assert (await client.post("/api/v1/proteins/bulk", json={"records": [rich, bare]})).status_code == 200
+    resp = await client.post("/api/v1/proteins/bulk", json={"records": [rich, bare]})
+    assert resp.status_code == 200
 
     async def accs(q: str) -> set[str]:
         items = (await client.get(f"/api/v1/proteins{q}&limit=200")).json()["items"]
