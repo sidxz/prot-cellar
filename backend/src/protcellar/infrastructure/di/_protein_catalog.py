@@ -63,7 +63,10 @@ def register_protein_catalog(container: Container) -> None:
     def _list_proteins(c: Any) -> ListProteins:
         uow = AsyncUnitOfWork(c[async_sessionmaker])
         return ListProteins(
-            uow, SQLAlchemyProteinRepository(uow), SQLAlchemyGoOntologyRepository(uow)
+            uow,
+            SQLAlchemyProteinRepository(uow),
+            SQLAlchemyGoOntologyRepository(uow),
+            SQLAlchemyGeneRepository(uow),
         )
 
     container.define(BulkUpsertProteins, _protein_cmd(BulkUpsertProteins))

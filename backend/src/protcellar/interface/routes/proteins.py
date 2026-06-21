@@ -19,6 +19,7 @@ from protcellar.application.protein_catalog.resolve_protein_id import ResolvePro
 from protcellar.application.protein_catalog.update_protein import UpdateProteinCommand
 from protcellar.application.shared.sentinel import UNSET
 from protcellar.domain.protein_catalog.enums import ProteinExistence
+from protcellar.domain.protein_catalog.gene import Gene
 from protcellar.domain.protein_catalog.protein import Protein
 from protcellar.domain.protein_catalog.value_objects import (
     ProteinCitation,
@@ -149,6 +150,18 @@ class ProteinXrefResponse(BaseModel):
     properties: dict[str, str] = {}
 
 
+class GeneSummaryResponse(BaseModel):
+    """Lightweight gene fields embedded in the protein list for at-a-glance display."""
+
+    id: uuid.UUID
+    primary_name: str
+    synonyms: list[str]
+
+    @classmethod
+    def from_domain(cls, g: Gene) -> GeneSummaryResponse:
+        return cls(id=g.id, primary_name=g.primary_name, synonyms=list(g.synonyms))
+
+
 class ProteinResponse(BaseModel):
     id: uuid.UUID
     primary_accession: str
@@ -160,6 +173,7 @@ class ProteinResponse(BaseModel):
     organism_id: uuid.UUID
     strain_id: uuid.UUID | None = None
     gene_id: uuid.UUID | None = None
+    gene: GeneSummaryResponse | None = None
     seq_length: int
     seq_mass: int | None = None
     seq_crc64: str | None = None
@@ -179,7 +193,7 @@ class ProteinResponse(BaseModel):
     version: int
 
     @classmethod
-    def from_domain(cls, p: Protein) -> ProteinResponse:
+    def from_domain(cls, p: Protein, gene: Gene | None = None) -> ProteinResponse:
         registry = IdentifierRegistry.default()
         uniprot_url = registry.resolve_url("uniprot", p.primary_accession)
         protein_names = p.protein_names.to_dict()
@@ -204,6 +218,7 @@ class ProteinResponse(BaseModel):
             organism_id=p.organism_id,
             strain_id=p.strain_id,
             gene_id=p.gene_id,
+            gene=GeneSummaryResponse.from_domain(gene) if gene is not None else None,
             seq_length=p.seq_length,
             seq_mass=p.seq_mass,
             seq_crc64=p.seq_crc64,
@@ -434,7 +449,7 @@ async def list_proteins(
     )
     page = result_to_response(await use_case(query, auth=auth))
     return PaginatedResponse(
-        items=[ProteinResponse.from_domain(p) for p in page.items],
+        items=[ProteinResponse.from_domain(item.protein, gene=item.gene) for item in page.items],
         next_cursor=page.next_cursor,
     )
 

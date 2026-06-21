@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import uuid
+from collections.abc import Sequence
 
 from sqlalchemy import select
 
@@ -71,6 +72,12 @@ class SQLAlchemyGeneRepository(SQLAlchemyRepository[Gene, GeneModel], GeneReposi
         model.source_record_id = aggregate.source_record_id
         model.source_record_checksum = aggregate.source_record_checksum
         model.imported_at = aggregate.imported_at
+
+    async def find_by_ids(self, ids: Sequence[uuid.UUID]) -> list[Gene]:
+        if not ids:
+            return []
+        stmt = select(GeneModel).where(GeneModel.id.in_(list(ids)))
+        return [self._to_domain_tracked(m) for m in (await self._session.execute(stmt)).scalars()]
 
     async def find_by_name(self, name: str, organism_id: uuid.UUID | None = None) -> list[Gene]:
         stmt = select(GeneModel).where(GeneModel.primary_name.ilike(f"%{name}%"))

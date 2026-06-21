@@ -23,9 +23,14 @@ async def _organism(client: AsyncClient, tax_id: int, name: str) -> str:
 async def test_protein_catalog_filters(client: AsyncClient) -> None:
     org = await _organism(client, 99930, "Filter testus")
     rich = {
-        "primary_accession": "P0DV10", "organism_id": org, "sequence": "MKTAYIAKQR",
-        "is_reviewed": True, "source": "uniprot", "source_release": "x",
-        "source_record_id": "P0DV10", "source_record_checksum": "c",
+        "primary_accession": "P0DV10",
+        "organism_id": org,
+        "sequence": "MKTAYIAKQR",
+        "is_reviewed": True,
+        "source": "uniprot",
+        "source_release": "x",
+        "source_record_id": "P0DV10",
+        "source_record_checksum": "c",
         "cross_references": [
             {"database": "PDB", "accession": "1XYZ"},
             {"database": "GO", "accession": "GO:0016491"},
@@ -33,8 +38,11 @@ async def test_protein_catalog_filters(client: AsyncClient) -> None:
         "keyword_refs": [{"kw_id": "KW-0560"}],
     }
     bare = {
-        **rich, "primary_accession": "P0DV11", "source_record_id": "P0DV11",
-        "cross_references": [], "keyword_refs": [],
+        **rich,
+        "primary_accession": "P0DV11",
+        "source_record_id": "P0DV11",
+        "cross_references": [],
+        "keyword_refs": [],
     }
     resp = await client.post("/api/v1/proteins/bulk", json={"records": [rich, bare]})
     assert resp.status_code == 200
@@ -66,9 +74,14 @@ async def test_go_term_descendants_filter(client: AsyncClient, database_url: str
 
     org = await _organism(client, 99940, "Subtree testus")
     rec = {
-        "primary_accession": "P0DW50", "organism_id": org, "sequence": "MKTAYIAKQR",
-        "is_reviewed": True, "source": "uniprot", "source_release": "x",
-        "source_record_id": "P0DW50", "source_record_checksum": "c",
+        "primary_accession": "P0DW50",
+        "organism_id": org,
+        "sequence": "MKTAYIAKQR",
+        "is_reviewed": True,
+        "source": "uniprot",
+        "source_release": "x",
+        "source_record_id": "P0DW50",
+        "source_record_checksum": "c",
         "cross_references": [{"database": "GO", "accession": "GO:0016655"}],
     }
     assert (await client.post("/api/v1/proteins/bulk", json={"records": [rec]})).status_code == 200
@@ -120,6 +133,60 @@ async def test_create_get_fasta_and_resolve_protein(client: AsyncClient) -> None
     resolved = await client.get("/api/v1/proteins/resolve/Q99998")
     assert resolved.status_code == 200
     assert resolved.json()["primary_accession"] == "P12345"
+
+
+@pytest.mark.asyncio
+async def test_list_embeds_gene_summary_and_short_name(client: AsyncClient) -> None:
+    org = await _organism(client, 99960, "Geneus listus")
+
+    gene = await client.post(
+        "/api/v1/genes",
+        json={"primary_name": "rho", "organism_id": org, "synonyms": ["nusG", "Rv1297"]},
+    )
+    assert gene.status_code == 201
+    gene_id = gene.json()["id"]
+
+    created = await client.post(
+        "/api/v1/proteins",
+        json={
+            "primary_accession": "P0DZ01",
+            "organism_id": org,
+            "sequence": "MKTAYIAKQR",
+            "is_reviewed": True,
+            "gene_id": gene_id,
+            "protein_names": {
+                "recommended": "Transcription termination factor Rho",
+                "short_names": ["Rho"],
+            },
+        },
+    )
+    assert created.status_code == 201
+
+    listed = await client.get("/api/v1/proteins", params={"organism_id": org, "limit": 50})
+    assert listed.status_code == 200
+    item = next(p for p in listed.json()["items"] if p["primary_accession"] == "P0DZ01")
+    assert item["gene"]["primary_name"] == "rho"
+    assert item["gene"]["synonyms"] == ["nusG", "Rv1297"]
+    assert item["protein_names"]["short_names"] == ["Rho"]
+
+
+@pytest.mark.asyncio
+async def test_list_protein_without_gene_has_null_gene(client: AsyncClient) -> None:
+    org = await _organism(client, 99961, "Genelessus")
+    created = await client.post(
+        "/api/v1/proteins",
+        json={
+            "primary_accession": "P0DZ02",
+            "organism_id": org,
+            "sequence": "MKTAYIAKQR",
+            "is_reviewed": True,
+        },
+    )
+    assert created.status_code == 201
+
+    listed = await client.get("/api/v1/proteins", params={"organism_id": org, "limit": 50})
+    item = next(p for p in listed.json()["items"] if p["primary_accession"] == "P0DZ02")
+    assert item["gene"] is None
 
 
 @pytest.mark.asyncio

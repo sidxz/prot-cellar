@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import uuid
+from collections.abc import Sequence
 from typing import Protocol, runtime_checkable
 
 from protcellar.domain.protein_catalog.gene import Gene
@@ -14,6 +15,8 @@ class GeneRepository(Protocol):
     async def find_by_id_in_workspace(
         self, workspace_id: uuid.UUID, id: uuid.UUID
     ) -> Gene | None: ...
+
+    async def find_by_ids(self, ids: Sequence[uuid.UUID]) -> list[Gene]: ...
 
     async def find_by_name(
         self, name: str, organism_id: uuid.UUID | None = None

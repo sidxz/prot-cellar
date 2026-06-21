@@ -12,9 +12,23 @@ from protcellar.application.shared.pagination import PageResult
 from protcellar.application.shared.query import Query
 from protcellar.application.shared.unit_of_work import UnitOfWork
 from protcellar.domain.gene_ontology.repository import GoOntologyRepository
+from protcellar.domain.protein_catalog.gene import Gene
 from protcellar.domain.protein_catalog.protein import Protein
-from protcellar.domain.protein_catalog.repository import ProteinRepository
+from protcellar.domain.protein_catalog.repository import GeneRepository, ProteinRepository
 from protcellar.domain.shared.errors import DomainError
+
+
+@dataclass(frozen=True)
+class ProteinListItem:
+    """A protein paired with a lightweight summary of its linked gene (if any).
+
+    The list view shows the gene name + synonyms alongside each protein; the gene
+    lives on a separate aggregate, so we batch-resolve it here rather than forcing
+    the client into one request per row.
+    """
+
+    protein: Protein
+    gene: Gene | None
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -35,15 +49,20 @@ class ListProteinsQuery(Query):
 
 class ListProteins:
     def __init__(
-        self, uow: UnitOfWork, repo: ProteinRepository, go_repo: GoOntologyRepository
+        self,
+        uow: UnitOfWork,
+        repo: ProteinRepository,
+        go_repo: GoOntologyRepository,
+        gene_repo: GeneRepository,
     ) -> None:
         self._uow = uow
         self._repo = repo
         self._go_repo = go_repo
+        self._gene_repo = gene_repo
 
     async def __call__(
         self, input: ListProteinsQuery, auth: AuthContext | None = None
-    ) -> Result[PageResult[Protein], DomainError]:
+    ) -> Result[PageResult[ProteinListItem], DomainError]:
         require_authenticated(auth)
         async with self._uow:
             go_terms: list[str] | None = None
@@ -75,4 +94,14 @@ class ListProteins:
                 proteins = proteins[:effective_limit]
                 next_cursor = str(proteins[-1].id)
 
-            return Success(PageResult(items=proteins, next_cursor=next_cursor))
+            gene_ids = {p.gene_id for p in proteins if p.gene_id is not None}
+            genes_by_id = {g.id: g for g in await self._gene_repo.find_by_ids(list(gene_ids))}
+            items = [
+                ProteinListItem(
+                    protein=p,
+                    gene=genes_by_id.get(p.gene_id) if p.gene_id is not None else None,
+                )
+                for p in proteins
+            ]
+
+            return Success(PageResult(items=items, next_cursor=next_cursor))
