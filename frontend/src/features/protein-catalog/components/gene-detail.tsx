@@ -61,6 +61,7 @@ interface GeneMetadataCardProps {
 }
 
 function GeneMetadataCard({ gene }: GeneMetadataCardProps) {
+  const functionalCategory = gene.annotations?.find((a) => a.key === "functional_category")?.value;
   return (
     <Card>
       <CardHeader className="pb-2">
@@ -85,6 +86,15 @@ function GeneMetadataCard({ gene }: GeneMetadataCardProps) {
           <MetadataRow label="Organism">
             <OrganismRef id={gene.organism_id} />
           </MetadataRow>
+
+          {/* Functional category (Mycobrowser CONTEXT annotation) */}
+          {functionalCategory && (
+            <MetadataRow label="Functional Category">
+              <Badge variant="outline" className="text-xs font-normal capitalize">
+                {functionalCategory}
+              </Badge>
+            </MetadataRow>
+          )}
 
           {/* NCBI Gene */}
           {gene.ncbi_gene_id && (

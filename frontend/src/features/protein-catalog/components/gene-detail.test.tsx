@@ -61,6 +61,13 @@ vi.mock("../hooks/use-genes", () => ({
           value_type: "categorical",
           dataset: "DeJesus 2017",
         },
+        {
+          axis: "context",
+          key: "functional_category",
+          value: "information pathways",
+          value_type: "categorical",
+          dataset: "Mycobrowser",
+        },
       ],
       version: 1,
     },
@@ -99,6 +106,12 @@ describe("GeneDetailPage", () => {
     expect(screen.getByText("Vulnerability")).toBeInTheDocument();
     expect(screen.getByText("essential")).toBeInTheDocument();
     expect(screen.getByText(/DeJesus 2017/)).toBeInTheDocument();
+  });
+
+  it("shows the functional category from the context annotation", () => {
+    render(<GeneDetailPage geneId="g1" />);
+    expect(screen.getByText("Functional Category")).toBeInTheDocument();
+    expect(screen.getByText("information pathways")).toBeInTheDocument();
   });
 
   it("renders neither section for a bare gene without location or annotations", async () => {
