@@ -6,6 +6,7 @@ import uuid
 
 from sqlalchemy import select
 
+from protcellar.domain.shared.global_workspace import GLOBAL_WORKSPACE_ID
 from protcellar.domain.taxonomy.strain import Strain
 from protcellar.infrastructure.persistence.sqlalchemy.base_repository import (
     SQLAlchemyRepository,
@@ -70,7 +71,15 @@ class SQLAlchemyStrainRepository(SQLAlchemyRepository[Strain, StrainModel]):
         cursor_id: uuid.UUID | None = None,
         limit: int | None = None,
     ) -> list[Strain]:
-        stmt = select(StrainModel).where(StrainModel.workspace_id == workspace_id)
+        """Strains visible to a workspace: its own plus GLOBAL reference strains.
+
+        Strains imported as reference data (e.g. from a UniProt proteome) live in
+        ``GLOBAL_WORKSPACE_ID`` and are shared with every workspace, mirroring how
+        organisms/proteins/genes are served. A workspace's own strains stay private.
+        """
+        stmt = select(StrainModel).where(
+            StrainModel.workspace_id.in_([workspace_id, GLOBAL_WORKSPACE_ID])
+        )
         if cursor_id is not None:
             stmt = stmt.where(StrainModel.id > cursor_id)
         stmt = stmt.order_by(StrainModel.id)
@@ -78,6 +87,19 @@ class SQLAlchemyStrainRepository(SQLAlchemyRepository[Strain, StrainModel]):
             stmt = stmt.limit(limit)
         result = await self._session.execute(stmt)
         return [self._to_domain_tracked(m) for m in result.scalars()]
+
+    async def find_visible_by_id(self, workspace_id: uuid.UUID, id: uuid.UUID) -> Strain | None:
+        """Load a strain by id if visible to the workspace — its own or a GLOBAL
+        reference strain. Read-only sharing: mutation paths still use the strict
+        ``find_by_id_in_workspace`` so tenants cannot edit GLOBAL strains.
+        """
+        stmt = select(StrainModel).where(
+            StrainModel.id == id,
+            StrainModel.workspace_id.in_([workspace_id, GLOBAL_WORKSPACE_ID]),
+        )
+        result = await self._session.execute(stmt)
+        model = result.scalar_one_or_none()
+        return self._to_domain_tracked(model) if model is not None else None
 
     async def find_by_species(
         self, workspace_id: uuid.UUID, species_organism_id: uuid.UUID

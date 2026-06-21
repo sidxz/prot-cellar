@@ -45,6 +45,10 @@ class StrainRepository(Protocol):
         self, workspace_id: uuid.UUID, id: uuid.UUID
     ) -> Strain | None: ...
 
+    async def find_visible_by_id(
+        self, workspace_id: uuid.UUID, id: uuid.UUID
+    ) -> Strain | None: ...
+
     async def find_by_workspace(
         self,
         workspace_id: uuid.UUID,
