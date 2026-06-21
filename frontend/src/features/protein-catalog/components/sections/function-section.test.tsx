@@ -25,6 +25,17 @@ describe("FunctionSection", () => {
     const { container } = render(<FunctionSection protein={{} as unknown as Protein} />);
     expect(container).toBeEmptyDOMElement();
   });
+
+  it("autolinks PubMed references in function text", () => {
+    const p = {
+      comments: [{ comment_type: "FUNCTION", text: "Involved in Y (PubMed:19436070)." }],
+    } as unknown as Protein;
+    render(<FunctionSection protein={p} />);
+    expect(screen.getByRole("link", { name: "PubMed:19436070" })).toHaveAttribute(
+      "href",
+      "https://pubmed.ncbi.nlm.nih.gov/19436070/",
+    );
+  });
 });
 
 describe("commentLines", () => {

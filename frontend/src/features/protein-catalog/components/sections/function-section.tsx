@@ -3,6 +3,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/card";
 import type { CommentResponse } from "@/shared/lib/api/model";
 
+import { linkifyPubmed } from "../../lib/linkify";
 import { commentsByType } from "../../lib/protein-annotations";
 import type { Protein } from "../../types";
 
@@ -71,7 +72,7 @@ export function FunctionSection({ protein }: { protein: Protein }) {
               {g.items.flatMap((c) =>
                 commentLines(c).map((line) => (
                   <p key={`${g.type}-${line}`} className="text-sm leading-relaxed text-foreground">
-                    {line}
+                    {linkifyPubmed(line)}
                   </p>
                 )),
               )}
