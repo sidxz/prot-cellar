@@ -68,11 +68,16 @@ function SwissBioPicsDiagram({ organismId, slIds }: { organismId: string; slIds:
       .then(() => {
         const host = ref.current;
         if (cancelled || !host) return;
+        // The component reads taxid/sls in its constructor, so the element must be
+        // created WITH the attributes present (createElement + setAttribute reads
+        // null). Both values are numeric — sanitized here, so the markup is safe.
+        const taxidAttr = String(taxid).replace(/[^0-9]/g, "");
+        const slsAttr = sls.replace(/[^0-9,]/g, "");
         host.replaceChildren();
-        const el = document.createElement("sib-swissbiopics-sl");
-        el.setAttribute("taxid", String(taxid));
-        el.setAttribute("sls", sls);
-        host.appendChild(el);
+        host.insertAdjacentHTML(
+          "beforeend",
+          `<sib-swissbiopics-sl taxid="${taxidAttr}" sls="${slsAttr}"></sib-swissbiopics-sl>`,
+        );
       })
       .catch(() => {
         /* leave empty (collapses); the location names + UniProt link remain */
