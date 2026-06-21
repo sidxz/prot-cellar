@@ -49,10 +49,15 @@ export default function CallbackPage() {
           <div className="w-full max-w-[320px] px-6 md:px-0">
             <div style={{ animation: "auth-enter 0.7s ease-out 0.2s both" }}>
               <AuthzCallback
-                onSuccess={() => router.replace("/")}
+                // `returnTo` is the path the user was on before a silent re-auth
+                // redirect — restore their place instead of always landing on "/".
+                onSuccess={(_user, returnTo) => router.replace(returnTo ?? "/")}
                 onError={(error) =>
                   router.replace(`/login?error=${encodeURIComponent(error.message)}`)
                 }
+                // Silent (prompt=none) re-auth needs user interaction — the stale
+                // session is already cleared, so fall back to interactive login.
+                onSilentReauthFailed={() => router.replace("/login")}
                 loadingComponent={
                   <div>
                     <h2 className="text-sm font-medium text-muted-foreground">Signing in...</h2>

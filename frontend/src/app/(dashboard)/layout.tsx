@@ -21,16 +21,19 @@ function DashboardSkeleton() {
 }
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated, isLoading } = useAuthz();
+  const { authState, isLoading } = useAuthz();
   const router = useRouter();
 
   useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
+    // Only bounce to login when the session is truly gone. During `needs_reauth`
+    // (IdP token lost on reload) the AuthzProvider's `autoReauth` performs a
+    // silent re-auth redirect — sending to /login here would pre-empt it.
+    if (!isLoading && authState === "unauthenticated") {
       router.replace("/login");
     }
-  }, [isLoading, isAuthenticated, router]);
+  }, [isLoading, authState, router]);
 
-  if (isLoading || !isAuthenticated) {
+  if (isLoading || authState !== "authenticated") {
     return <DashboardSkeleton />;
   }
 
