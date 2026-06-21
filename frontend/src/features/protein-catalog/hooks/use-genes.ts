@@ -1,5 +1,6 @@
 import {
   useGetGeneApiV1GenesGeneIdGet,
+  useGetGeneNeighborhoodApiV1GenesGeneIdNeighborhoodGet,
   useListGenesApiV1GenesGet,
 } from "@/shared/lib/api/genes/genes";
 
@@ -17,4 +18,12 @@ export function useGenes(filters: GeneListFilters = {}, cursor?: string) {
 /** Fetch a single gene by ID. */
 export function useGene(id: string) {
   return useGetGeneApiV1GenesGeneIdGet(id);
+}
+
+/**
+ * Fetch a gene's genomic neighborhood (genes flanking it on the same replicon).
+ * `window` is the number of genes to pull on each side (default 8, matching the API).
+ */
+export function useGeneNeighborhood(geneId: string, window = 8) {
+  return useGetGeneNeighborhoodApiV1GenesGeneIdNeighborhoodGet(geneId, { window });
 }
