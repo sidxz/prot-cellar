@@ -14,6 +14,7 @@ from protcellar.application.shared.event_dispatcher import EventDispatcherProtoc
 from protcellar.application.shared.sentinel import UNSET
 from protcellar.application.shared.unit_of_work import UnitOfWork
 from protcellar.domain.protein_catalog.gene import Gene
+from protcellar.domain.protein_catalog.gene_annotation import GeneAnnotation
 from protcellar.domain.protein_catalog.repository import GeneRepository
 from protcellar.domain.shared.errors import DomainError, NotFoundError
 from protcellar.domain.shared.global_workspace import GLOBAL_WORKSPACE_ID
@@ -27,6 +28,12 @@ class UpdateGeneCommand(Command):
     ncbi_gene_id: str | None | object = UNSET
     ensembl_gene_id: str | None | object = UNSET
     hgnc_id: str | None | object = UNSET
+    genomic_accession: str | None | object = UNSET
+    genomic_start: int | None | object = UNSET
+    genomic_end: int | None | object = UNSET
+    genomic_strand: str | None | object = UNSET
+    assembly: str | None | object = UNSET
+    annotations: list[GeneAnnotation] | None | object = UNSET
 
 
 class UpdateGene:
@@ -62,6 +69,18 @@ class UpdateGene:
                 fields["ensembl_gene_id"] = input.ensembl_gene_id
             if input.hgnc_id is not UNSET:
                 fields["hgnc_id"] = input.hgnc_id
+            if input.genomic_accession is not UNSET:
+                fields["genomic_accession"] = input.genomic_accession
+            if input.genomic_start is not UNSET:
+                fields["genomic_start"] = input.genomic_start
+            if input.genomic_end is not UNSET:
+                fields["genomic_end"] = input.genomic_end
+            if input.genomic_strand is not UNSET:
+                fields["genomic_strand"] = input.genomic_strand
+            if input.assembly is not UNSET:
+                fields["assembly"] = input.assembly
+            if input.annotations is not UNSET:
+                fields["annotations"] = input.annotations
 
             if fields:
                 gene.update(**fields)

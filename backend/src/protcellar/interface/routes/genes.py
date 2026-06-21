@@ -17,7 +17,7 @@ from protcellar.application.protein_catalog.list_genes import ListGenesQuery
 from protcellar.application.protein_catalog.update_gene import UpdateGeneCommand
 from protcellar.application.shared.sentinel import UNSET
 from protcellar.domain.protein_catalog.gene import Gene
-from protcellar.domain.protein_catalog.gene_annotation import GeneAnnotation
+from protcellar.domain.protein_catalog.gene_annotation import GeneAnnotation, GeneAnnotationAxis
 from protcellar.domain.shared.cross_reference import CrossReference
 from protcellar.infrastructure.identifiers.registry import IdentifierRegistry
 from protcellar.interface.dependencies import (
@@ -129,6 +129,33 @@ class GeneResponse(BaseModel):
         )
 
 
+class GeneAnnotationBody(BaseModel):
+    """Inbound axis-typed annotation (mirrors GeneAnnotationResponse minus computed fields)."""
+
+    axis: GeneAnnotationAxis
+    key: str
+    value: str
+    value_type: str = "categorical"
+    dataset: str | None = None
+    condition: str | None = None
+    evidence: str | None = None
+    source: str | None = None
+    source_url: str | None = None
+
+    def to_domain(self) -> GeneAnnotation:
+        return GeneAnnotation(
+            axis=self.axis,
+            key=self.key,
+            value=self.value,
+            value_type=self.value_type,
+            dataset=self.dataset,
+            condition=self.condition,
+            evidence=self.evidence,
+            source=self.source,
+            source_url=self.source_url,
+        )
+
+
 class CreateGeneBody(BaseModel):
     primary_name: str
     organism_id: uuid.UUID
@@ -136,6 +163,12 @@ class CreateGeneBody(BaseModel):
     ncbi_gene_id: str | None = None
     ensembl_gene_id: str | None = None
     hgnc_id: str | None = None
+    genomic_accession: str | None = None
+    genomic_start: int | None = None
+    genomic_end: int | None = None
+    genomic_strand: str | None = None
+    assembly: str | None = None
+    annotations: list[GeneAnnotationBody] = []
 
 
 class UpdateGeneBody(BaseModel):
@@ -144,6 +177,12 @@ class UpdateGeneBody(BaseModel):
     ncbi_gene_id: str | None = None
     ensembl_gene_id: str | None = None
     hgnc_id: str | None = None
+    genomic_accession: str | None = None
+    genomic_start: int | None = None
+    genomic_end: int | None = None
+    genomic_strand: str | None = None
+    assembly: str | None = None
+    annotations: list[GeneAnnotationBody] | None = None
 
     model_config = {"extra": "forbid"}
 
@@ -286,6 +325,12 @@ async def create_gene(
         ncbi_gene_id=body.ncbi_gene_id,
         ensembl_gene_id=body.ensembl_gene_id,
         hgnc_id=body.hgnc_id,
+        genomic_accession=body.genomic_accession,
+        genomic_start=body.genomic_start,
+        genomic_end=body.genomic_end,
+        genomic_strand=body.genomic_strand,
+        assembly=body.assembly,
+        annotations=[a.to_domain() for a in body.annotations],
     )
     gene = result_to_response(await use_case(command, auth=auth))
     return GeneResponse.from_domain(gene)
@@ -299,6 +344,9 @@ async def update_gene(
     use_case: UpdateGeneDep,
 ) -> GeneResponse:
     provided = body.model_fields_set
+    annotations = (
+        [a.to_domain() for a in (body.annotations or [])] if "annotations" in provided else UNSET
+    )
     command = UpdateGeneCommand(
         gene_id=gene_id,
         primary_name=body.primary_name if "primary_name" in provided else None,
@@ -306,6 +354,12 @@ async def update_gene(
         ncbi_gene_id=body.ncbi_gene_id if "ncbi_gene_id" in provided else UNSET,
         ensembl_gene_id=body.ensembl_gene_id if "ensembl_gene_id" in provided else UNSET,
         hgnc_id=body.hgnc_id if "hgnc_id" in provided else UNSET,
+        genomic_accession=body.genomic_accession if "genomic_accession" in provided else UNSET,
+        genomic_start=body.genomic_start if "genomic_start" in provided else UNSET,
+        genomic_end=body.genomic_end if "genomic_end" in provided else UNSET,
+        genomic_strand=body.genomic_strand if "genomic_strand" in provided else UNSET,
+        assembly=body.assembly if "assembly" in provided else UNSET,
+        annotations=annotations,
     )
     gene = result_to_response(await use_case(command, auth=auth))
     return GeneResponse.from_domain(gene)

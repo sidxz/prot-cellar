@@ -91,7 +91,7 @@ async def test_gene_response_includes_location_and_annotations(
     client: AsyncClient, database_url: str
 ) -> None:
     organism_id = await _make_organism(
-        client, ncbi_tax_id=83332, scientific_name="Mycobacterium tuberculosis H37Rv"
+        client, ncbi_tax_id=990001, scientific_name="Locus testus alpha"
     )
     gene = Gene.create(
         primary_name="rpoB",
@@ -135,7 +135,7 @@ async def test_gene_response_includes_location_and_annotations(
 @pytest.mark.asyncio
 async def test_gene_response_location_fields_default_null(client: AsyncClient) -> None:
     organism_id = await _make_organism(
-        client, ncbi_tax_id=9606, scientific_name="Homo sapiens"
+        client, ncbi_tax_id=990002, scientific_name="Locus testus beta"
     )
     created = await client.post(
         "/api/v1/genes", json={"primary_name": "EGFR", "organism_id": organism_id}
@@ -146,3 +146,104 @@ async def test_gene_response_location_fields_default_null(client: AsyncClient) -
     assert body["genomic_start"] is None
     assert body["length_bp"] is None
     assert body["annotations"] == []
+
+
+@pytest.mark.asyncio
+async def test_create_gene_with_location_and_annotations(client: AsyncClient) -> None:
+    organism_id = await _make_organism(
+        client, ncbi_tax_id=990003, scientific_name="Locus testus gamma"
+    )
+    created = await client.post(
+        "/api/v1/genes",
+        json={
+            "primary_name": "katG",
+            "organism_id": organism_id,
+            "genomic_accession": "NC_000962.3",
+            "genomic_start": 2153889,
+            "genomic_end": 2156111,
+            "genomic_strand": "+",
+            "assembly": "ASM19595v2",
+            "annotations": [
+                {
+                    "axis": "vulnerability",
+                    "key": "essentiality",
+                    "value": "non-essential",
+                    "dataset": "DeJesus 2017",
+                    "condition": "in vitro 7H9",
+                }
+            ],
+        },
+    )
+    assert created.status_code == 201
+    body = created.json()
+    assert body["genomic_accession"] == "NC_000962.3"
+    assert body["length_bp"] == 2156111 - 2153889 + 1
+    assert body["annotations"][0]["axis"] == "vulnerability"
+    assert body["annotations"][0]["value"] == "non-essential"
+    assert body["annotations"][0]["dataset"] == "DeJesus 2017"
+    # default value_type applied by the domain value object
+    assert body["annotations"][0]["value_type"] == "categorical"
+
+
+@pytest.mark.asyncio
+async def test_patch_sets_location_and_vulnerability_annotation(client: AsyncClient) -> None:
+    organism_id = await _make_organism(
+        client, ncbi_tax_id=990004, scientific_name="Locus testus delta"
+    )
+    created = await client.post(
+        "/api/v1/genes", json={"primary_name": "inhA", "organism_id": organism_id}
+    )
+    gene_id = created.json()["id"]
+
+    patched = await client.patch(
+        f"/api/v1/genes/{gene_id}",
+        json={
+            "genomic_accession": "NC_000962.3",
+            "genomic_start": 1674202,
+            "genomic_end": 1675011,
+            "genomic_strand": "+",
+            "annotations": [
+                {
+                    "axis": "vulnerability",
+                    "key": "essentiality",
+                    "value": "essential",
+                    "dataset": "DeJesus 2017",
+                    "condition": "in vitro 7H9",
+                }
+            ],
+        },
+    )
+    assert patched.status_code == 200
+
+    body = (await client.get(f"/api/v1/genes/{gene_id}")).json()
+    assert body["genomic_accession"] == "NC_000962.3"
+    assert body["genomic_strand"] == "+"
+    assert body["length_bp"] == 1675011 - 1674202 + 1
+    assert body["annotations"][0]["value"] == "essential"
+    assert body["annotations"][0]["dataset"] == "DeJesus 2017"
+
+
+@pytest.mark.asyncio
+async def test_patch_without_location_keys_leaves_them_untouched(client: AsyncClient) -> None:
+    organism_id = await _make_organism(
+        client, ncbi_tax_id=990005, scientific_name="Locus testus epsilon"
+    )
+    created = await client.post(
+        "/api/v1/genes",
+        json={
+            "primary_name": "rpoC",
+            "organism_id": organism_id,
+            "genomic_accession": "NC_000962.3",
+            "genomic_start": 763370,
+            "genomic_end": 767320,
+            "genomic_strand": "+",
+        },
+    )
+    gene_id = created.json()["id"]
+
+    # Patch an unrelated field — location must survive.
+    patched = await client.patch(f"/api/v1/genes/{gene_id}", json={"hgnc_id": "HGNC:9999"})
+    assert patched.status_code == 200
+    body = patched.json()
+    assert body["genomic_accession"] == "NC_000962.3"
+    assert body["genomic_start"] == 763370

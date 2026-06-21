@@ -12,6 +12,7 @@ from protcellar.application.shared.command import Command
 from protcellar.application.shared.event_dispatcher import EventDispatcherProtocol
 from protcellar.application.shared.unit_of_work import UnitOfWork
 from protcellar.domain.protein_catalog.gene import Gene
+from protcellar.domain.protein_catalog.gene_annotation import GeneAnnotation
 from protcellar.domain.protein_catalog.repository import GeneRepository
 from protcellar.domain.shared.errors import DomainError
 
@@ -24,6 +25,12 @@ class CreateGeneCommand(Command):
     ncbi_gene_id: str | None = None
     ensembl_gene_id: str | None = None
     hgnc_id: str | None = None
+    genomic_accession: str | None = None
+    genomic_start: int | None = None
+    genomic_end: int | None = None
+    genomic_strand: str | None = None
+    assembly: str | None = None
+    annotations: list[GeneAnnotation] = field(default_factory=list)
 
 
 class CreateGene:
@@ -44,6 +51,12 @@ class CreateGene:
                 ncbi_gene_id=input.ncbi_gene_id,
                 ensembl_gene_id=input.ensembl_gene_id,
                 hgnc_id=input.hgnc_id,
+                genomic_accession=input.genomic_accession,
+                genomic_start=input.genomic_start,
+                genomic_end=input.genomic_end,
+                genomic_strand=input.genomic_strand,
+                assembly=input.assembly,
+                annotations=list(input.annotations),
             )
             await self._repo.save(gene)
             events = await self._uow.commit()
