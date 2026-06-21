@@ -255,7 +255,9 @@ export function ProteinListPage() {
       {/* Page header with organism + count context */}
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Proteins</h1>
-        <p className="mt-0.5 flex items-center gap-1.5 text-sm text-muted-foreground">
+        {/* div (not p): OrganismRef can render a block-level Skeleton while
+            loading, which is invalid DOM nesting inside a <p>. */}
+        <div className="mt-0.5 flex items-center gap-1.5 text-sm text-muted-foreground">
           {soleOrganismId ? (
             <>
               <OrganismRef id={soleOrganismId} className="text-sm font-medium text-foreground" />
@@ -269,7 +271,7 @@ export function ProteinListPage() {
           ) : (
             <span>Target-triage catalog</span>
           )}
-        </p>
+        </div>
       </div>
 
       {/* Toolbar */}
