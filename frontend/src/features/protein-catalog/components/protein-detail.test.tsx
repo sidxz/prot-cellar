@@ -18,6 +18,15 @@ vi.mock("@/shared/lib/api/genes/genes", () => ({
   }),
 }));
 
+// StrainRef resolves a strain id to its name via this hook.
+vi.mock("@/shared/lib/api/strains/strains", () => ({
+  useGetStrainApiV1StrainsStrainIdGet: () => ({
+    data: { id: "s1", name: "ATCC 25618 / H37Rv" },
+    isLoading: false,
+    isError: false,
+  }),
+}));
+
 // ── Happy-path mock (primary fetch succeeds) ──────────────────────────────
 vi.mock("../hooks/use-proteins", () => ({
   useProtein: vi.fn(() => ({
@@ -101,6 +110,35 @@ describe("ProteinDetailPage", () => {
     const geneLink = screen.getByRole("link", { name: /rpoB/ });
     expect(geneLink).toHaveAttribute("href", "/genes/g1");
     expect(screen.queryByText("g1")).not.toBeInTheDocument();
+  });
+
+  it("links the strain by its name when the protein has a strain", async () => {
+    const { useProtein } = await import("../hooks/use-proteins");
+    (useProtein as ReturnType<typeof vi.fn>).mockReturnValue({
+      data: {
+        id: "1",
+        primary_accession: "P12345",
+        entry_name: "ALBU_HUMAN",
+        is_reviewed: true,
+        seq_length: 7,
+        seq_mass: 800,
+        organism_id: "o1",
+        strain_id: "s1",
+        gene_id: null,
+        protein_names: { recommended: "Albumin" },
+        secondary_accessions: [],
+        keywords: [],
+        cross_references: [],
+        version: 1,
+      },
+      isLoading: false,
+      isError: false,
+    });
+
+    render(<ProteinDetailPage accession="P12345" />);
+
+    const strainLink = screen.getByRole("link", { name: /H37Rv/ });
+    expect(strainLink).toHaveAttribute("href", "/strains/s1");
   });
 
   it("redirects to the canonical accession when the resolve fallback succeeds", async () => {

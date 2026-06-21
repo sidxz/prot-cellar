@@ -2,6 +2,7 @@
 
 import { GeneRef } from "@/shared/components/common/gene-ref";
 import { OrganismRef } from "@/shared/components/common/organism-ref";
+import { StrainRef } from "@/shared/components/common/strain-ref";
 import { SequenceViewer } from "@/shared/components/sequence/sequence-viewer";
 import { Badge } from "@/shared/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/card";
@@ -121,6 +122,13 @@ function MetadataCard({ protein }: MetadataCardProps) {
           <MetadataRow label="Organism">
             <OrganismRef id={protein.organism_id} />
           </MetadataRow>
+
+          {/* Strain */}
+          {protein.strain_id && (
+            <MetadataRow label="Strain">
+              <StrainRef id={protein.strain_id} className="text-sm" />
+            </MetadataRow>
+          )}
 
           {/* Gene */}
           {protein.gene_id && (
