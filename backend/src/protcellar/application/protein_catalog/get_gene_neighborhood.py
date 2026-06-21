@@ -1,0 +1,97 @@
+"""GetGeneNeighborhood query — flanking genes on a gene's replicon.
+
+Loads the anchor gene, requires it to carry a genomic location, fetches its
+``window`` nearest neighbours on the same accession (the center gene included),
+and projects each to a compact summary with the essentiality call pulled from
+its ``key == "essentiality"`` annotation.
+"""
+
+from __future__ import annotations
+
+import uuid
+from dataclasses import dataclass
+
+from returns.result import Failure, Result, Success
+
+from protcellar.application.auth import AuthContext, require_authenticated
+from protcellar.application.shared.query import Query
+from protcellar.application.shared.unit_of_work import UnitOfWork
+from protcellar.domain.protein_catalog.gene import Gene
+from protcellar.domain.protein_catalog.repository import GeneRepository
+from protcellar.domain.shared.errors import DomainError, NotFoundError
+from protcellar.domain.shared.global_workspace import GLOBAL_WORKSPACE_ID
+
+_ESSENTIALITY_KEY = "essentiality"
+
+
+@dataclass(frozen=True, kw_only=True)
+class GeneNeighborSummary:
+    id: uuid.UUID
+    primary_name: str
+    genomic_start: int | None
+    genomic_end: int | None
+    genomic_strand: str | None
+    essentiality: str | None
+
+
+@dataclass(frozen=True, kw_only=True)
+class GeneNeighborhood:
+    center_id: uuid.UUID
+    accession: str
+    neighbors: list[GeneNeighborSummary]
+
+
+@dataclass(frozen=True, kw_only=True)
+class GetGeneNeighborhoodQuery(Query):
+    gene_id: uuid.UUID
+    window: int = 8
+
+
+def _essentiality(gene: Gene) -> str | None:
+    for ann in gene.annotations:
+        if ann.key == _ESSENTIALITY_KEY:
+            return ann.value
+    return None
+
+
+class GetGeneNeighborhood:
+    def __init__(self, uow: UnitOfWork, repo: GeneRepository) -> None:
+        self._uow = uow
+        self._repo = repo
+
+    async def __call__(
+        self, input: GetGeneNeighborhoodQuery, auth: AuthContext | None = None
+    ) -> Result[GeneNeighborhood, DomainError]:
+        require_authenticated(auth)
+        async with self._uow:
+            gene = await self._repo.find_by_id_in_workspace(GLOBAL_WORKSPACE_ID, input.gene_id)
+            if gene is None:
+                return Failure(NotFoundError("Gene", str(input.gene_id)))
+            if gene.genomic_accession is None or gene.genomic_start is None:
+                return Failure(
+                    NotFoundError("GeneNeighborhood", str(input.gene_id))
+                )
+
+            neighbors = await self._repo.find_genomic_neighbors(
+                organism_id=gene.organism_id,
+                genomic_accession=gene.genomic_accession,
+                center_start=gene.genomic_start,
+                window=input.window,
+            )
+            return Success(
+                GeneNeighborhood(
+                    center_id=gene.id,
+                    accession=gene.genomic_accession,
+                    neighbors=[
+                        GeneNeighborSummary(
+                            id=n.id,
+                            primary_name=n.primary_name,
+                            genomic_start=n.genomic_start,
+                            genomic_end=n.genomic_end,
+                            genomic_strand=n.genomic_strand,
+                            essentiality=_essentiality(n),
+                        )
+                        for n in neighbors
+                    ],
+                )
+            )

@@ -12,6 +12,7 @@ from protcellar.application.protein_catalog.bulk_upsert_proteins import BulkUpse
 from protcellar.application.protein_catalog.create_gene import CreateGene
 from protcellar.application.protein_catalog.create_protein import CreateProtein
 from protcellar.application.protein_catalog.get_gene import GetGene
+from protcellar.application.protein_catalog.get_gene_neighborhood import GetGeneNeighborhood
 from protcellar.application.protein_catalog.get_protein import GetProtein
 from protcellar.application.protein_catalog.list_genes import ListGenes
 from protcellar.application.protein_catalog.list_proteins import ListProteins
@@ -74,6 +75,7 @@ def register_protein_catalog(container: Container) -> None:
     container.define(CreateGene, _gene_cmd(CreateGene))
     container.define(UpdateGene, _gene_cmd(UpdateGene))
     container.define(GetGene, _gene_query(GetGene))
+    container.define(GetGeneNeighborhood, _gene_query(GetGeneNeighborhood))
     container.define(ListGenes, _gene_query(ListGenes))
 
     container.define(CreateProtein, _protein_cmd(CreateProtein))

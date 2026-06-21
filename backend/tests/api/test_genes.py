@@ -247,3 +247,65 @@ async def test_patch_without_location_keys_leaves_them_untouched(client: AsyncCl
     body = patched.json()
     assert body["genomic_accession"] == "NC_000962.3"
     assert body["genomic_start"] == 763370
+
+
+@pytest.mark.asyncio
+async def test_gene_neighborhood_returns_ordered_neighbors_with_essentiality(
+    client: AsyncClient, database_url: str
+) -> None:
+    organism_id = uuid.UUID(
+        await _make_organism(client, ncbi_tax_id=990006, scientific_name="Locus testus zeta")
+    )
+    essential = [
+        GeneAnnotation(
+            axis=GeneAnnotationAxis.VULNERABILITY, key="essentiality", value="essential"
+        )
+    ]
+    genes = []
+    for i, start in enumerate([1000, 2000, 3000, 4000, 5000]):
+        g = Gene.create(
+            primary_name=f"gene{i}",
+            organism_id=organism_id,
+            genomic_accession="NC_000962.3",
+            genomic_start=start,
+            genomic_end=start + 500,
+            genomic_strand="+",
+            annotations=essential if start == 3000 else [],
+        )
+        await _seed_gene(database_url, g)
+        genes.append(g)
+
+    center = genes[2]  # start == 3000
+    r = await client.get(f"/api/v1/genes/{center.id}/neighborhood", params={"window": 1})
+    assert r.status_code == 200
+    body = r.json()
+    assert body["center_id"] == str(center.id)
+    assert body["accession"] == "NC_000962.3"
+    starts = [n["genomic_start"] for n in body["neighbors"]]
+    assert starts == [2000, 3000, 4000]
+    by_start = {n["genomic_start"]: n for n in body["neighbors"]}
+    assert by_start[3000]["essentiality"] == "essential"
+    assert by_start[3000]["primary_name"] == "gene2"
+    assert by_start[3000]["genomic_strand"] == "+"
+    assert by_start[2000]["essentiality"] is None
+    assert by_start[4000]["essentiality"] is None
+
+
+@pytest.mark.asyncio
+async def test_gene_neighborhood_404_when_no_location(client: AsyncClient) -> None:
+    organism_id = await _make_organism(
+        client, ncbi_tax_id=990007, scientific_name="Locus testus eta"
+    )
+    created = await client.post(
+        "/api/v1/genes", json={"primary_name": "noLoc", "organism_id": organism_id}
+    )
+    gene_id = created.json()["id"]
+
+    r = await client.get(f"/api/v1/genes/{gene_id}/neighborhood")
+    assert r.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_gene_neighborhood_404_for_unknown_gene(client: AsyncClient) -> None:
+    r = await client.get(f"/api/v1/genes/{uuid.uuid4()}/neighborhood")
+    assert r.status_code == 404

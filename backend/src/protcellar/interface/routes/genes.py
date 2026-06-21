@@ -13,6 +13,9 @@ from protcellar.application.protein_catalog.bulk_upsert_genes import (
 )
 from protcellar.application.protein_catalog.create_gene import CreateGeneCommand
 from protcellar.application.protein_catalog.get_gene import GetGeneQuery
+from protcellar.application.protein_catalog.get_gene_neighborhood import (
+    GetGeneNeighborhoodQuery,
+)
 from protcellar.application.protein_catalog.list_genes import ListGenesQuery
 from protcellar.application.protein_catalog.update_gene import UpdateGeneCommand
 from protcellar.application.shared.sentinel import UNSET
@@ -25,6 +28,7 @@ from protcellar.interface.dependencies import (
     BulkUpsertGenesDep,
     CreateGeneDep,
     GetGeneDep,
+    GetGeneNeighborhoodDep,
     ListGenesDep,
     UpdateGeneDep,
 )
@@ -156,6 +160,21 @@ class GeneAnnotationBody(BaseModel):
         )
 
 
+class GeneNeighborSummary(BaseModel):
+    id: uuid.UUID
+    primary_name: str
+    genomic_start: int | None = None
+    genomic_end: int | None = None
+    genomic_strand: str | None = None
+    essentiality: str | None = None
+
+
+class GeneNeighborhoodResponse(BaseModel):
+    center_id: uuid.UUID
+    accession: str
+    neighbors: list[GeneNeighborSummary]
+
+
 class CreateGeneBody(BaseModel):
     primary_name: str
     organism_id: uuid.UUID
@@ -262,6 +281,32 @@ async def get_gene(
     query = GetGeneQuery(gene_id=gene_id)
     gene = result_to_response(await use_case(query, auth=auth))
     return GeneResponse.from_domain(gene)
+
+
+@router.get("/{gene_id}/neighborhood", response_model=GeneNeighborhoodResponse)
+async def get_gene_neighborhood(
+    gene_id: uuid.UUID,
+    auth: AuthDep,
+    use_case: GetGeneNeighborhoodDep,
+    window: int = 8,
+) -> GeneNeighborhoodResponse:
+    query = GetGeneNeighborhoodQuery(gene_id=gene_id, window=window)
+    result = result_to_response(await use_case(query, auth=auth))
+    return GeneNeighborhoodResponse(
+        center_id=result.center_id,
+        accession=result.accession,
+        neighbors=[
+            GeneNeighborSummary(
+                id=n.id,
+                primary_name=n.primary_name,
+                genomic_start=n.genomic_start,
+                genomic_end=n.genomic_end,
+                genomic_strand=n.genomic_strand,
+                essentiality=n.essentiality,
+            )
+            for n in result.neighbors
+        ],
+    )
 
 
 @router.post("/bulk", response_model=GeneBulkUpsertResponse)

@@ -11,6 +11,7 @@ from protcellar.application.protein_catalog.bulk_upsert_proteins import BulkUpse
 from protcellar.application.protein_catalog.create_gene import CreateGene
 from protcellar.application.protein_catalog.create_protein import CreateProtein
 from protcellar.application.protein_catalog.get_gene import GetGene
+from protcellar.application.protein_catalog.get_gene_neighborhood import GetGeneNeighborhood
 from protcellar.application.protein_catalog.get_protein import GetProtein
 from protcellar.application.protein_catalog.list_genes import ListGenes
 from protcellar.application.protein_catalog.list_proteins import ListProteins
@@ -26,6 +27,7 @@ __all__ = [
     "CreateGeneDep",
     "CreateProteinDep",
     "GetGeneDep",
+    "GetGeneNeighborhoodDep",
     "GetProteinDep",
     "ListGenesDep",
     "ListProteinsDep",
@@ -42,6 +44,9 @@ BulkUpsertGenesDep = Annotated[BulkUpsertGenes, Depends(_get_use_case(BulkUpsert
 CreateGeneDep = Annotated[CreateGene, Depends(_get_use_case(CreateGene))]
 UpdateGeneDep = Annotated[UpdateGene, Depends(_get_use_case(UpdateGene))]
 GetGeneDep = Annotated[GetGene, Depends(_get_use_case(GetGene))]
+GetGeneNeighborhoodDep = Annotated[
+    GetGeneNeighborhood, Depends(_get_use_case(GetGeneNeighborhood))
+]
 ListGenesDep = Annotated[ListGenes, Depends(_get_use_case(ListGenes))]
 
 # --- Protein Deps ---
