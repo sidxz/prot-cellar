@@ -24,7 +24,9 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
+  BulkUpsertGenesBody,
   CreateGeneBody,
+  GeneBulkUpsertResponse,
   GeneResponse,
   HTTPValidationError,
   ListGenesApiV1GenesGetParams,
@@ -347,6 +349,70 @@ export const useUpdateGeneApiV1GenesGeneIdPatch = <TError = HTTPValidationError,
       > => {
 
       const mutationOptions = getUpdateGeneApiV1GenesGeneIdPatchMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    /**
+ * @summary Bulk Upsert Genes
+ */
+export const bulkUpsertGenesApiV1GenesBulkPost = (
+    bulkUpsertGenesBody: BulkUpsertGenesBody,
+ signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<GeneBulkUpsertResponse>(
+      {url: `/api/v1/genes/bulk`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: bulkUpsertGenesBody, signal
+    },
+      );
+    }
+  
+
+
+export const getBulkUpsertGenesApiV1GenesBulkPostMutationOptions = <TError = HTTPValidationError,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof bulkUpsertGenesApiV1GenesBulkPost>>, TError,{data: BulkUpsertGenesBody}, TContext>, }
+): UseMutationOptions<Awaited<ReturnType<typeof bulkUpsertGenesApiV1GenesBulkPost>>, TError,{data: BulkUpsertGenesBody}, TContext> => {
+
+const mutationKey = ['bulkUpsertGenesApiV1GenesBulkPost'];
+const {mutation: mutationOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof bulkUpsertGenesApiV1GenesBulkPost>>, {data: BulkUpsertGenesBody}> = (props) => {
+          const {data} = props ?? {};
+
+          return  bulkUpsertGenesApiV1GenesBulkPost(data,)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type BulkUpsertGenesApiV1GenesBulkPostMutationResult = NonNullable<Awaited<ReturnType<typeof bulkUpsertGenesApiV1GenesBulkPost>>>
+    export type BulkUpsertGenesApiV1GenesBulkPostMutationBody = BulkUpsertGenesBody
+    export type BulkUpsertGenesApiV1GenesBulkPostMutationError = HTTPValidationError
+
+    /**
+ * @summary Bulk Upsert Genes
+ */
+export const useBulkUpsertGenesApiV1GenesBulkPost = <TError = HTTPValidationError,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof bulkUpsertGenesApiV1GenesBulkPost>>, TError,{data: BulkUpsertGenesBody}, TContext>, }
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof bulkUpsertGenesApiV1GenesBulkPost>>,
+        TError,
+        {data: BulkUpsertGenesBody},
+        TContext
+      > => {
+
+      const mutationOptions = getBulkUpsertGenesApiV1GenesBulkPostMutationOptions(options);
 
       return useMutation(mutationOptions, queryClient);
     }

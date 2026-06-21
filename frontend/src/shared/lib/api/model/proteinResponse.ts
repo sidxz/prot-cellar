@@ -9,6 +9,7 @@ import type { ProteinResponseEntryName } from './proteinResponseEntryName';
 import type { ProteinResponseProteinNames } from './proteinResponseProteinNames';
 import type { ProteinResponseStrainId } from './proteinResponseStrainId';
 import type { ProteinResponseGeneId } from './proteinResponseGeneId';
+import type { ProteinResponseGene } from './proteinResponseGene';
 import type { ProteinResponseSeqMass } from './proteinResponseSeqMass';
 import type { ProteinResponseSeqCrc64 } from './proteinResponseSeqCrc64';
 import type { ProteinResponseProteinExistence } from './proteinResponseProteinExistence';
@@ -35,6 +36,7 @@ export interface ProteinResponse {
   organism_id: string;
   strain_id?: ProteinResponseStrainId;
   gene_id?: ProteinResponseGeneId;
+  gene?: ProteinResponseGene;
   seq_length: number;
   seq_mass?: ProteinResponseSeqMass;
   seq_crc64?: ProteinResponseSeqCrc64;

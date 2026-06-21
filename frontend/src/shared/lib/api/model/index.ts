@@ -5,7 +5,15 @@
  * OpenAPI spec version: 0.1.0
  */
 
+export * from './bulkCrossReferenceBody';
+export * from './bulkCrossReferenceBodyEvidence';
+export * from './bulkCrossReferenceBodyProperties';
+export * from './bulkCrossReferenceBodyPropertiesAnyOf';
+export * from './bulkGeneRecordBody';
+export * from './bulkGeneRecordBodyEnsemblGeneId';
+export * from './bulkGeneRecordBodyNcbiGeneId';
 export * from './bulkSummaryResponse';
+export * from './bulkUpsertGenesBody';
 export * from './bulkUpsertResponse';
 export * from './citationBody';
 export * from './citationBodyAuthors';
@@ -115,12 +123,18 @@ export * from './featureResponseLigand';
 export * from './featureResponseLigandAnyOf';
 export * from './featureResponseStart';
 export * from './featureResponseStartModifier';
+export * from './geneBulkSummaryResponse';
+export * from './geneBulkUpsertResponse';
+export * from './geneItemResultResponse';
+export * from './geneItemResultResponseError';
+export * from './geneItemResultResponseId';
 export * from './geneResponse';
 export * from './geneResponseEnsemblGeneId';
 export * from './geneResponseEnsemblUrl';
 export * from './geneResponseHgncId';
 export * from './geneResponseNcbiGeneId';
 export * from './geneResponseNcbiGeneUrl';
+export * from './geneSummaryResponse';
 export * from './getProteinApiV1ProteinsAccessionGetParams';
 export * from './hTTPValidationError';
 export * from './healthHealthGet200';
@@ -214,6 +228,7 @@ export * from './proteinResponseCrossReferencesItem';
 export * from './proteinResponseEntryName';
 export * from './proteinResponseEntryVersion';
 export * from './proteinResponseFragment';
+export * from './proteinResponseGene';
 export * from './proteinResponseGeneId';
 export * from './proteinResponseProteinExistence';
 export * from './proteinResponseProteinNames';
