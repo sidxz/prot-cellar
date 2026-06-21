@@ -6,6 +6,7 @@ import {
   featuresByCategory,
   goTermsByAspect,
   structures,
+  subcellularLocationSlIds,
   subcellularLocations,
 } from "./protein-annotations";
 
@@ -108,5 +109,22 @@ describe("protein-annotations", () => {
     } as unknown as Protein;
     expect(subcellularLocations(p)).toEqual(["Cell membrane", "Cytoplasm"]);
     expect(subcellularLocations({} as unknown as Protein)).toEqual([]);
+  });
+
+  it("extracts SwissBioPics-formatted SL ids from the comment payload", () => {
+    const p = {
+      comments: [
+        {
+          comment_type: "SUBCELLULAR LOCATION",
+          payload: {
+            subcellularLocations: [
+              { location: { value: "Secreted", id: "SL-0243" } },
+              { location: { value: "Cell membrane", id: "SL-0039" } },
+            ],
+          },
+        },
+      ],
+    } as unknown as Protein;
+    expect(subcellularLocationSlIds(p)).toEqual(["243", "39"]);
   });
 });

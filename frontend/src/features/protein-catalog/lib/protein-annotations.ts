@@ -131,31 +131,45 @@ export function featuresByCategory(p: Protein): Record<string, FeatureResponse[]
   return out;
 }
 
-function readLocationValue(entry: unknown): string | undefined {
+function readLocationField(entry: unknown, field: "value" | "id"): string | undefined {
   if (entry && typeof entry === "object") {
     const loc = (entry as Record<string, unknown>).location;
     if (loc && typeof loc === "object") {
-      const value = (loc as Record<string, unknown>).value;
-      return typeof value === "string" ? value : undefined;
+      const v = (loc as Record<string, unknown>)[field];
+      return typeof v === "string" ? v : undefined;
     }
   }
   return undefined;
 }
 
-/** Distinct subcellular location names from SUBCELLULAR LOCATION comment payloads. */
-export function subcellularLocations(p: Protein): string[] {
-  const out: string[] = [];
+function subcellularLocationEntries(p: Protein): unknown[] {
+  const entries: unknown[] = [];
   for (const c of commentsByType(p)["SUBCELLULAR LOCATION"] ?? []) {
     const payload = c.payload;
     if (payload && typeof payload === "object") {
       const locs = (payload as Record<string, unknown>).subcellularLocations;
-      if (Array.isArray(locs)) {
-        for (const entry of locs) {
-          const value = readLocationValue(entry);
-          if (value) out.push(value);
-        }
-      }
+      if (Array.isArray(locs)) entries.push(...locs);
     }
+  }
+  return entries;
+}
+
+/** Distinct subcellular location names from SUBCELLULAR LOCATION comment payloads. */
+export function subcellularLocations(p: Protein): string[] {
+  const out: string[] = [];
+  for (const entry of subcellularLocationEntries(p)) {
+    const value = readLocationField(entry, "value");
+    if (value) out.push(value);
+  }
+  return [...new Set(out)];
+}
+
+/** SwissBioPics-formatted SL ids (no "SL-" prefix or leading zeros) for the diagram. */
+export function subcellularLocationSlIds(p: Protein): string[] {
+  const out: string[] = [];
+  for (const entry of subcellularLocationEntries(p)) {
+    const id = readLocationField(entry, "id");
+    if (id) out.push(id.replace(/^SL-/, "").replace(/^0+/, ""));
   }
   return [...new Set(out)];
 }
