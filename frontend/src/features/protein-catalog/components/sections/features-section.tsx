@@ -1,5 +1,7 @@
 "use client";
 
+import { useState } from "react";
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/card";
 import type { FeatureResponse } from "@/shared/lib/api/model";
 
@@ -15,9 +17,13 @@ function featurePosition(f: FeatureResponse): string {
 }
 
 export function FeaturesSection({ protein }: { protein: Protein }) {
+  const [expanded, setExpanded] = useState(false);
   const byCategory = featuresByCategory(protein);
   const categories = Object.keys(byCategory);
   if (categories.length === 0) return null;
+
+  const total = categories.reduce((n, cat) => n + byCategory[cat].length, 0);
+  const anyTruncated = categories.some((cat) => byCategory[cat].length > MAX_ROWS);
 
   return (
     <Card>
@@ -27,7 +33,7 @@ export function FeaturesSection({ protein }: { protein: Protein }) {
       <CardContent className="flex flex-col gap-4">
         {categories.map((cat) => {
           const rows = byCategory[cat];
-          const shown = rows.slice(0, MAX_ROWS);
+          const shown = expanded ? rows : rows.slice(0, MAX_ROWS);
           return (
             <div key={cat} className="flex flex-col gap-1">
               <h3 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
@@ -49,14 +55,18 @@ export function FeaturesSection({ protein }: { protein: Protein }) {
                   ))}
                 </tbody>
               </table>
-              {rows.length > MAX_ROWS && (
-                <p className="text-xs text-muted-foreground italic">
-                  +{rows.length - MAX_ROWS} more {cat.toLowerCase()}
-                </p>
-              )}
             </div>
           );
         })}
+        {anyTruncated && (
+          <button
+            type="button"
+            onClick={() => setExpanded((v) => !v)}
+            className="self-start text-xs text-primary hover:underline"
+          >
+            {expanded ? "Show fewer" : `Show all ${total} features`}
+          </button>
+        )}
       </CardContent>
     </Card>
   );

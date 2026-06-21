@@ -1,5 +1,7 @@
 "use client";
 
+import { useState } from "react";
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/card";
 
 import type { Protein } from "../../types";
@@ -7,9 +9,10 @@ import type { Protein } from "../../types";
 const MAX_SHOWN = 5;
 
 export function CitationsSection({ protein }: { protein: Protein }) {
+  const [expanded, setExpanded] = useState(false);
   const citations = protein.citations ?? [];
   if (citations.length === 0) return null;
-  const shown = citations.slice(0, MAX_SHOWN);
+  const shown = expanded ? citations : citations.slice(0, MAX_SHOWN);
 
   return (
     <Card>
@@ -55,9 +58,13 @@ export function CitationsSection({ protein }: { protein: Protein }) {
           ))}
         </ul>
         {citations.length > MAX_SHOWN && (
-          <p className="mt-2 text-xs text-muted-foreground italic">
-            +{citations.length - MAX_SHOWN} more references
-          </p>
+          <button
+            type="button"
+            onClick={() => setExpanded((v) => !v)}
+            className="mt-2 text-xs text-primary hover:underline"
+          >
+            {expanded ? "Show fewer" : `Show all ${citations.length} references`}
+          </button>
         )}
       </CardContent>
     </Card>

@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
 import type { Protein } from "../../types";
@@ -51,6 +51,19 @@ describe("side sections", () => {
       "href",
       "https://pubmed.ncbi.nlm.nih.gov/12345678/",
     );
+  });
+
+  it("CitationsSection expands to show all references", () => {
+    const many = {
+      citations: Array.from({ length: 7 }, (_, i) => ({
+        title: `Paper ${i}`,
+        pubmed_id: `${1000 + i}`,
+      })),
+    } as unknown as Protein;
+    render(<CitationsSection protein={many} />);
+    expect(screen.queryByText("Paper 6")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /Show all 7 references/i }));
+    expect(screen.getByText("Paper 6")).toBeInTheDocument();
   });
 
   it("IsoformsSection renders isoform accession + name", () => {
