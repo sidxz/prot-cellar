@@ -19,6 +19,9 @@ from protcellar.infrastructure.persistence.sqlalchemy.provenance import Provenan
 
 class GeneModel(Base, EntityModelMixin, WorkspaceIdMixin, VersionMixin, ProvenanceMixin):
     __tablename__ = "genes"
+    __table_args__ = (
+        Index("ix_genes_locus", "organism_id", "genomic_accession", "genomic_start"),
+    )
 
     primary_name: Mapped[str] = mapped_column(String(128), nullable=False, index=True)
     organism_id: Mapped[uuid.UUID] = mapped_column(
@@ -29,6 +32,12 @@ class GeneModel(Base, EntityModelMixin, WorkspaceIdMixin, VersionMixin, Provenan
     ensembl_gene_id: Mapped[str | None] = mapped_column(String(32), nullable=True, index=True)
     hgnc_id: Mapped[str | None] = mapped_column(String(32), nullable=True)
     cross_references: Mapped[list[dict[str, object]] | None] = mapped_column(JSON, nullable=True)
+    genomic_accession: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    genomic_start: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    genomic_end: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    genomic_strand: Mapped[str | None] = mapped_column(String(1), nullable=True)
+    assembly: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    annotations: Mapped[list[dict[str, object]] | None] = mapped_column(JSON, nullable=True)
 
 
 class ProteinModel(Base, EntityModelMixin, WorkspaceIdMixin, VersionMixin, ProvenanceMixin):
