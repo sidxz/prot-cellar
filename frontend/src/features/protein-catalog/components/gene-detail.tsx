@@ -10,6 +10,8 @@ import Link from "next/link";
 import { useGene } from "../hooks/use-genes";
 import { useProteins } from "../hooks/use-proteins";
 import { toProtein } from "../types";
+import { AXIS_TITLES, AxisAnnotationsSection } from "./sections/axis-annotations-section";
+import { GenomicContextSection } from "./sections/genomic-context-section";
 
 // ---------------------------------------------------------------------------
 // Sub-components
@@ -251,7 +253,13 @@ export function GeneDetailPage({ geneId }: GeneDetailPageProps) {
       {/* ── Metadata card ── */}
       <GeneMetadataCard gene={data} />
 
-      {/* ── Linked proteins ── */}
+      {/* ── Genomic context (location + neighborhood map) ── */}
+      <GenomicContextSection gene={data} />
+
+      {/* ── Vulnerability (essentiality) — other axes wire in when data lands ── */}
+      <AxisAnnotationsSection gene={data} axis="vulnerability" title={AXIS_TITLES.vulnerability} />
+
+      {/* ── Linked proteins (the "Encodes" bridge) ── */}
       <LinkedProteinsSection geneId={data.id} />
 
       {/* ── Cross-references ── */}
