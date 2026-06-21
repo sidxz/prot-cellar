@@ -121,6 +121,30 @@ class SQLAlchemyGeneRepository(SQLAlchemyRepository[Gene, GeneModel], GeneReposi
         model = (await self._session.execute(stmt)).scalar_one_or_none()
         return self._to_domain_tracked(model) if model else None
 
+    async def list_by_organism(self, organism_id: uuid.UUID, *, batch: int = 1000) -> list[Gene]:
+        """Load every gene for an organism, paged by keyset (``id``) in ``batch``-sized chunks.
+
+        Used to build the locus→gene match index for enrichment; the keyset walk
+        keeps memory bounded per query while still returning the full set.
+        """
+        genes: list[Gene] = []
+        cursor: uuid.UUID | None = None
+        while True:
+            stmt = select(GeneModel).where(GeneModel.organism_id == organism_id)
+            if cursor is not None:
+                stmt = stmt.where(GeneModel.id > cursor)
+            stmt = stmt.order_by(GeneModel.id).limit(batch)
+            page = [
+                self._to_domain_tracked(m) for m in (await self._session.execute(stmt)).scalars()
+            ]
+            if not page:
+                break
+            genes.extend(page)
+            if len(page) < batch:
+                break
+            cursor = page[-1].id
+        return genes
+
     async def find_genomic_neighbors(
         self,
         *,

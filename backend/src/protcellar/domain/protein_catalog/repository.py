@@ -36,6 +36,10 @@ class GeneRepository(Protocol):
         self, source: str, source_record_id: str
     ) -> Gene | None: ...
 
+    async def list_by_organism(
+        self, organism_id: uuid.UUID, *, batch: int = 1000
+    ) -> list[Gene]: ...
+
     async def find_genomic_neighbors(
         self,
         *,
