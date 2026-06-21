@@ -106,6 +106,45 @@ const DB_CATEGORY: Record<string, Category> = {
   GENETREE: "Phylogenomics",
 };
 
+// External-resource URL templates (keyed uppercase), used when the backend didn't
+// supply a url. Only databases with a verified or standard pattern are included;
+// others render as plain text rather than risk a broken link.
+const DB_URL: Record<string, (a: string) => string> = {
+  PDB: (a) => `https://www.rcsb.org/structure/${a}`,
+  PDBSUM: (a) => `https://www.ebi.ac.uk/pdbsum/${a.toLowerCase()}`,
+  ALPHAFOLDDB: (a) => `https://alphafold.ebi.ac.uk/entry/${a}`,
+  EMDB: (a) => `https://www.ebi.ac.uk/emdb/${a}`,
+  SMR: (a) => `https://swissmodel.expasy.org/repository/uniprot/${a}`,
+  EMBL: (a) => `https://www.ebi.ac.uk/ena/browser/view/${a}`,
+  REFSEQ: (a) => `https://www.ncbi.nlm.nih.gov/protein/${a}`,
+  CCDS: (a) => `https://www.ncbi.nlm.nih.gov/CCDS/CcdsBrowse.cgi?REQUEST=CCDS&DATA=${a}`,
+  ENSEMBLBACTERIA: (a) => `https://bacteria.ensembl.org/id/${a}`,
+  ENSEMBL: (a) => `https://www.ensembl.org/id/${a}`,
+  GENEID: (a) => `https://www.ncbi.nlm.nih.gov/gene/${a}`,
+  KEGG: (a) => `https://www.kegg.jp/entry/${a}`,
+  INTERPRO: (a) => `https://www.ebi.ac.uk/interpro/entry/InterPro/${a}/`,
+  PFAM: (a) => `https://www.ebi.ac.uk/interpro/entry/pfam/${a}/`,
+  PANTHER: (a) => `https://www.pantherdb.org/panther/family.do?clsAccession=${a}`,
+  GENE3D: (a) => `https://www.cathdb.info/version/latest/superfamily/${a.replace(/^G3DSA:/, "")}`,
+  PROSITE: (a) => `https://prosite.expasy.org/${a}`,
+  HAMAP: (a) => `https://hamap.expasy.org/signature/${a}`,
+  CDD: (a) => `https://www.ncbi.nlm.nih.gov/Structure/cdd/cddsrv.cgi?uid=${a}`,
+  GO: (a) => `https://www.ebi.ac.uk/QuickGO/term/${a}`,
+  REACTOME: (a) => `https://reactome.org/content/detail/${a}`,
+  BIOCYC: (a) => `https://biocyc.org/getid?id=${a}`,
+  STRING: (a) => `https://string-db.org/network/${a}`,
+  INTACT: (a) => `https://www.ebi.ac.uk/intact/search?query=${a}`,
+  PAXDB: (a) => `https://pax-db.org/search?q=${a}`,
+  PRIDE: (a) => `https://www.ebi.ac.uk/pride/archive/projects/${a}`,
+  ORTHODB: (a) => `https://www.orthodb.org/?query=${a}`,
+};
+
+function resolveXrefUrl(xref: Xref): string | undefined {
+  if (xref.url) return xref.url;
+  const builder = DB_URL[xref.database.toUpperCase()];
+  return builder ? builder(xref.accession) : undefined;
+}
+
 interface CategoryGroup {
   category: Category;
   Icon: LucideIcon;
@@ -139,12 +178,13 @@ function categorize(xrefs: Xref[]): CategoryGroup[] {
 }
 
 function XrefChip({ xref }: { xref: Xref }) {
+  const href = resolveXrefUrl(xref);
   const base =
     "inline-flex items-center rounded-md border px-1.5 py-0.5 font-mono text-[11px] transition-colors";
-  if (xref.url) {
+  if (href) {
     return (
       <a
-        href={xref.url}
+        href={href}
         target="_blank"
         rel="noopener noreferrer"
         className={cn(
