@@ -14,7 +14,7 @@ from protcellar.application.protein_catalog.bulk_upsert_proteins import (
 )
 from protcellar.application.protein_catalog.create_protein import CreateProteinCommand
 from protcellar.application.protein_catalog.get_protein import GetProteinQuery
-from protcellar.application.protein_catalog.list_proteins import ListProteinsQuery
+from protcellar.application.protein_catalog.list_proteins import ListProteinsQuery, ProteinListItem
 from protcellar.application.protein_catalog.resolve_protein_id import ResolveProteinIdQuery
 from protcellar.application.protein_catalog.update_protein import UpdateProteinCommand
 from protcellar.application.shared.sentinel import UNSET
@@ -160,6 +160,75 @@ class GeneSummaryResponse(BaseModel):
     @classmethod
     def from_domain(cls, g: Gene) -> GeneSummaryResponse:
         return cls(id=g.id, primary_name=g.primary_name, synonyms=list(g.synonyms))
+
+
+class ProteinStructureSummary(BaseModel):
+    """3D-structure availability, distilled for at-a-glance druggability triage."""
+
+    pdb_count: int
+    has_alphafold: bool
+
+
+class ProteinChemSummary(BaseModel):
+    """Presence of chemical matter (known ligands / bioactivity) for a protein."""
+
+    has_chembl: bool
+    has_drugbank: bool
+
+
+class ProteinListItemResponse(BaseModel):
+    """Decision-oriented projection of a protein for the catalog list (target triage).
+
+    Deliberately slimmer than :class:`ProteinResponse`: it carries only what the list
+    table needs plus derived structure / chemical-matter flags, so a page of rows stays
+    light instead of shipping every feature, comment and citation per row.
+    """
+
+    id: uuid.UUID
+    primary_accession: str
+    uniprot_url: str | None = None
+    entry_name: str | None = None
+    is_reviewed: bool
+    recommended_name: str | None = None
+    short_names: list[str] = []
+    ec_numbers: list[str] = []
+    gene: GeneSummaryResponse | None = None
+    organism_id: uuid.UUID
+    seq_length: int
+    seq_mass: int | None = None
+    protein_existence: ProteinExistence | None = None
+    structure: ProteinStructureSummary
+    chem: ProteinChemSummary
+
+    @classmethod
+    def from_list_item(cls, item: ProteinListItem) -> ProteinListItemResponse:
+        p = item.protein
+        registry = IdentifierRegistry.default()
+        dbs = [x.database for x in p.cross_references]
+        names = p.protein_names
+        return cls(
+            id=p.id,
+            primary_accession=p.primary_accession,
+            uniprot_url=registry.resolve_url("uniprot", p.primary_accession),
+            entry_name=p.entry_name,
+            is_reviewed=p.is_reviewed,
+            recommended_name=names.recommended,
+            short_names=list(names.short_names),
+            ec_numbers=list(names.ec_numbers),
+            gene=GeneSummaryResponse.from_domain(item.gene) if item.gene is not None else None,
+            organism_id=p.organism_id,
+            seq_length=p.seq_length,
+            seq_mass=p.seq_mass,
+            protein_existence=p.protein_existence,
+            structure=ProteinStructureSummary(
+                pdb_count=sum(1 for d in dbs if d == "PDB"),
+                has_alphafold="AlphaFoldDB" in dbs,
+            ),
+            chem=ProteinChemSummary(
+                has_chembl="ChEMBL" in dbs,
+                has_drugbank="DrugBank" in dbs,
+            ),
+        )
 
 
 class ProteinResponse(BaseModel):
@@ -416,7 +485,7 @@ async def resolve_protein(
     return ProteinResponse.from_domain(protein)
 
 
-@router.get("", response_model=PaginatedResponse[ProteinResponse])
+@router.get("", response_model=PaginatedResponse[ProteinListItemResponse])
 async def list_proteins(
     auth: AuthDep,
     use_case: ListProteinsDep,
@@ -427,12 +496,14 @@ async def list_proteins(
     max_length: int | None = None,
     xref_db: str | None = None,
     has_structure: bool | None = None,
+    is_enzyme: bool | None = None,
     go_term: str | None = None,
     descendants: bool = False,
     keyword: str | None = None,
+    q: str | None = None,
     cursor: str | None = None,
     limit: int | None = None,
-) -> PaginatedResponse[ProteinResponse]:
+) -> PaginatedResponse[ProteinListItemResponse]:
     query = ListProteinsQuery(
         cursor_id=parse_cursor(cursor),
         limit=clamp_limit(limit),
@@ -443,14 +514,17 @@ async def list_proteins(
         max_length=max_length,
         xref_db=xref_db,
         has_structure=has_structure,
+        is_enzyme=is_enzyme,
         go_term=go_term,
         descendants=descendants,
         keyword=keyword,
+        search=q.strip() if q and q.strip() else None,
     )
     page = result_to_response(await use_case(query, auth=auth))
     return PaginatedResponse(
-        items=[ProteinResponse.from_domain(item.protein, gene=item.gene) for item in page.items],
+        items=[ProteinListItemResponse.from_list_item(item) for item in page.items],
         next_cursor=page.next_cursor,
+        total_count=page.total_count,
     )
 
 

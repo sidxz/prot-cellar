@@ -45,6 +45,8 @@ class ListProteinsQuery(Query):
     go_term: str | None = None
     descendants: bool = False
     keyword: str | None = None
+    search: str | None = None
+    is_enzyme: bool | None = None
 
 
 class ListProteins:
@@ -87,12 +89,28 @@ class ListProteins:
                 has_structure=input.has_structure,
                 go_terms=go_terms,
                 keyword=input.keyword,
+                search=input.search,
+                is_enzyme=input.is_enzyme,
             )
 
             next_cursor: str | None = None
             if effective_limit is not None and len(proteins) > effective_limit:
                 proteins = proteins[:effective_limit]
                 next_cursor = str(proteins[-1].id)
+
+            total_count = await self._repo.count_all(
+                organism_id=input.organism_id,
+                gene_id=input.gene_id,
+                is_reviewed=input.is_reviewed,
+                min_length=input.min_length,
+                max_length=input.max_length,
+                xref_db=input.xref_db,
+                has_structure=input.has_structure,
+                go_terms=go_terms,
+                keyword=input.keyword,
+                search=input.search,
+                is_enzyme=input.is_enzyme,
+            )
 
             gene_ids = {p.gene_id for p in proteins if p.gene_id is not None}
             genes_by_id = {g.id: g for g in await self._gene_repo.find_by_ids(list(gene_ids))}
@@ -104,4 +122,6 @@ class ListProteins:
                 for p in proteins
             ]
 
-            return Success(PageResult(items=items, next_cursor=next_cursor))
+            return Success(
+                PageResult(items=items, next_cursor=next_cursor, total_count=total_count)
+            )

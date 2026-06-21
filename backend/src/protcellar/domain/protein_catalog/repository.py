@@ -80,6 +80,24 @@ class ProteinRepository(Protocol):
         has_structure: bool | None = None,
         go_terms: list[str] | None = None,
         keyword: str | None = None,
+        search: str | None = None,
+        is_enzyme: bool | None = None,
     ) -> list[Protein]: ...
+
+    async def count_all(
+        self,
+        *,
+        organism_id: uuid.UUID | None = None,
+        gene_id: uuid.UUID | None = None,
+        is_reviewed: bool | None = None,
+        min_length: int | None = None,
+        max_length: int | None = None,
+        xref_db: str | None = None,
+        has_structure: bool | None = None,
+        go_terms: list[str] | None = None,
+        keyword: str | None = None,
+        search: str | None = None,
+        is_enzyme: bool | None = None,
+    ) -> int: ...
 
     async def save(self, aggregate: Protein) -> None: ...

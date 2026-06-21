@@ -3,8 +3,9 @@
 from __future__ import annotations
 
 import uuid
+from typing import Any
 
-from sqlalchemy import exists, select
+from sqlalchemy import Select, exists, func, or_, select
 
 from protcellar.domain.protein_catalog.enums import ProteinExistence
 from protcellar.domain.protein_catalog.protein import Protein
@@ -20,6 +21,7 @@ from protcellar.domain.protein_catalog.value_objects import (
 from protcellar.domain.shared.cross_reference import CrossReference
 from protcellar.infrastructure.persistence.sqlalchemy.base_repository import SQLAlchemyRepository
 from protcellar.infrastructure.persistence.sqlalchemy.protein_catalog.models import (
+    GeneModel,
     ProteinCitationModel,
     ProteinCommentModel,
     ProteinCrossReferenceModel,
@@ -317,22 +319,27 @@ class SQLAlchemyProteinRepository(SQLAlchemyRepository[Protein, ProteinModel], P
         model = (await self._session.execute(stmt)).scalar_one_or_none()
         return self._to_domain_tracked(model) if model else None
 
-    async def find_all(
+    def _apply_filters(
         self,
+        stmt: Select[Any],
         *,
-        cursor_id: uuid.UUID | None = None,
-        limit: int | None = None,
-        organism_id: uuid.UUID | None = None,
-        gene_id: uuid.UUID | None = None,
-        is_reviewed: bool | None = None,
-        min_length: int | None = None,
-        max_length: int | None = None,
-        xref_db: str | None = None,
-        has_structure: bool | None = None,
-        go_terms: list[str] | None = None,
-        keyword: str | None = None,
-    ) -> list[Protein]:
-        stmt = select(ProteinModel).order_by(ProteinModel.id)
+        organism_id: uuid.UUID | None,
+        gene_id: uuid.UUID | None,
+        is_reviewed: bool | None,
+        min_length: int | None,
+        max_length: int | None,
+        xref_db: str | None,
+        has_structure: bool | None,
+        go_terms: list[str] | None,
+        keyword: str | None,
+        search: str | None,
+        is_enzyme: bool | None,
+    ) -> Select[Any]:
+        """Apply the shared catalog filters (no ordering / pagination) to ``stmt``.
+
+        Used by both ``find_all`` (page of rows) and ``count_all`` (matching total)
+        so the two can never drift apart.
+        """
         if organism_id is not None:
             stmt = stmt.where(ProteinModel.organism_id == organism_id)
         if gene_id is not None:
@@ -372,8 +379,99 @@ class SQLAlchemyProteinRepository(SQLAlchemyRepository[Protein, ProteinModel], P
                     ProteinKeywordModel.kw_id == keyword,
                 )
             )
+        if search:
+            like = f"%{search}%"
+            # protein_names is a generic JSON column (no JSONB ``.astext``); the portable
+            # ``->>`` operator extracts the value at a key as text.
+            recommended = ProteinModel.protein_names.op("->>")("recommended")
+            stmt = stmt.where(
+                or_(
+                    ProteinModel.primary_accession.ilike(like),
+                    ProteinModel.entry_name.ilike(like),
+                    recommended.ilike(like),
+                    exists().where(
+                        GeneModel.id == ProteinModel.gene_id,
+                        or_(
+                            GeneModel.primary_name.ilike(like),
+                            func.array_to_string(GeneModel.synonyms, " ").ilike(like),
+                        ),
+                    ),
+                )
+            )
+        if is_enzyme is not None:
+            # protein_names.ec_numbers is always serialized as a JSON array ("[]" when
+            # empty); compare its text form so missing/empty both read as "not an enzyme".
+            ec_text = ProteinModel.protein_names.op("->>")("ec_numbers")
+            if is_enzyme:
+                stmt = stmt.where(ec_text.isnot(None), ec_text != "[]")
+            else:
+                stmt = stmt.where(or_(ec_text.is_(None), ec_text == "[]"))
+        return stmt
+
+    async def find_all(
+        self,
+        *,
+        cursor_id: uuid.UUID | None = None,
+        limit: int | None = None,
+        organism_id: uuid.UUID | None = None,
+        gene_id: uuid.UUID | None = None,
+        is_reviewed: bool | None = None,
+        min_length: int | None = None,
+        max_length: int | None = None,
+        xref_db: str | None = None,
+        has_structure: bool | None = None,
+        go_terms: list[str] | None = None,
+        keyword: str | None = None,
+        search: str | None = None,
+        is_enzyme: bool | None = None,
+    ) -> list[Protein]:
+        stmt = self._apply_filters(
+            select(ProteinModel),
+            organism_id=organism_id,
+            gene_id=gene_id,
+            is_reviewed=is_reviewed,
+            min_length=min_length,
+            max_length=max_length,
+            xref_db=xref_db,
+            has_structure=has_structure,
+            go_terms=go_terms,
+            keyword=keyword,
+            search=search,
+            is_enzyme=is_enzyme,
+        ).order_by(ProteinModel.id)
         if cursor_id is not None:
             stmt = stmt.where(ProteinModel.id > cursor_id)
         if limit is not None:
             stmt = stmt.limit(limit)
         return [self._to_domain_tracked(m) for m in (await self._session.execute(stmt)).scalars()]
+
+    async def count_all(
+        self,
+        *,
+        organism_id: uuid.UUID | None = None,
+        gene_id: uuid.UUID | None = None,
+        is_reviewed: bool | None = None,
+        min_length: int | None = None,
+        max_length: int | None = None,
+        xref_db: str | None = None,
+        has_structure: bool | None = None,
+        go_terms: list[str] | None = None,
+        keyword: str | None = None,
+        search: str | None = None,
+        is_enzyme: bool | None = None,
+    ) -> int:
+        stmt = self._apply_filters(
+            select(func.count()).select_from(ProteinModel),
+            organism_id=organism_id,
+            gene_id=gene_id,
+            is_reviewed=is_reviewed,
+            min_length=min_length,
+            max_length=max_length,
+            xref_db=xref_db,
+            has_structure=has_structure,
+            go_terms=go_terms,
+            keyword=keyword,
+            search=search,
+            is_enzyme=is_enzyme,
+        )
+        return int((await self._session.execute(stmt)).scalar_one())

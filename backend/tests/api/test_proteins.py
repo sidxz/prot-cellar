@@ -136,7 +136,7 @@ async def test_create_get_fasta_and_resolve_protein(client: AsyncClient) -> None
 
 
 @pytest.mark.asyncio
-async def test_list_embeds_gene_summary_and_short_name(client: AsyncClient) -> None:
+async def test_list_item_projects_gene_names_structure_and_chem(client: AsyncClient) -> None:
     org = await _organism(client, 99960, "Geneus listus")
 
     gene = await client.post(
@@ -157,17 +157,86 @@ async def test_list_embeds_gene_summary_and_short_name(client: AsyncClient) -> N
             "protein_names": {
                 "recommended": "Transcription termination factor Rho",
                 "short_names": ["Rho"],
+                "ec_numbers": ["3.6.4.-"],
             },
+            "cross_references": [
+                {"database": "PDB", "accession": "1A62"},
+                {"database": "PDB", "accession": "1A63"},
+                {"database": "AlphaFoldDB", "accession": "P0DZ01"},
+                {"database": "ChEMBL", "accession": "CHEMBL1234"},
+            ],
         },
     )
     assert created.status_code == 201
 
     listed = await client.get("/api/v1/proteins", params={"organism_id": org, "limit": 50})
     assert listed.status_code == 200
-    item = next(p for p in listed.json()["items"] if p["primary_accession"] == "P0DZ01")
+    body = listed.json()
+    item = next(p for p in body["items"] if p["primary_accession"] == "P0DZ01")
+    # flattened identity / gene summary
     assert item["gene"]["primary_name"] == "rho"
     assert item["gene"]["synonyms"] == ["nusG", "Rv1297"]
-    assert item["protein_names"]["short_names"] == ["Rho"]
+    assert item["recommended_name"] == "Transcription termination factor Rho"
+    assert item["short_names"] == ["Rho"]
+    assert item["ec_numbers"] == ["3.6.4.-"]
+    # derived decision flags
+    assert item["structure"] == {"pdb_count": 2, "has_alphafold": True}
+    assert item["chem"] == {"has_chembl": True, "has_drugbank": False}
+    # essentiality / human-ortholog facts live on the gene, not the protein list item
+    assert "essential" not in item
+    assert "has_human_homolog" not in item
+    # total count is reported for the filtered set
+    assert body["total_count"] >= 1
+
+
+@pytest.mark.asyncio
+async def test_list_search_and_enzyme_filters(client: AsyncClient) -> None:
+    org = await _organism(client, 99962, "Searchus testus")
+
+    gene = await client.post(
+        "/api/v1/genes",
+        json={"primary_name": "katG", "organism_id": org, "synonyms": ["Rv1908c"]},
+    )
+    gene_id = gene.json()["id"]
+    await client.post(
+        "/api/v1/proteins",
+        json={
+            "primary_accession": "P0DZ10",
+            "organism_id": org,
+            "sequence": "MKTAYIAKQR",
+            "is_reviewed": True,
+            "gene_id": gene_id,
+            "protein_names": {
+                "recommended": "Catalase-peroxidase",
+                "ec_numbers": ["1.11.1.21"],
+            },
+        },
+    )
+    # a non-enzyme with no gene
+    await client.post(
+        "/api/v1/proteins",
+        json={
+            "primary_accession": "P0DZ11",
+            "organism_id": org,
+            "sequence": "MKTAYIAKQR",
+            "is_reviewed": True,
+            "protein_names": {"recommended": "Uncharacterized protein"},
+        },
+    )
+
+    async def accs(params: dict) -> set[str]:
+        resp = await client.get("/api/v1/proteins", params={"organism_id": org, **params})
+        return {p["primary_accession"] for p in resp.json()["items"]}
+
+    # search by gene synonym (Rv locus), gene name, and protein name
+    assert await accs({"q": "Rv1908c"}) == {"P0DZ10"}
+    assert await accs({"q": "katg"}) == {"P0DZ10"}  # case-insensitive
+    assert await accs({"q": "uncharacterized"}) == {"P0DZ11"}
+    assert await accs({"q": "zzznomatch"}) == set()
+
+    # enzyme filter keyed on presence of EC numbers
+    assert await accs({"is_enzyme": "true"}) == {"P0DZ10"}
+    assert await accs({"is_enzyme": "false"}) == {"P0DZ11"}
 
 
 @pytest.mark.asyncio
