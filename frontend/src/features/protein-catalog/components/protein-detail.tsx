@@ -1,5 +1,6 @@
 "use client";
 
+import { GeneRef } from "@/shared/components/common/gene-ref";
 import { OrganismRef } from "@/shared/components/common/organism-ref";
 import { SequenceViewer } from "@/shared/components/sequence/sequence-viewer";
 import { Badge } from "@/shared/components/ui/badge";
@@ -124,12 +125,7 @@ function MetadataCard({ protein }: MetadataCardProps) {
           {/* Gene */}
           {protein.gene_id && (
             <MetadataRow label="Gene">
-              <Link
-                href={`/genes/${protein.gene_id}`}
-                className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-0.5 text-xs font-mono text-primary hover:bg-accent hover:text-accent-foreground transition-colors"
-              >
-                {protein.gene_id}
-              </Link>
+              <GeneRef id={protein.gene_id} className="text-sm" />
             </MetadataRow>
           )}
 

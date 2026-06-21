@@ -19,6 +19,7 @@ export function useProteins(filters: ProteinListFilters = {}, cursor?: string) {
     min_length: filters.minLength ?? undefined,
     max_length: filters.maxLength ?? undefined,
     organism_id: filters.organismId ?? undefined,
+    gene_id: filters.geneId ?? undefined,
     cursor: cursor ?? undefined,
   });
 }

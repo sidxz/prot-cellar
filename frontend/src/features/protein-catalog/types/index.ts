@@ -36,6 +36,7 @@ export interface ProteinListFilters {
   minLength?: number;
   maxLength?: number;
   organismId?: string;
+  geneId?: string;
 }
 
 /** Filter parameters for listing genes. */

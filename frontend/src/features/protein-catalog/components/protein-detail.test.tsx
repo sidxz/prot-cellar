@@ -9,6 +9,15 @@ vi.mock("@/shared/lib/api/organisms/organisms", () => ({
   }),
 }));
 
+// GeneRef resolves a gene id to its human-readable name via this hook.
+vi.mock("@/shared/lib/api/genes/genes", () => ({
+  useGetGeneApiV1GenesGeneIdGet: () => ({
+    data: { id: "g1", primary_name: "rpoB" },
+    isLoading: false,
+    isError: false,
+  }),
+}));
+
 // ── Happy-path mock (primary fetch succeeds) ──────────────────────────────
 vi.mock("../hooks/use-proteins", () => ({
   useProtein: vi.fn(() => ({
@@ -63,6 +72,35 @@ describe("ProteinDetailPage", () => {
     render(<ProteinDetailPage accession="P12345" />);
     expect(screen.getByRole("heading", { name: "P12345" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /1AO6/ })).toBeInTheDocument();
+  });
+
+  it("links the gene by its name rather than its raw id", async () => {
+    const { useProtein } = await import("../hooks/use-proteins");
+    (useProtein as ReturnType<typeof vi.fn>).mockReturnValue({
+      data: {
+        id: "1",
+        primary_accession: "P12345",
+        entry_name: "ALBU_HUMAN",
+        is_reviewed: true,
+        seq_length: 7,
+        seq_mass: 800,
+        organism_id: "o1",
+        gene_id: "g1",
+        protein_names: { recommended: "Albumin" },
+        secondary_accessions: [],
+        keywords: [],
+        cross_references: [],
+        version: 1,
+      },
+      isLoading: false,
+      isError: false,
+    });
+
+    render(<ProteinDetailPage accession="P12345" />);
+
+    const geneLink = screen.getByRole("link", { name: /rpoB/ });
+    expect(geneLink).toHaveAttribute("href", "/genes/g1");
+    expect(screen.queryByText("g1")).not.toBeInTheDocument();
   });
 
   it("redirects to the canonical accession when the resolve fallback succeeds", async () => {
