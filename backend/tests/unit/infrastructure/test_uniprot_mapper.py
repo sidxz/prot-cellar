@@ -5,7 +5,11 @@ from __future__ import annotations
 import uuid
 
 from protcellar.domain.protein_catalog.enums import ProteinExistence
-from protcellar.infrastructure.ingestion.uniprot_mapper import map_uniprot_entry
+from protcellar.infrastructure.ingestion.uniprot_mapper import (
+    gene_key_for_entry,
+    map_uniprot_entry,
+    map_uniprot_genes,
+)
 
 _ENTRY: dict = {
     "primaryAccession": "P9WIE5",
@@ -189,3 +193,47 @@ def test_maps_keywords_citations_xrefs() -> None:
     pdb = next(x for x in rec.cross_references if x.database == "PDB")
     assert pdb.accession == "1SJ2"
     assert pdb.properties is not None and pdb.properties.get("Method") == "X-ray"
+
+
+def test_extracts_gene_with_name_and_locus() -> None:
+    org = uuid.uuid4()
+    genes = map_uniprot_genes(
+        _ENTRY, organism_id=org, tax_id=83332, source="uniprot", source_release="2026_02"
+    )
+    assert len(genes) == 1
+    g = genes[0]
+    assert g.primary_name == "katG"
+    assert g.source_record_id == "83332:Rv1908c"  # locus tag is the stable key
+    assert "Rv1908c" in g.synonyms
+    assert g.organism_id == org
+    assert g.source == "uniprot"
+    assert g.source_record_checksum  # non-empty content hash
+
+
+def test_gene_key_for_entry_matches_record() -> None:
+    assert gene_key_for_entry(_ENTRY, tax_id=83332) == "83332:Rv1908c"
+
+
+def test_locus_only_entry_uses_locus_as_primary_name() -> None:
+    entry = {"genes": [{"orderedLocusNames": [{"value": "Rv0001"}]}]}
+    genes = map_uniprot_genes(entry, organism_id=uuid.uuid4(), tax_id=83332)
+    assert genes[0].primary_name == "Rv0001"
+    assert genes[0].source_record_id == "83332:Rv0001"
+    assert genes[0].synonyms == ()
+
+
+def test_entry_without_genes_yields_nothing() -> None:
+    assert (
+        map_uniprot_genes({"primaryAccession": "X"}, organism_id=uuid.uuid4(), tax_id=83332) == []
+    )
+    assert gene_key_for_entry({"primaryAccession": "X"}, tax_id=83332) is None
+
+
+def test_ncbi_gene_id_from_single_geneid_xref() -> None:
+    entry = {
+        "genes": [{"geneName": {"value": "katG"}}],
+        "uniProtKBCrossReferences": [{"database": "GeneID", "id": "888090"}],
+    }
+    g = map_uniprot_genes(entry, organism_id=uuid.uuid4(), tax_id=83332)[0]
+    assert g.ncbi_gene_id == "888090"
+    assert g.source_record_id == "83332:katG"  # no locus tag -> geneName is the key

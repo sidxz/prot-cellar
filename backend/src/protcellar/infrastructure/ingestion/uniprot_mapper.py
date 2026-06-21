@@ -7,9 +7,11 @@ unit-tested against fixture entries without touching the network.
 
 from __future__ import annotations
 
+import hashlib
 import uuid
 from typing import Any
 
+from protcellar.application.protein_catalog.bulk_upsert_genes import GeneImportRecord
 from protcellar.application.protein_catalog.bulk_upsert_proteins import ProteinImportRecord
 from protcellar.domain.protein_catalog.enums import ProteinExistence
 from protcellar.domain.protein_catalog.value_objects import (
@@ -232,3 +234,100 @@ def _cross_references(xrefs: list[dict[str, Any]]) -> tuple[CrossReference, ...]
             )
         )
     return tuple(out)
+
+
+def map_uniprot_genes(
+    entry: dict[str, Any],
+    *,
+    organism_id: uuid.UUID,
+    tax_id: int | str,
+    source: str = "uniprot",
+    source_release: str = "",
+) -> list[GeneImportRecord]:
+    """Extract one GeneImportRecord per usable gene block on a UniProtKB entry."""
+    out: list[GeneImportRecord] = []
+    for gene in entry.get("genes") or []:
+        primary = _gene_primary_name(gene)
+        basis = _gene_key_basis(gene)
+        if primary is None or basis is None:
+            continue
+        ncbi = _ncbi_gene_id(entry)
+        synonyms = _gene_synonyms(gene, primary)
+        out.append(
+            GeneImportRecord(
+                primary_name=primary,
+                organism_id=organism_id,
+                source=source,
+                source_release=source_release,
+                source_record_id=f"{tax_id}:{basis}",
+                source_record_checksum=_gene_checksum(primary, synonyms, ncbi),
+                synonyms=synonyms,
+                ncbi_gene_id=ncbi,
+            )
+        )
+    return out
+
+
+def gene_key_for_entry(entry: dict[str, Any], *, tax_id: int | str) -> str | None:
+    """source_record_id of the entry's primary (first) gene — used to link the protein."""
+    genes = entry.get("genes") or []
+    if not genes:
+        return None
+    basis = _gene_key_basis(genes[0])
+    return f"{tax_id}:{basis}" if basis else None
+
+
+def _gene_primary_name(gene: dict[str, Any]) -> str | None:
+    """Human-friendly name: geneName, else first ordered-locus name, else first ORF name."""
+    name: str | None = (gene.get("geneName") or {}).get("value")
+    if name:
+        return name
+    for key in ("orderedLocusNames", "orfNames"):
+        vals = _values(gene.get(key))
+        if vals:
+            return vals[0]
+    return None
+
+
+def _gene_key_basis(gene: dict[str, Any]) -> str | None:
+    """Stable identity: prefer the immutable ordered-locus name (locus tag)."""
+    oln = _values(gene.get("orderedLocusNames"))
+    if oln:
+        return oln[0]
+    name: str | None = (gene.get("geneName") or {}).get("value")
+    if name:
+        return name
+    orf = _values(gene.get("orfNames"))
+    return orf[0] if orf else None
+
+
+def _gene_synonyms(gene: dict[str, Any], primary_name: str) -> tuple[str, ...]:
+    pool: list[str] = []
+    name = (gene.get("geneName") or {}).get("value")
+    if name:
+        pool.append(name)
+    pool.extend(_values(gene.get("synonyms")))
+    pool.extend(_values(gene.get("orderedLocusNames")))
+    pool.extend(_values(gene.get("orfNames")))
+    seen: set[str] = set()
+    result: list[str] = []
+    for n in pool:
+        if n and n != primary_name and n not in seen:
+            seen.add(n)
+            result.append(n)
+    return tuple(result)
+
+
+def _ncbi_gene_id(entry: dict[str, Any]) -> str | None:
+    """The NCBI GeneID xref id, but only when exactly one is present (avoid mis-attribution)."""
+    ids = [
+        x.get("id")
+        for x in entry.get("uniProtKBCrossReferences") or []
+        if x.get("database") == "GeneID" and x.get("id")
+    ]
+    return ids[0] if len(ids) == 1 else None
+
+
+def _gene_checksum(primary_name: str, synonyms: tuple[str, ...], ncbi_gene_id: str | None) -> str:
+    basis = "|".join([primary_name, ",".join(sorted(synonyms)), ncbi_gene_id or ""])
+    return hashlib.sha1(basis.encode("utf-8")).hexdigest()[:16]
