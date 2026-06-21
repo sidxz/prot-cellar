@@ -121,6 +121,41 @@ class SQLAlchemyGeneRepository(SQLAlchemyRepository[Gene, GeneModel], GeneReposi
         model = (await self._session.execute(stmt)).scalar_one_or_none()
         return self._to_domain_tracked(model) if model else None
 
+    async def find_genomic_neighbors(
+        self,
+        *,
+        organism_id: uuid.UUID,
+        genomic_accession: str,
+        center_start: int,
+        window: int,
+    ) -> list[Gene]:
+        """Return genes flanking ``center_start`` on the same replicon.
+
+        Two bounded queries (``window`` upstream, ``window`` downstream incl.
+        the center gene) are merged and re-sorted, so the whole replicon never
+        has to be loaded. Result is ascending by ``genomic_start``.
+        """
+        base = (GeneModel.organism_id == organism_id) & (
+            GeneModel.genomic_accession == genomic_accession
+        )
+        upstream = (
+            select(GeneModel)
+            .where(base, GeneModel.genomic_start < center_start)
+            .order_by(GeneModel.genomic_start.desc())
+            .limit(window)
+        )
+        downstream = (
+            select(GeneModel)
+            .where(base, GeneModel.genomic_start >= center_start)
+            .order_by(GeneModel.genomic_start.asc())
+            .limit(window + 1)  # +1 includes the center gene itself
+        )
+        rows = list((await self._session.execute(upstream)).scalars()) + list(
+            (await self._session.execute(downstream)).scalars()
+        )
+        rows.sort(key=lambda m: m.genomic_start if m.genomic_start is not None else 0)
+        return [self._to_domain_tracked(m) for m in rows]
+
     async def find_all(
         self,
         *,
