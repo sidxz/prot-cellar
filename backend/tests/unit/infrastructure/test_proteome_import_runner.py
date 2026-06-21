@@ -17,8 +17,12 @@ from typing import Any
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
+from protcellar.application.protein_catalog.bulk_upsert_genes import BulkUpsertGenes
 from protcellar.application.protein_catalog.bulk_upsert_proteins import BulkUpsertProteins
 from protcellar.infrastructure.ingestion.import_runner import ProteomeImportRunner
+from protcellar.infrastructure.persistence.sqlalchemy.protein_catalog.gene_repository import (
+    SQLAlchemyGeneRepository,
+)
 from protcellar.infrastructure.persistence.sqlalchemy.protein_catalog.protein_repository import (
     SQLAlchemyProteinRepository,
 )
@@ -93,9 +97,7 @@ class _NoopDispatcher:
 
 
 @pytest.fixture
-async def import_uow(
-    database_url: str, _run_migrations: None
-) -> AsyncIterator[AsyncUnitOfWork]:
+async def import_uow(database_url: str, _run_migrations: None) -> AsyncIterator[AsyncUnitOfWork]:
     engine = create_async_engine(database_url)
     factory = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
     try:
@@ -104,10 +106,21 @@ async def import_uow(
         await engine.dispose()
 
 
-def _runner(uow: AsyncUnitOfWork, meta: dict[str, Any], entries: list[dict[str, Any]]):
+def _runner(
+    uow: AsyncUnitOfWork,
+    meta: dict[str, Any],
+    entries: list[dict[str, Any]],
+    *,
+    with_genes: bool = False,
+):
     protein_repo = SQLAlchemyProteinRepository(uow)
     bulk = BulkUpsertProteins(uow, protein_repo, _NoopDispatcher())  # type: ignore[arg-type]
-    runner = ProteomeImportRunner(uow, _FakeClient(meta, entries), bulk, chunk_size=500)
+    gene_bulk = None
+    if with_genes:
+        gene_bulk = BulkUpsertGenes(uow, SQLAlchemyGeneRepository(uow), _NoopDispatcher())  # type: ignore[arg-type]
+    runner = ProteomeImportRunner(
+        uow, _FakeClient(meta, entries), bulk, gene_bulk=gene_bulk, chunk_size=500
+    )
     return runner, protein_repo
 
 
@@ -189,3 +202,53 @@ async def test_reconcile_prunes_departed_members(import_uow: AsyncUnitOfWork) ->
         proteome = await prepo.find_by_proteome_id("UP000000077")
         assert proteome is not None
         assert len(await prepo.list_protein_ids(proteome.id)) == 2
+
+
+def _gene_entries(acc1: str, acc2: str, tax_id: int) -> list[dict[str, Any]]:
+    gene_block = {"geneName": {"value": "katG"}, "orderedLocusNames": [{"value": "Rv1908c"}]}
+    return [
+        {
+            "primaryAccession": acc1,
+            "uniProtkbId": "G1_TEST",
+            "entryType": "UniProtKB reviewed (Swiss-Prot)",
+            "sequence": {"value": "MKTAYIAKQR"},
+            "organism": {"taxonId": tax_id},
+            "entryAudit": {"entryVersion": 1, "sequenceVersion": 1},
+            "genes": [gene_block],
+        },
+        {
+            "primaryAccession": acc2,
+            "uniProtkbId": "G2_TEST",
+            "entryType": "UniProtKB reviewed (Swiss-Prot)",
+            "sequence": {"value": "MKTAYIAKQS"},
+            "organism": {"taxonId": tax_id},
+            "entryAudit": {"entryVersion": 1, "sequenceVersion": 1},
+            "genes": [gene_block],
+        },
+    ]
+
+
+@pytest.mark.asyncio
+async def test_import_creates_and_links_genes(import_uow: AsyncUnitOfWork) -> None:
+    runner, protein_repo = _runner(
+        import_uow,
+        _meta("UP000000066", 99980),
+        _gene_entries("P0DG01", "P0DG02", 99980),
+        with_genes=True,
+    )
+
+    summary = await runner.run("UP000000066", auth=FakeAuth(role="admin"))
+
+    assert summary.created == 2
+    assert summary.genes_created == 1  # the shared gene is deduped within the chunk
+
+    async with import_uow:
+        grepo = SQLAlchemyGeneRepository(import_uow)
+        gene = await grepo.find_by_source_record_id("uniprot", "99980:Rv1908c")
+        assert gene is not None
+        assert gene.primary_name == "katG"
+
+        p1 = await protein_repo.find_by_accession("P0DG01")
+        p2 = await protein_repo.find_by_accession("P0DG02")
+        assert p1 is not None and p1.gene_id == gene.id
+        assert p2 is not None and p2.gene_id == gene.id

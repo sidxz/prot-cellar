@@ -15,10 +15,15 @@ from __future__ import annotations
 
 import uuid
 from collections.abc import AsyncIterator
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import Any, Protocol
 
 from protcellar.application.auth import AuthContext
+from protcellar.application.protein_catalog.bulk_upsert_genes import (
+    BulkUpsertGenes,
+    BulkUpsertGenesCommand,
+    GeneImportRecord,
+)
 from protcellar.application.protein_catalog.bulk_upsert_proteins import (
     BulkUpsertProteins,
     BulkUpsertProteinsCommand,
@@ -27,7 +32,11 @@ from protcellar.application.protein_catalog.bulk_upsert_proteins import (
 from protcellar.domain.taxonomy.enums import OrganismSource, ProteomeType
 from protcellar.domain.taxonomy.organism import Organism
 from protcellar.domain.taxonomy.proteome import Proteome
-from protcellar.infrastructure.ingestion.uniprot_mapper import map_uniprot_entry
+from protcellar.infrastructure.ingestion.uniprot_mapper import (
+    gene_key_for_entry,
+    map_uniprot_entry,
+    map_uniprot_genes,
+)
 from protcellar.infrastructure.persistence.sqlalchemy.taxonomy.organism_repository import (
     SQLAlchemyOrganismRepository,
 )
@@ -51,6 +60,9 @@ class ImportSummary:
     updated: int = 0
     skipped: int = 0
     failed: int = 0
+    genes_created: int = 0
+    genes_updated: int = 0
+    genes_skipped: int = 0
     members_linked: int = 0
     members_pruned: int = 0
     skipped_unchanged: bool = False
@@ -63,11 +75,13 @@ class ProteomeImportRunner:
         client: ProteomeFetcher,
         bulk_upsert: BulkUpsertProteins,
         *,
+        gene_bulk: BulkUpsertGenes | None = None,
         chunk_size: int = 500,
     ) -> None:
         self._uow = uow
         self._client = client
         self._bulk = bulk_upsert
+        self._gene_bulk = gene_bulk
         self._chunk_size = chunk_size
 
     async def run(
@@ -88,27 +102,40 @@ class ProteomeImportRunner:
             proteome_id, organism_id, meta, dry_run=dry_run
         )
 
+        tax_id = (meta.get("taxonomy") or {}).get("taxonId")
+
         summary = ImportSummary(proteome_id=proteome_id)
         seen: set[str] = set()
-        chunk: list[ProteinImportRecord] = []
+        chunk: list[dict[str, Any]] = []
         async for entry in self._client.iter_entries(proteome_id):
-            chunk.append(
-                map_uniprot_entry(
-                    entry,
-                    organism_id=organism_id,
-                    source="uniprot",
-                    source_release=source_release,
-                )
-            )
+            chunk.append(entry)
             seen.add(entry["primaryAccession"])
             summary.entries += 1
             if len(chunk) >= self._chunk_size:
-                await self._load_chunk(chunk, proteome_db_id, summary, dry_run=dry_run, auth=auth)
+                await self._load_chunk(
+                    chunk,
+                    proteome_db_id,
+                    organism_id,
+                    tax_id,
+                    source_release,
+                    summary,
+                    dry_run=dry_run,
+                    auth=auth,
+                )
                 chunk = []
             if limit is not None and summary.entries >= limit:
                 break
         if chunk:
-            await self._load_chunk(chunk, proteome_db_id, summary, dry_run=dry_run, auth=auth)
+            await self._load_chunk(
+                chunk,
+                proteome_db_id,
+                organism_id,
+                tax_id,
+                source_release,
+                summary,
+                dry_run=dry_run,
+                auth=auth,
+            )
         if not dry_run and limit is None:
             await self._reconcile_membership(proteome_db_id, seen, summary)
         return summary
@@ -179,14 +206,33 @@ class ProteomeImportRunner:
 
     async def _load_chunk(
         self,
-        chunk: list[ProteinImportRecord],
+        entries: list[dict[str, Any]],
         proteome_db_id: uuid.UUID,
+        organism_id: uuid.UUID,
+        tax_id: Any,
+        source_release: str,
         summary: ImportSummary,
         *,
         dry_run: bool,
         auth: AuthContext | None,
     ) -> None:
-        command = BulkUpsertProteinsCommand(records=tuple(chunk), dry_run=dry_run)
+        gene_id_by_key = await self._upsert_genes(
+            entries, organism_id, tax_id, source_release, summary, dry_run=dry_run, auth=auth
+        )
+
+        records: list[ProteinImportRecord] = []
+        for entry in entries:
+            rec = map_uniprot_entry(
+                entry, organism_id=organism_id, source="uniprot", source_release=source_release
+            )
+            if self._gene_bulk is not None:
+                key = gene_key_for_entry(entry, tax_id=tax_id)
+                gid = gene_id_by_key.get(key) if key else None
+                if gid is not None:
+                    rec = replace(rec, gene_id=gid)
+            records.append(rec)
+
+        command = BulkUpsertProteinsCommand(records=tuple(records), dry_run=dry_run)
         items = (await self._bulk(command, auth=auth)).unwrap()
         for item in items:
             if item.status == "created":
@@ -206,3 +252,44 @@ class ProteomeImportRunner:
                     await proteome_repo.add_protein(proteome_db_id, uuid.UUID(item.id))
                     summary.members_linked += 1
             await self._uow.commit()
+
+    async def _upsert_genes(
+        self,
+        entries: list[dict[str, Any]],
+        organism_id: uuid.UUID,
+        tax_id: Any,
+        source_release: str,
+        summary: ImportSummary,
+        *,
+        dry_run: bool,
+        auth: AuthContext | None,
+    ) -> dict[str, uuid.UUID]:
+        """Upsert all genes in the chunk (deduped by key); return {source_record_id: gene_id}."""
+        if self._gene_bulk is None:
+            return {}
+        by_key: dict[str, GeneImportRecord] = {}
+        for entry in entries:
+            for rec in map_uniprot_genes(
+                entry,
+                organism_id=organism_id,
+                tax_id=tax_id,
+                source="uniprot",
+                source_release=source_release,
+            ):
+                by_key.setdefault(rec.source_record_id, rec)
+        if not by_key:
+            return {}
+        gene_records = list(by_key.values())
+        command = BulkUpsertGenesCommand(records=tuple(gene_records), dry_run=dry_run)
+        items = (await self._gene_bulk(command, auth=auth)).unwrap()
+        gene_id_by_key: dict[str, uuid.UUID] = {}
+        for item, rec in zip(items, gene_records, strict=True):
+            if item.id:
+                gene_id_by_key[rec.source_record_id] = uuid.UUID(item.id)
+            if item.status == "created":
+                summary.genes_created += 1
+            elif item.status == "updated":
+                summary.genes_updated += 1
+            elif item.status == "skipped":
+                summary.genes_skipped += 1
+        return gene_id_by_key

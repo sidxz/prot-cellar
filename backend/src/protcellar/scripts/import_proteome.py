@@ -18,11 +18,15 @@ import uuid
 import httpx
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
+from protcellar.application.protein_catalog.bulk_upsert_genes import BulkUpsertGenes
 from protcellar.application.protein_catalog.bulk_upsert_proteins import BulkUpsertProteins
 from protcellar.domain.shared.global_workspace import GLOBAL_WORKSPACE_ID
 from protcellar.infrastructure.ingestion.import_runner import ImportSummary, ProteomeImportRunner
 from protcellar.infrastructure.ingestion.uniprot_client import UniProtClient
 from protcellar.infrastructure.persistence.settings import DatabaseSettings
+from protcellar.infrastructure.persistence.sqlalchemy.protein_catalog.gene_repository import (
+    SQLAlchemyGeneRepository,
+)
 from protcellar.infrastructure.persistence.sqlalchemy.protein_catalog.protein_repository import (
     SQLAlchemyProteinRepository,
 )
@@ -70,8 +74,10 @@ async def import_proteome(
     try:
         async with httpx.AsyncClient(base_url=_UNIPROT_BASE_URL, timeout=120.0) as http:
             protein_repo = SQLAlchemyProteinRepository(uow)
+            gene_repo = SQLAlchemyGeneRepository(uow)
             bulk = BulkUpsertProteins(uow, protein_repo, _NoopDispatcher())
-            runner = ProteomeImportRunner(uow, UniProtClient(http), bulk)
+            gene_bulk = BulkUpsertGenes(uow, gene_repo, _NoopDispatcher())
+            runner = ProteomeImportRunner(uow, UniProtClient(http), bulk, gene_bulk=gene_bulk)
             return await runner.run(
                 proteome_id, dry_run=dry_run, limit=limit, force=force, auth=_ServiceAuth()
             )
@@ -95,13 +101,12 @@ def main() -> None:
     )
     args = parser.parse_args()
     summary = asyncio.run(
-        import_proteome(
-            args.proteome_id, dry_run=args.dry_run, limit=args.limit, force=args.force
-        )
+        import_proteome(args.proteome_id, dry_run=args.dry_run, limit=args.limit, force=args.force)
     )
     print(
         f"[{summary.proteome_id}] entries={summary.entries} created={summary.created} "
         f"updated={summary.updated} skipped={summary.skipped} failed={summary.failed} "
+        f"genes_created={summary.genes_created} genes_updated={summary.genes_updated} "
         f"members_linked={summary.members_linked} dry_run={args.dry_run}"
     )
 
