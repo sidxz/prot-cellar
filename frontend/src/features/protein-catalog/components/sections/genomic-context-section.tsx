@@ -10,23 +10,67 @@ import { useGeneNeighborhood } from "../../hooks/use-genes";
 import type { Gene } from "../../types";
 
 // ---------------------------------------------------------------------------
-// Essentiality shading — strong (essential) / muted (non-essential) / neutral
+// Essentiality shading — kept color-consistent with the vulnerability panel
+// chips (axis-annotations-section.tsx): essential→destructive, growth-defect→
+// warning, growth-advantage→outline/blue-ish, non-essential→muted, unknown→
+// neutral. Tokens (not raw colors) so the track + panel read as one system.
 // ---------------------------------------------------------------------------
 
-/**
- * Map a gene's `essentiality` annotation value to a box style. Essential genes
- * read "hot" (destructive), non-essential genes are muted, and unknown/null
- * fall back to neutral so the track stays legible at a glance.
- */
+type EssentialityBucket =
+  | "essential"
+  | "growth-defect"
+  | "growth-advantage"
+  | "non-essential"
+  | "unknown";
+
+/** Bucket a free-text `essentiality` value (hyphen/underscore tolerant). */
+function essentialityBucket(essentiality: string | null | undefined): EssentialityBucket {
+  const v = (essentiality ?? "").toLowerCase().replace(/_/g, "-");
+  if (v.includes("non-essential") || v.includes("nonessential")) return "non-essential";
+  if (v.includes("growth-defect") || v.includes("growth defect")) return "growth-defect";
+  if (v.includes("growth-advantage") || v.includes("growth advantage")) return "growth-advantage";
+  if (v.includes("essential")) return "essential";
+  return "unknown";
+}
+
+/** Box border/background/text classes per bucket. */
+const BUCKET_BOX_STYLE: Record<EssentialityBucket, string> = {
+  essential: "border-destructive/40 bg-destructive/10 text-destructive",
+  "growth-defect": "border-warning/30 bg-warning/15 text-warning",
+  "growth-advantage": "border-border bg-card text-foreground",
+  "non-essential": "border-border bg-muted text-muted-foreground",
+  unknown: "border-border bg-card text-foreground",
+};
+
+/** Map a gene's `essentiality` value to its box style. */
 function essentialityStyle(essentiality: string | null | undefined): string {
-  const v = (essentiality ?? "").toLowerCase();
-  if (v.includes("non-essential") || v.includes("nonessential")) {
-    return "border-border bg-muted text-muted-foreground";
-  }
-  if (v.includes("essential")) {
-    return "border-destructive/40 bg-destructive/10 text-destructive";
-  }
-  return "border-border bg-card text-foreground";
+  return BUCKET_BOX_STYLE[essentialityBucket(essentiality)];
+}
+
+// Legend entries: small swatch (same token families as the boxes) + label.
+// `growth-advantage` is intentionally omitted from the default legend to keep
+// it compact; it shares the neutral swatch and is rare in current data.
+const LEGEND_ENTRIES: { label: string; swatch: string }[] = [
+  { label: "Essential", swatch: "border-destructive/40 bg-destructive/10" },
+  { label: "Growth-defect", swatch: "border-warning/30 bg-warning/15" },
+  { label: "Non-essential", swatch: "border-border bg-muted" },
+  { label: "Unknown", swatch: "border-border bg-card" },
+];
+
+function EssentialityLegend() {
+  return (
+    <div
+      className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[0.625rem] text-muted-foreground"
+      aria-label="Essentiality legend"
+    >
+      {LEGEND_ENTRIES.map((e) => (
+        <span key={e.label} className="inline-flex items-center gap-1">
+          <span className={cn("h-2.5 w-2.5 shrink-0 rounded-sm border", e.swatch)} aria-hidden />
+          {e.label}
+        </span>
+      ))}
+    </div>
+  );
 }
 
 interface NeighborBox {
@@ -101,6 +145,7 @@ function NeighborhoodTrack({ gene }: { gene: Gene }) {
           <NeighborBox key={n.id} neighbor={n} isCurrent={n.id === gene.id} />
         ))}
       </div>
+      <EssentialityLegend />
     </div>
   );
 }

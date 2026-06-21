@@ -2,7 +2,11 @@ import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
 import type { Gene } from "../../types";
-import { AXIS_TITLES, AxisAnnotationsSection } from "./axis-annotations-section";
+import {
+  AXIS_TITLES,
+  AxisAnnotationsSection,
+  essentialityBadgeVariant,
+} from "./axis-annotations-section";
 
 const gene = {
   annotations: [
@@ -41,6 +45,27 @@ describe("AxisAnnotationsSection", () => {
     const link = screen.getByRole("link", { name: /essential/ });
     expect(link).toHaveAttribute("href", "https://example.org/dejesus");
     expect(link).toHaveAttribute("target", "_blank");
+  });
+
+  it("color-codes an `essential` essentiality value with the destructive variant", () => {
+    render(<AxisAnnotationsSection gene={gene} axis="vulnerability" title="Vulnerability" />);
+    // The chip renders as a Badge that exposes `data-variant`; the test gene has
+    // a source_url so the badge is the anchor's nearest [data-slot="badge"].
+    const link = screen.getByRole("link", { name: /essential/ });
+    const badge = link.closest('[data-slot="badge"]');
+    expect(badge).not.toBeNull();
+    expect(badge).toHaveAttribute("data-variant", "destructive");
+    // The destructive token class is applied (red triage signal).
+    expect(badge?.className).toContain("bg-destructive");
+  });
+
+  it("maps essentiality values to the expected Badge variants", () => {
+    expect(essentialityBadgeVariant("essential")).toBe("destructive");
+    expect(essentialityBadgeVariant("growth-defect")).toBe("warning");
+    expect(essentialityBadgeVariant("non-essential")).toBe("secondary");
+    expect(essentialityBadgeVariant("growth-advantage")).toBe("outline");
+    expect(essentialityBadgeVariant("uncertain")).toBe("ghost");
+    expect(essentialityBadgeVariant(null)).toBe("ghost");
   });
 
   it("filters out annotations on other axes", () => {

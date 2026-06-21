@@ -89,6 +89,26 @@ describe("GenomicContextSection", () => {
     // The current gene is shown but marked current (aria-current), not a link.
     const current = screen.getByText("rpoB");
     expect(current.closest("a")).toBeNull();
+
+    // The essentiality legend renders alongside the track so the shading is
+    // interpretable (color-consistent with the vulnerability panel chips).
+    const legend = screen.getByLabelText("Essentiality legend");
+    expect(legend).toBeInTheDocument();
+    expect(screen.getByText("Essential")).toBeInTheDocument();
+    expect(screen.getByText("Growth-defect")).toBeInTheDocument();
+    expect(screen.getByText("Non-essential")).toBeInTheDocument();
+    expect(screen.getByText("Unknown")).toBeInTheDocument();
+  });
+
+  it("does not render the legend when there is no neighborhood track", () => {
+    mockedNeighborhood.mockReturnValue({
+      data: { center_id: "g1", accession: "NC_000962.3", neighbors: [] },
+      isLoading: false,
+      isError: false,
+    });
+
+    render(<GenomicContextSection gene={gene} />);
+    expect(screen.queryByLabelText("Essentiality legend")).not.toBeInTheDocument();
   });
 
   it("renders only the location row when there are fewer than 2 neighbors", () => {
