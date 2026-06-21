@@ -7,6 +7,12 @@
 import type { CreateGeneBodyNcbiGeneId } from './createGeneBodyNcbiGeneId';
 import type { CreateGeneBodyEnsemblGeneId } from './createGeneBodyEnsemblGeneId';
 import type { CreateGeneBodyHgncId } from './createGeneBodyHgncId';
+import type { CreateGeneBodyGenomicAccession } from './createGeneBodyGenomicAccession';
+import type { CreateGeneBodyGenomicStart } from './createGeneBodyGenomicStart';
+import type { CreateGeneBodyGenomicEnd } from './createGeneBodyGenomicEnd';
+import type { CreateGeneBodyGenomicStrand } from './createGeneBodyGenomicStrand';
+import type { CreateGeneBodyAssembly } from './createGeneBodyAssembly';
+import type { GeneAnnotationBody } from './geneAnnotationBody';
 
 export interface CreateGeneBody {
   primary_name: string;
@@ -15,4 +21,10 @@ export interface CreateGeneBody {
   ncbi_gene_id?: CreateGeneBodyNcbiGeneId;
   ensembl_gene_id?: CreateGeneBodyEnsemblGeneId;
   hgnc_id?: CreateGeneBodyHgncId;
+  genomic_accession?: CreateGeneBodyGenomicAccession;
+  genomic_start?: CreateGeneBodyGenomicStart;
+  genomic_end?: CreateGeneBodyGenomicEnd;
+  genomic_strand?: CreateGeneBodyGenomicStrand;
+  assembly?: CreateGeneBodyAssembly;
+  annotations?: GeneAnnotationBody[];
 }

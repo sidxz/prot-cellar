@@ -1,6 +1,6 @@
 "use client";
 
-import { FlaskConical } from "lucide-react";
+import { ExternalLink, FlaskConical } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 
@@ -115,10 +115,19 @@ export function StrainDetailPage({ strainId }: StrainDetailPageProps) {
               <OrganismRef id={strain.species_organism_id} />
             </MetadataRow>
 
-            {/* Strain organism */}
-            {strain.strain_organism_id && (
-              <MetadataRow label="Strain organism">
-                <OrganismRef id={strain.strain_organism_id} />
+            {/* NCBI taxon */}
+            {strain.ncbi_taxon_id != null && (
+              <MetadataRow label="NCBI taxon">
+                <a
+                  href={`https://www.ncbi.nlm.nih.gov/Taxonomy/Browser/wwwtax.cgi?id=${strain.ncbi_taxon_id}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 font-mono text-xs text-primary hover:underline underline-offset-4"
+                  aria-label={`View NCBI taxon ${strain.ncbi_taxon_id}`}
+                >
+                  <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
+                  {strain.ncbi_taxon_id}
+                </a>
               </MetadataRow>
             )}
 

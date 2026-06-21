@@ -5,7 +5,7 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { UpdateStrainBodyName } from './updateStrainBodyName';
-import type { UpdateStrainBodyStrainOrganismId } from './updateStrainBodyStrainOrganismId';
+import type { UpdateStrainBodyNcbiTaxonId } from './updateStrainBodyNcbiTaxonId';
 import type { UpdateStrainBodyIsolate } from './updateStrainBodyIsolate';
 import type { UpdateStrainBodyBiosampleAcc } from './updateStrainBodyBiosampleAcc';
 import type { UpdateStrainBodyAssemblyAcc } from './updateStrainBodyAssemblyAcc';
@@ -15,7 +15,7 @@ import type { UpdateStrainBodyMetadata } from './updateStrainBodyMetadata';
 
 export interface UpdateStrainBody {
   name?: UpdateStrainBodyName;
-  strain_organism_id?: UpdateStrainBodyStrainOrganismId;
+  ncbi_taxon_id?: UpdateStrainBodyNcbiTaxonId;
   isolate?: UpdateStrainBodyIsolate;
   biosample_acc?: UpdateStrainBodyBiosampleAcc;
   assembly_acc?: UpdateStrainBodyAssemblyAcc;

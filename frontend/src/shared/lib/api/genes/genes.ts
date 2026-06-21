@@ -27,7 +27,9 @@ import type {
   BulkUpsertGenesBody,
   CreateGeneBody,
   GeneBulkUpsertResponse,
+  GeneNeighborhoodResponse,
   GeneResponse,
+  GetGeneNeighborhoodApiV1GenesGeneIdNeighborhoodGetParams,
   HTTPValidationError,
   ListGenesApiV1GenesGetParams,
   PaginatedResponseGeneResponse,
@@ -353,6 +355,106 @@ export const useUpdateGeneApiV1GenesGeneIdPatch = <TError = HTTPValidationError,
       return useMutation(mutationOptions, queryClient);
     }
     /**
+ * @summary Get Gene Neighborhood
+ */
+export const getGeneNeighborhoodApiV1GenesGeneIdNeighborhoodGet = (
+    geneId: string,
+    params?: GetGeneNeighborhoodApiV1GenesGeneIdNeighborhoodGetParams,
+ signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<GeneNeighborhoodResponse>(
+      {url: `/api/v1/genes/${geneId}/neighborhood`, method: 'GET',
+        params, signal
+    },
+      );
+    }
+  
+
+
+
+export const getGetGeneNeighborhoodApiV1GenesGeneIdNeighborhoodGetQueryKey = (geneId?: string,
+    params?: GetGeneNeighborhoodApiV1GenesGeneIdNeighborhoodGetParams,) => {
+    return [
+    `/api/v1/genes/${geneId}/neighborhood`, ...(params ? [params]: [])
+    ] as const;
+    }
+
+    
+export const getGetGeneNeighborhoodApiV1GenesGeneIdNeighborhoodGetQueryOptions = <TData = Awaited<ReturnType<typeof getGeneNeighborhoodApiV1GenesGeneIdNeighborhoodGet>>, TError = HTTPValidationError>(geneId: string,
+    params?: GetGeneNeighborhoodApiV1GenesGeneIdNeighborhoodGetParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getGeneNeighborhoodApiV1GenesGeneIdNeighborhoodGet>>, TError, TData>>, }
+) => {
+
+const {query: queryOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetGeneNeighborhoodApiV1GenesGeneIdNeighborhoodGetQueryKey(geneId,params);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getGeneNeighborhoodApiV1GenesGeneIdNeighborhoodGet>>> = ({ signal }) => getGeneNeighborhoodApiV1GenesGeneIdNeighborhoodGet(geneId,params, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(geneId), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getGeneNeighborhoodApiV1GenesGeneIdNeighborhoodGet>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetGeneNeighborhoodApiV1GenesGeneIdNeighborhoodGetQueryResult = NonNullable<Awaited<ReturnType<typeof getGeneNeighborhoodApiV1GenesGeneIdNeighborhoodGet>>>
+export type GetGeneNeighborhoodApiV1GenesGeneIdNeighborhoodGetQueryError = HTTPValidationError
+
+
+export function useGetGeneNeighborhoodApiV1GenesGeneIdNeighborhoodGet<TData = Awaited<ReturnType<typeof getGeneNeighborhoodApiV1GenesGeneIdNeighborhoodGet>>, TError = HTTPValidationError>(
+ geneId: string,
+    params: undefined |  GetGeneNeighborhoodApiV1GenesGeneIdNeighborhoodGetParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getGeneNeighborhoodApiV1GenesGeneIdNeighborhoodGet>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getGeneNeighborhoodApiV1GenesGeneIdNeighborhoodGet>>,
+          TError,
+          Awaited<ReturnType<typeof getGeneNeighborhoodApiV1GenesGeneIdNeighborhoodGet>>
+        > , 'initialData'
+      >, }
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetGeneNeighborhoodApiV1GenesGeneIdNeighborhoodGet<TData = Awaited<ReturnType<typeof getGeneNeighborhoodApiV1GenesGeneIdNeighborhoodGet>>, TError = HTTPValidationError>(
+ geneId: string,
+    params?: GetGeneNeighborhoodApiV1GenesGeneIdNeighborhoodGetParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getGeneNeighborhoodApiV1GenesGeneIdNeighborhoodGet>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getGeneNeighborhoodApiV1GenesGeneIdNeighborhoodGet>>,
+          TError,
+          Awaited<ReturnType<typeof getGeneNeighborhoodApiV1GenesGeneIdNeighborhoodGet>>
+        > , 'initialData'
+      >, }
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetGeneNeighborhoodApiV1GenesGeneIdNeighborhoodGet<TData = Awaited<ReturnType<typeof getGeneNeighborhoodApiV1GenesGeneIdNeighborhoodGet>>, TError = HTTPValidationError>(
+ geneId: string,
+    params?: GetGeneNeighborhoodApiV1GenesGeneIdNeighborhoodGetParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getGeneNeighborhoodApiV1GenesGeneIdNeighborhoodGet>>, TError, TData>>, }
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Get Gene Neighborhood
+ */
+
+export function useGetGeneNeighborhoodApiV1GenesGeneIdNeighborhoodGet<TData = Awaited<ReturnType<typeof getGeneNeighborhoodApiV1GenesGeneIdNeighborhoodGet>>, TError = HTTPValidationError>(
+ geneId: string,
+    params?: GetGeneNeighborhoodApiV1GenesGeneIdNeighborhoodGetParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getGeneNeighborhoodApiV1GenesGeneIdNeighborhoodGet>>, TError, TData>>, }
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetGeneNeighborhoodApiV1GenesGeneIdNeighborhoodGetQueryOptions(geneId,params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
+/**
  * @summary Bulk Upsert Genes
  */
 export const bulkUpsertGenesApiV1GenesBulkPost = (

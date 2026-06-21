@@ -4,7 +4,7 @@
  * prot-cellar
  * OpenAPI spec version: 0.1.0
  */
-import type { CreateStrainBodyStrainOrganismId } from './createStrainBodyStrainOrganismId';
+import type { CreateStrainBodyNcbiTaxonId } from './createStrainBodyNcbiTaxonId';
 import type { CreateStrainBodyIsolate } from './createStrainBodyIsolate';
 import type { CreateStrainBodyBiosampleAcc } from './createStrainBodyBiosampleAcc';
 import type { CreateStrainBodyAssemblyAcc } from './createStrainBodyAssemblyAcc';
@@ -15,7 +15,7 @@ import type { CreateStrainBodyMetadata } from './createStrainBodyMetadata';
 export interface CreateStrainBody {
   species_organism_id: string;
   name: string;
-  strain_organism_id?: CreateStrainBodyStrainOrganismId;
+  ncbi_taxon_id?: CreateStrainBodyNcbiTaxonId;
   isolate?: CreateStrainBodyIsolate;
   biosample_acc?: CreateStrainBodyBiosampleAcc;
   assembly_acc?: CreateStrainBodyAssemblyAcc;

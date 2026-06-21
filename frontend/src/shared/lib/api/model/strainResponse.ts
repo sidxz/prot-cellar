@@ -4,7 +4,7 @@
  * prot-cellar
  * OpenAPI spec version: 0.1.0
  */
-import type { StrainResponseStrainOrganismId } from './strainResponseStrainOrganismId';
+import type { StrainResponseNcbiTaxonId } from './strainResponseNcbiTaxonId';
 import type { StrainResponseIsolate } from './strainResponseIsolate';
 import type { StrainResponseBiosampleAcc } from './strainResponseBiosampleAcc';
 import type { StrainResponseAssemblyAcc } from './strainResponseAssemblyAcc';
@@ -16,7 +16,7 @@ export interface StrainResponse {
   id: string;
   workspace_id: string;
   species_organism_id: string;
-  strain_organism_id?: StrainResponseStrainOrganismId;
+  ncbi_taxon_id?: StrainResponseNcbiTaxonId;
   name: string;
   isolate?: StrainResponseIsolate;
   biosample_acc?: StrainResponseBiosampleAcc;

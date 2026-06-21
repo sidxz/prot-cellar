@@ -9,6 +9,12 @@ import type { UpdateGeneBodySynonyms } from './updateGeneBodySynonyms';
 import type { UpdateGeneBodyNcbiGeneId } from './updateGeneBodyNcbiGeneId';
 import type { UpdateGeneBodyEnsemblGeneId } from './updateGeneBodyEnsemblGeneId';
 import type { UpdateGeneBodyHgncId } from './updateGeneBodyHgncId';
+import type { UpdateGeneBodyGenomicAccession } from './updateGeneBodyGenomicAccession';
+import type { UpdateGeneBodyGenomicStart } from './updateGeneBodyGenomicStart';
+import type { UpdateGeneBodyGenomicEnd } from './updateGeneBodyGenomicEnd';
+import type { UpdateGeneBodyGenomicStrand } from './updateGeneBodyGenomicStrand';
+import type { UpdateGeneBodyAssembly } from './updateGeneBodyAssembly';
+import type { UpdateGeneBodyAnnotations } from './updateGeneBodyAnnotations';
 
 export interface UpdateGeneBody {
   primary_name?: UpdateGeneBodyPrimaryName;
@@ -16,4 +22,10 @@ export interface UpdateGeneBody {
   ncbi_gene_id?: UpdateGeneBodyNcbiGeneId;
   ensembl_gene_id?: UpdateGeneBodyEnsemblGeneId;
   hgnc_id?: UpdateGeneBodyHgncId;
+  genomic_accession?: UpdateGeneBodyGenomicAccession;
+  genomic_start?: UpdateGeneBodyGenomicStart;
+  genomic_end?: UpdateGeneBodyGenomicEnd;
+  genomic_strand?: UpdateGeneBodyGenomicStrand;
+  assembly?: UpdateGeneBodyAssembly;
+  annotations?: UpdateGeneBodyAnnotations;
 }

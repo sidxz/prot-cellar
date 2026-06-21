@@ -10,6 +10,13 @@ import type { GeneResponseEnsemblGeneId } from './geneResponseEnsemblGeneId';
 import type { GeneResponseEnsemblUrl } from './geneResponseEnsemblUrl';
 import type { GeneResponseHgncId } from './geneResponseHgncId';
 import type { CrossReferenceResponse } from './crossReferenceResponse';
+import type { GeneResponseGenomicAccession } from './geneResponseGenomicAccession';
+import type { GeneResponseGenomicStart } from './geneResponseGenomicStart';
+import type { GeneResponseGenomicEnd } from './geneResponseGenomicEnd';
+import type { GeneResponseGenomicStrand } from './geneResponseGenomicStrand';
+import type { GeneResponseAssembly } from './geneResponseAssembly';
+import type { GeneResponseLengthBp } from './geneResponseLengthBp';
+import type { GeneAnnotationResponse } from './geneAnnotationResponse';
 
 export interface GeneResponse {
   id: string;
@@ -22,5 +29,12 @@ export interface GeneResponse {
   ensembl_url?: GeneResponseEnsemblUrl;
   hgnc_id?: GeneResponseHgncId;
   cross_references: CrossReferenceResponse[];
+  genomic_accession?: GeneResponseGenomicAccession;
+  genomic_start?: GeneResponseGenomicStart;
+  genomic_end?: GeneResponseGenomicEnd;
+  genomic_strand?: GeneResponseGenomicStrand;
+  assembly?: GeneResponseAssembly;
+  length_bp?: GeneResponseLengthBp;
+  annotations: GeneAnnotationResponse[];
   version: number;
 }

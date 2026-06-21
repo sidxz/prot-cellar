@@ -69,7 +69,7 @@ export interface ProteomeListFilters {
 export interface StrainFormValues {
   name: string;
   species_organism_id: string;
-  strain_organism_id?: string | null;
+  ncbi_taxon_id?: number | null;
   isolate?: string | null;
   biosample_acc?: string | null;
   assembly_acc?: string | null;

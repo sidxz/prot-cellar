@@ -21,9 +21,19 @@ function SpeciesOrganismCell({ data }: ICellRendererParams<Strain>) {
   return <OrganismRef id={data.species_organism_id} />;
 }
 
-function StrainOrganismCell({ data }: ICellRendererParams<Strain>) {
-  if (!data?.strain_organism_id) return <span>—</span>;
-  return <OrganismRef id={data.strain_organism_id} />;
+function NcbiTaxonCell({ data }: ICellRendererParams<Strain>) {
+  if (data?.ncbi_taxon_id == null) return <span>—</span>;
+  return (
+    <a
+      href={`https://www.ncbi.nlm.nih.gov/Taxonomy/Browser/wwwtax.cgi?id=${data.ncbi_taxon_id}`}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="font-mono text-xs text-primary hover:underline underline-offset-2"
+      onClick={(e) => e.stopPropagation()}
+    >
+      {data.ncbi_taxon_id}
+    </a>
+  );
 }
 
 function TextCell({ value }: ICellRendererParams<Strain, string>) {
@@ -47,10 +57,10 @@ export const strainColumnDefs: ColDef<Strain>[] = [
     sortable: false,
   },
   {
-    headerName: "Strain Organism",
-    field: "strain_organism_id",
-    width: 180,
-    cellRenderer: StrainOrganismCell,
+    headerName: "NCBI Taxon",
+    field: "ncbi_taxon_id",
+    width: 140,
+    cellRenderer: NcbiTaxonCell,
     sortable: false,
   },
   {

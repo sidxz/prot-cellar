@@ -25,7 +25,7 @@ import type { Strain } from "../types";
 const formSchema = z.object({
   species_organism_id: z.string().min(1, "Species organism ID is required"),
   name: z.string().min(1, "Name is required"),
-  strain_organism_id: z.string().optional(),
+  ncbi_taxon_id: z.string().optional(),
   isolate: z.string().optional(),
   biosample_acc: z.string().optional(),
   assembly_acc: z.string().optional(),
@@ -41,7 +41,7 @@ type FormValues = z.infer<typeof formSchema>;
 const CREATE_DEFAULTS: FormValues = {
   species_organism_id: "",
   name: "",
-  strain_organism_id: "",
+  ncbi_taxon_id: "",
   isolate: "",
   biosample_acc: "",
   assembly_acc: "",
@@ -54,7 +54,7 @@ function toFormValues(strain: Strain): FormValues {
   return {
     species_organism_id: strain.species_organism_id,
     name: strain.name,
-    strain_organism_id: strain.strain_organism_id ?? "",
+    ncbi_taxon_id: strain.ncbi_taxon_id != null ? String(strain.ncbi_taxon_id) : "",
     isolate: strain.isolate ?? "",
     biosample_acc: strain.biosample_acc ?? "",
     assembly_acc: strain.assembly_acc ?? "",
@@ -112,7 +112,7 @@ export function StrainFormDialog({ open, onOpenChange, strain }: StrainFormDialo
           strainId: strain.id,
           data: {
             name: values.name,
-            strain_organism_id: values.strain_organism_id?.trim() || undefined,
+            ncbi_taxon_id: values.ncbi_taxon_id?.trim() ? Number(values.ncbi_taxon_id.trim()) : undefined,
             isolate: values.isolate?.trim() || undefined,
             biosample_acc: values.biosample_acc?.trim() || undefined,
             assembly_acc: values.assembly_acc?.trim() || undefined,
@@ -126,7 +126,7 @@ export function StrainFormDialog({ open, onOpenChange, strain }: StrainFormDialo
           data: {
             species_organism_id: values.species_organism_id,
             name: values.name,
-            strain_organism_id: values.strain_organism_id?.trim() || undefined,
+            ncbi_taxon_id: values.ncbi_taxon_id?.trim() ? Number(values.ncbi_taxon_id.trim()) : undefined,
             isolate: values.isolate?.trim() || undefined,
             biosample_acc: values.biosample_acc?.trim() || undefined,
             assembly_acc: values.assembly_acc?.trim() || undefined,
@@ -187,16 +187,17 @@ export function StrainFormDialog({ open, onOpenChange, strain }: StrainFormDialo
               )}
             </div>
 
-            {/* Strain Organism ID */}
+            {/* NCBI taxon id */}
             <div className="grid gap-2">
-              <Label htmlFor="strain_organism_id">
-                Strain organism{" "}
+              <Label htmlFor="ncbi_taxon_id">
+                NCBI taxon id{" "}
                 <span className="text-muted-foreground font-normal text-xs">(optional)</span>
               </Label>
               <Input
-                id="strain_organism_id"
-                placeholder="paste an organism id (search picker — future)"
-                {...form.register("strain_organism_id")}
+                id="ncbi_taxon_id"
+                type="number"
+                placeholder="e.g. 83332"
+                {...form.register("ncbi_taxon_id")}
               />
             </div>
 
