@@ -319,7 +319,11 @@ def _gene_synonyms(gene: dict[str, Any], primary_name: str) -> tuple[str, ...]:
 
 
 def _ncbi_gene_id(entry: dict[str, Any]) -> str | None:
-    """The NCBI GeneID xref id, but only when exactly one is present (avoid mis-attribution)."""
+    """The NCBI GeneID xref id, but only when it can be safely attributed to a single
+    gene: exactly one GeneID xref AND at most one gene block (an entry-level GeneID
+    cannot be split across multiple gene blocks, so multi-gene entries get None)."""
+    if len(entry.get("genes") or []) > 1:
+        return None
     ids = [
         x.get("id")
         for x in entry.get("uniProtKBCrossReferences") or []

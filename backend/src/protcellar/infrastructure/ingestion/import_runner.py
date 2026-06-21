@@ -282,8 +282,12 @@ class ProteomeImportRunner:
         gene_records = list(by_key.values())
         command = BulkUpsertGenesCommand(records=tuple(gene_records), dry_run=dry_run)
         items = (await self._gene_bulk(command, auth=auth)).unwrap()
+        # Correlate results to input records by ItemResult.index (not positional zip),
+        # so this stays correct even if BulkUpsertGenes ever reorders its results.
+        items_by_index = {item.index: item for item in items}
         gene_id_by_key: dict[str, uuid.UUID] = {}
-        for item, rec in zip(items, gene_records, strict=True):
+        for idx, rec in enumerate(gene_records):
+            item = items_by_index[idx]
             if item.id:
                 gene_id_by_key[rec.source_record_id] = uuid.UUID(item.id)
             if item.status == "created":

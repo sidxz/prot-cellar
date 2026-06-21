@@ -237,3 +237,14 @@ def test_ncbi_gene_id_from_single_geneid_xref() -> None:
     g = map_uniprot_genes(entry, organism_id=uuid.uuid4(), tax_id=83332)[0]
     assert g.ncbi_gene_id == "888090"
     assert g.source_record_id == "83332:katG"  # no locus tag -> geneName is the key
+
+
+def test_ncbi_gene_id_skipped_for_multi_gene_entry() -> None:
+    # A single GeneID xref cannot be safely attributed to one of two gene blocks.
+    entry = {
+        "genes": [{"geneName": {"value": "geneA"}}, {"geneName": {"value": "geneB"}}],
+        "uniProtKBCrossReferences": [{"database": "GeneID", "id": "111"}],
+    }
+    genes = map_uniprot_genes(entry, organism_id=uuid.uuid4(), tax_id=83332)
+    assert len(genes) == 2
+    assert all(g.ncbi_gene_id is None for g in genes)
