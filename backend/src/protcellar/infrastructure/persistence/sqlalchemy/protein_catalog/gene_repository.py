@@ -10,6 +10,10 @@ from sqlalchemy import select
 from protcellar.domain.protein_catalog.gene import Gene
 from protcellar.domain.protein_catalog.repository import GeneRepository
 from protcellar.infrastructure.persistence.sqlalchemy.base_repository import SQLAlchemyRepository
+from protcellar.infrastructure.persistence.sqlalchemy.protein_catalog._annotation_json import (
+    annotations_from_json,
+    annotations_to_json,
+)
 from protcellar.infrastructure.persistence.sqlalchemy.protein_catalog._xref_json import (
     xrefs_from_json,
     xrefs_to_json,
@@ -30,6 +34,12 @@ class SQLAlchemyGeneRepository(SQLAlchemyRepository[Gene, GeneModel], GeneReposi
             ensembl_gene_id=model.ensembl_gene_id,
             hgnc_id=model.hgnc_id,
             cross_references=xrefs_from_json(model.cross_references),
+            genomic_accession=model.genomic_accession,
+            genomic_start=model.genomic_start,
+            genomic_end=model.genomic_end,
+            genomic_strand=model.genomic_strand,
+            assembly=model.assembly,
+            annotations=annotations_from_json(model.annotations),
             source=model.source,
             source_release=model.source_release,
             source_record_id=model.source_record_id,
@@ -51,6 +61,12 @@ class SQLAlchemyGeneRepository(SQLAlchemyRepository[Gene, GeneModel], GeneReposi
             ensembl_gene_id=aggregate.ensembl_gene_id,
             hgnc_id=aggregate.hgnc_id,
             cross_references=xrefs_to_json(aggregate.cross_references) or None,
+            genomic_accession=aggregate.genomic_accession,
+            genomic_start=aggregate.genomic_start,
+            genomic_end=aggregate.genomic_end,
+            genomic_strand=aggregate.genomic_strand,
+            assembly=aggregate.assembly,
+            annotations=annotations_to_json(aggregate.annotations) or None,
             source=aggregate.source,
             source_release=aggregate.source_release,
             source_record_id=aggregate.source_record_id,
@@ -67,6 +83,12 @@ class SQLAlchemyGeneRepository(SQLAlchemyRepository[Gene, GeneModel], GeneReposi
         model.ensembl_gene_id = aggregate.ensembl_gene_id
         model.hgnc_id = aggregate.hgnc_id
         model.cross_references = xrefs_to_json(aggregate.cross_references) or None
+        model.genomic_accession = aggregate.genomic_accession
+        model.genomic_start = aggregate.genomic_start
+        model.genomic_end = aggregate.genomic_end
+        model.genomic_strand = aggregate.genomic_strand
+        model.assembly = aggregate.assembly
+        model.annotations = annotations_to_json(aggregate.annotations) or None
         model.source = aggregate.source
         model.source_release = aggregate.source_release
         model.source_record_id = aggregate.source_record_id
