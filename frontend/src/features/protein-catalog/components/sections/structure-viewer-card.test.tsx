@@ -1,5 +1,5 @@
 import { fireEvent, render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { Protein } from "../../types";
 import { StructureViewerCard } from "./structure-viewer-card";
@@ -16,6 +16,25 @@ const withStructures = {
     { database: "AlphaFoldDB", accession: "P12345", url: "u", properties: {} },
   ],
 } as unknown as Protein;
+
+beforeEach(() => {
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(() =>
+      Promise.resolve({
+        ok: true,
+        json: () =>
+          Promise.resolve([
+            { cifUrl: "https://alphafold.ebi.ac.uk/files/AF-P12345-F1-model_v6.cif" },
+          ]),
+      }),
+    ),
+  );
+});
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
 
 describe("StructureViewerCard", () => {
   it("renders a viewer for the first PDB structure + a switcher listing all structures", () => {

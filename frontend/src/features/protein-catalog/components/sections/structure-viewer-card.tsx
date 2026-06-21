@@ -42,49 +42,66 @@ interface ViewerStructure extends StructureRef {
   label: string;
 }
 
+/** AlphaFold model-file versions vary per entry, so resolve the real URL from the API. */
+async function resolveAlphaFoldUrl(accession: string): Promise<string | undefined> {
+  try {
+    const res = await fetch(`https://alphafold.ebi.ac.uk/api/prediction/${accession}`);
+    if (!res.ok) return undefined;
+    const data = (await res.json()) as Array<{ cifUrl?: string }>;
+    return data[0]?.cifUrl;
+  } catch {
+    return undefined;
+  }
+}
+
 function MolstarViewer({ structure }: { structure: ViewerStructure }) {
   const ref = useRef<HTMLDivElement>(null);
+  const { id, kind } = structure;
 
   useEffect(() => {
     let cancelled = false;
-    loadMolstar()
-      .then(() => {
-        const host = ref.current;
-        if (cancelled || !host) return;
-        host.replaceChildren();
-        const el = document.createElement("pdbe-molstar");
-        if (structure.kind === "alphafold") {
-          el.setAttribute(
-            "custom-data-url",
-            `https://alphafold.ebi.ac.uk/files/AF-${structure.id}-F1-model_v4.cif`,
-          );
-          el.setAttribute("custom-data-format", "cif");
-          el.setAttribute("alphafold-view", "true");
-        } else {
-          el.setAttribute("molecule-id", structure.id.toLowerCase());
-        }
-        el.setAttribute("hide-controls", "true");
-        // Mol* lays its canvas out as position:absolute inset:0 — fill the
-        // (position:relative) host so it never escapes to the viewport.
-        el.style.position = "absolute";
-        el.style.top = "0";
-        el.style.left = "0";
-        el.style.width = "100%";
-        el.style.height = "100%";
-        host.appendChild(el);
-      })
-      .catch(() => {
-        /* viewer stays blank; the link-out below remains usable */
-      });
+
+    async function init() {
+      const customDataUrl = kind === "alphafold" ? await resolveAlphaFoldUrl(id) : undefined;
+      // AlphaFold selected but URL unresolved → leave blank; the link-out still works.
+      if (kind === "alphafold" && !customDataUrl) return;
+
+      await loadMolstar();
+      const host = ref.current;
+      if (cancelled || !host) return;
+      host.replaceChildren();
+
+      const el = document.createElement("pdbe-molstar");
+      if (customDataUrl) {
+        el.setAttribute("custom-data-url", customDataUrl);
+        el.setAttribute("custom-data-format", "cif");
+        el.setAttribute("alphafold-view", "true");
+      } else {
+        el.setAttribute("molecule-id", id.toLowerCase());
+      }
+      el.setAttribute("hide-controls", "true");
+      // Mol* lays its canvas out as position:absolute inset:0 — fill the
+      // (position:relative) host so it never escapes to the viewport.
+      el.style.position = "absolute";
+      el.style.top = "0";
+      el.style.left = "0";
+      el.style.width = "100%";
+      el.style.height = "100%";
+      host.appendChild(el);
+    }
+
+    init().catch(() => {
+      /* viewer stays blank; the link-out below remains usable */
+    });
     return () => {
       cancelled = true;
     };
-  }, [structure]);
+  }, [id, kind]);
 
   return (
     <div
       ref={ref}
-      data-structure-id={structure.id}
+      data-structure-id={id}
       className="relative h-[360px] w-full overflow-hidden rounded-md border border-border bg-white"
     />
   );
