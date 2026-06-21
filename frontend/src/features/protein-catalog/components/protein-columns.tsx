@@ -1,132 +1,190 @@
 import { Badge } from "@/shared/components/ui/badge";
+import { cn } from "@/shared/lib/utils";
 import type { ColDef, ICellRendererParams } from "ag-grid-community";
 import Link from "next/link";
-import { proteinPrimaryName } from "../lib/protein-format";
-import type { Protein } from "../types";
+import type { ProteinListItem } from "../types";
 
-function AccessionCell({ value }: ICellRendererParams<Protein, string>) {
-  if (!value) return <span>—</span>;
+// Row height needed to comfortably fit the three-line identity cell.
+export const PROTEIN_ROW_HEIGHT = 74;
+
+const stop = (e: React.MouseEvent) => e.stopPropagation();
+
+/**
+ * Identity cell — collapses the old Accession / Entry Name / Recommended Name /
+ * Gene / Short Name columns into one scannable stack:
+ *   line 1  gene name (bold, linked) + synonyms / locus tags
+ *   line 2  recommended protein name
+ *   line 3  accession (mono, linked) + entry name
+ */
+function IdentityCell({ data }: ICellRendererParams<ProteinListItem>) {
+  if (!data) return <span className="text-muted-foreground">—</span>;
+  const gene = data.gene;
+  const synonyms = gene?.synonyms?.filter((s) => s !== gene.primary_name) ?? [];
   return (
-    <Link
-      href={`/proteins/${value}`}
-      className="font-mono text-primary underline-offset-2 hover:underline"
-      onClick={(e) => e.stopPropagation()}
-    >
-      {value}
-    </Link>
+    <div className="flex flex-col justify-center gap-0.5 py-1.5 leading-tight">
+      <div className="flex items-baseline gap-1.5 truncate">
+        {gene ? (
+          <Link
+            href={`/genes/${gene.id}`}
+            onClick={stop}
+            className="font-semibold text-foreground underline-offset-2 hover:text-primary hover:underline"
+            title={gene.primary_name}
+          >
+            {gene.primary_name}
+          </Link>
+        ) : (
+          <span className="font-semibold text-muted-foreground">—</span>
+        )}
+        {synonyms.length > 0 && (
+          <span className="truncate text-xs text-muted-foreground" title={synonyms.join(", ")}>
+            {synonyms.join(", ")}
+          </span>
+        )}
+      </div>
+      <span
+        className={cn(
+          "truncate text-sm",
+          data.recommended_name ? "text-foreground/90" : "text-muted-foreground italic",
+        )}
+        title={data.recommended_name ?? undefined}
+      >
+        {data.recommended_name ?? "Uncharacterized protein"}
+      </span>
+      <div className="flex items-center gap-2 truncate text-xs">
+        <Link
+          href={`/proteins/${data.primary_accession}`}
+          onClick={stop}
+          className="font-mono text-primary underline-offset-2 hover:underline"
+        >
+          {data.primary_accession}
+        </Link>
+        {data.entry_name && (
+          <span className="truncate text-muted-foreground">{data.entry_name}</span>
+        )}
+      </div>
+    </div>
   );
 }
 
-function ReviewedCell({ data }: ICellRendererParams<Protein>) {
+/** EC numbers — the enzyme-class signal. Shows up to two, then "+N". */
+function EcCell({ data }: ICellRendererParams<ProteinListItem>) {
+  const ecs = data?.ec_numbers ?? [];
+  if (ecs.length === 0) return <span className="text-muted-foreground">—</span>;
+  return (
+    <div className="flex flex-wrap items-center gap-1">
+      {ecs.slice(0, 2).map((ec) => (
+        <Badge
+          key={ec}
+          variant="outline"
+          className="border-amber-500/25 bg-amber-500/10 font-mono text-[10px] text-amber-700 dark:text-amber-400"
+        >
+          {ec}
+        </Badge>
+      ))}
+      {ecs.length > 2 && <span className="text-xs text-muted-foreground">+{ecs.length - 2}</span>}
+    </div>
+  );
+}
+
+/** 3D-structure availability — experimental (PDB) outranks predicted (AlphaFold). */
+function StructureCell({ data }: ICellRendererParams<ProteinListItem>) {
+  const s = data?.structure;
+  if (s && s.pdb_count > 0) {
+    return (
+      <Badge className="border-blue-500/25 bg-blue-500/12 text-blue-700 dark:text-blue-400">
+        PDB{s.pdb_count > 1 ? `·${s.pdb_count}` : ""}
+      </Badge>
+    );
+  }
+  if (s?.has_alphafold) {
+    return (
+      <Badge
+        variant="outline"
+        className="border-blue-500/20 text-blue-600/80 dark:text-blue-400/80"
+      >
+        AlphaFold
+      </Badge>
+    );
+  }
+  return <span className="text-muted-foreground">—</span>;
+}
+
+/** Chemical matter — known ligands / bioactivity, the SAR starting points. */
+function ChemCell({ data }: ICellRendererParams<ProteinListItem>) {
+  const chem = data?.chem;
+  if (chem?.has_chembl) {
+    return (
+      <Badge className="border-violet-500/25 bg-violet-500/12 text-violet-700 dark:text-violet-400">
+        ChEMBL
+      </Badge>
+    );
+  }
+  if (chem?.has_drugbank) {
+    return (
+      <Badge className="border-violet-500/25 bg-violet-500/12 text-violet-700 dark:text-violet-400">
+        DrugBank
+      </Badge>
+    );
+  }
+  return <span className="text-muted-foreground">—</span>;
+}
+
+/** Compact reviewed/quality badge. */
+function DbCell({ data }: ICellRendererParams<ProteinListItem>) {
   if (!data) return <span>—</span>;
   return data.is_reviewed ? (
-    <Badge variant="success" className="text-xs">
+    <Badge variant="success" className="text-[10px]">
       Swiss-Prot
     </Badge>
   ) : (
-    <Badge variant="outline" className="text-xs text-muted-foreground">
+    <Badge variant="outline" className="text-[10px] text-muted-foreground">
       TrEMBL
     </Badge>
   );
 }
 
-function GeneCell({ data }: ICellRendererParams<Protein>) {
-  const gene = data?.gene;
-  if (!gene) return <span className="text-muted-foreground">—</span>;
-  const synonyms = gene.synonyms?.filter((s) => s !== gene.primary_name) ?? [];
-  return (
-    <span className="inline-flex items-baseline gap-1.5 truncate">
-      <Link
-        href={`/genes/${gene.id}`}
-        className="font-medium text-primary underline-offset-2 hover:underline"
-        onClick={(e) => e.stopPropagation()}
-        title={gene.primary_name}
-      >
-        {gene.primary_name}
-      </Link>
-      {synonyms.length > 0 && (
-        <span className="truncate text-xs text-muted-foreground" title={synonyms.join(", ")}>
-          {synonyms.join(", ")}
-        </span>
-      )}
-    </span>
-  );
-}
-
-function shortNameValue(p: Protein | undefined): string {
-  const shorts = p?.protein_names?.short_names;
-  return shorts && shorts.length > 0 ? shorts.join(" / ") : "—";
-}
-
-function OrganismCell({ data }: ICellRendererParams<Protein>) {
-  if (!data?.organism_id) return <span>—</span>;
-  // resolves to organism name in Plan 3
-  const shortId = data.organism_id.replace(/^taxon:/, "");
-  return (
-    <Link
-      href={`/organisms/${data.organism_id}`}
-      className="rounded bg-muted px-1.5 py-0.5 text-xs font-mono text-foreground hover:bg-muted/80"
-      onClick={(e) => e.stopPropagation()}
-    >
-      {shortId}
-    </Link>
-  );
-}
-
-export const proteinColumnDefs: ColDef<Protein>[] = [
+export const proteinColumnDefs: ColDef<ProteinListItem>[] = [
   {
-    headerName: "Accession",
-    field: "primary_accession",
-    width: 130,
-    cellRenderer: AccessionCell,
-  },
-  {
-    headerName: "Entry Name",
-    field: "entry_name",
-    width: 160,
-    valueFormatter: (p) => p.value ?? "—",
-  },
-  {
-    headerName: "Recommended Name",
-    field: "protein_names",
+    headerName: "Protein / Gene",
+    colId: "identity",
     flex: 1,
-    minWidth: 200,
-    valueGetter: (p) => (p.data ? proteinPrimaryName(p.data) : "—"),
+    minWidth: 300,
+    cellRenderer: IdentityCell,
     sortable: false,
   },
   {
-    headerName: "Gene",
-    colId: "gene",
-    width: 170,
-    cellRenderer: GeneCell,
+    headerName: "EC / Class",
+    colId: "ec",
+    width: 140,
+    cellRenderer: EcCell,
     sortable: false,
   },
   {
-    headerName: "Short Name",
-    colId: "short_name",
+    headerName: "Structure",
+    colId: "structure",
     width: 120,
-    valueGetter: (p) => shortNameValue(p.data),
+    cellRenderer: StructureCell,
     sortable: false,
   },
   {
-    headerName: "Database",
-    field: "is_reviewed",
+    headerName: "Chem",
+    colId: "chem",
     width: 110,
-    cellRenderer: ReviewedCell,
+    cellRenderer: ChemCell,
     sortable: false,
   },
   {
     headerName: "Length",
     field: "seq_length",
-    width: 90,
+    width: 100,
     type: "numericColumn",
     valueFormatter: (p) => (p.value != null ? p.value.toLocaleString() : "—"),
   },
   {
-    headerName: "Organism",
-    field: "organism_id",
-    width: 140,
-    cellRenderer: OrganismCell,
+    headerName: "Database",
+    colId: "database",
+    width: 120,
+    cellRenderer: DbCell,
     sortable: false,
   },
 ];

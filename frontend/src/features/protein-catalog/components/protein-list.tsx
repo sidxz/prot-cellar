@@ -1,15 +1,17 @@
 "use client";
 
+import { OrganismRef } from "@/shared/components/common/organism-ref";
 import { DataGrid } from "@/shared/components/data-grid/data-grid";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
 import { Label } from "@/shared/components/ui/label";
-import { Dna } from "lucide-react";
+import { cn } from "@/shared/lib/utils";
+import { Dna, FlaskConical, Search, SlidersHorizontal } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useProteins } from "../hooks/use-proteins";
-import type { ProteinListFilters } from "../types";
-import { proteinColumnDefs } from "./protein-columns";
+import type { ProteinListFilters, ProteinListItem } from "../types";
+import { PROTEIN_ROW_HEIGHT, proteinColumnDefs } from "./protein-columns";
 
 // ---------------------------------------------------------------------------
 // LocalStorage helpers
@@ -49,12 +51,13 @@ function filterToReviewed(v: boolean | undefined): ReviewedState {
   return "all";
 }
 
-interface ReviewedToggleProps {
+function ReviewedToggle({
+  value,
+  onChange,
+}: {
   value: ReviewedState;
   onChange: (v: ReviewedState) => void;
-}
-
-function ReviewedToggle({ value, onChange }: ReviewedToggleProps) {
+}) {
   const options: ReviewedState[] = ["all", "reviewed", "unreviewed"];
   return (
     <div className="flex items-center gap-1 rounded-md border bg-muted/40 p-0.5">
@@ -63,17 +66,50 @@ function ReviewedToggle({ value, onChange }: ReviewedToggleProps) {
           key={opt}
           type="button"
           onClick={() => onChange(opt)}
-          className={`rounded px-2.5 py-1 text-xs font-medium transition-colors ${
+          className={cn(
+            "rounded px-2.5 py-1 text-xs font-medium transition-colors",
             value === opt
               ? "bg-background text-foreground shadow-xs"
-              : "text-muted-foreground hover:text-foreground"
-          }`}
+              : "text-muted-foreground hover:text-foreground",
+          )}
           aria-pressed={value === opt}
         >
           {opt === "all" ? "All" : opt === "reviewed" ? "Swiss-Prot" : "TrEMBL"}
         </button>
       ))}
     </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Boolean filter chip
+// ---------------------------------------------------------------------------
+function FilterChip({
+  active,
+  onClick,
+  icon: Icon,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  icon?: typeof FlaskConical;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={active}
+      className={cn(
+        "inline-flex h-8 items-center gap-1.5 rounded-full border px-3 text-xs font-medium transition-colors",
+        active
+          ? "border-primary/30 bg-primary/10 text-primary"
+          : "border-border bg-background text-muted-foreground hover:text-foreground",
+      )}
+    >
+      {Icon && <Icon className="h-3.5 w-3.5" />}
+      {children}
+    </button>
   );
 }
 
@@ -85,7 +121,7 @@ function ProteinsEmptyState() {
     <div className="flex flex-col items-center justify-center gap-3 py-20 text-center text-muted-foreground">
       <Dna className="h-10 w-10 opacity-30" />
       <p className="text-sm font-medium">No proteins match your filters</p>
-      <p className="text-xs">Try adjusting the reviewed filter or length range.</p>
+      <p className="text-xs">Try a different search term or clear a filter.</p>
     </div>
   );
 }
@@ -97,12 +133,14 @@ export function ProteinListPage() {
   const router = useRouter();
 
   // ── Filters ─────────────────────────────────────────────────────────────
-  // Lazy initializer — `readFilters` is called once at mount, not on every render
   const [initialFilters] = useState(readFilters);
-
   const [filters, setFilters] = useState<ProteinListFilters>(initialFilters);
   const [reviewedState, setReviewedState] = useState<ReviewedState>(
     filterToReviewed(initialFilters.reviewed),
+  );
+  const [searchInput, setSearchInput] = useState(initialFilters.search ?? "");
+  const [showMore, setShowMore] = useState(
+    initialFilters.minLength != null || initialFilters.maxLength != null,
   );
   const [minLengthInput, setMinLengthInput] = useState<string>(
     initialFilters.minLength != null ? String(initialFilters.minLength) : "",
@@ -111,13 +149,24 @@ export function ProteinListPage() {
     initialFilters.maxLength != null ? String(initialFilters.maxLength) : "",
   );
 
+  // Debounce the free-text search into the filter set (300ms).
+  useEffect(() => {
+    const handle = setTimeout(() => {
+      setFilters((prev) => {
+        const next = searchInput.trim() || undefined;
+        if (prev.search === next) return prev;
+        return { ...prev, search: next };
+      });
+    }, 300);
+    return () => clearTimeout(handle);
+  }, [searchInput]);
+
   // Persist filters to localStorage on change
   useEffect(() => {
     writeFilters(filters);
   }, [filters]);
 
   // ── Cursor pagination ────────────────────────────────────────────────────
-  // cursorStack[0] = first page (undefined), cursorStack[1] = second page cursor, …
   const [cursorStack, setCursorStack] = useState<(string | undefined)[]>([undefined]);
   const currentCursor = cursorStack[cursorStack.length - 1];
 
@@ -133,26 +182,33 @@ export function ProteinListPage() {
   // ── Data ─────────────────────────────────────────────────────────────────
   const { data, isLoading, isError } = useProteins(filters, currentCursor);
 
-  const proteins = useMemo(() => {
-    if (!data?.items) return undefined;
-    // Cast from ProteinResponse[] to Protein[] — our narrowed type is compatible
-    // biome-ignore lint/suspicious/noExplicitAny: narrowing cast at feature boundary
-    return data.items as any[];
-  }, [data]);
+  const proteins = useMemo(() => data?.items as ProteinListItem[] | undefined, [data]);
 
-  // ── ID-jump box ──────────────────────────────────────────────────────────
-  const [jumpValue, setJumpValue] = useState("");
+  // Resolve the organism context only when the whole page shares one organism.
+  const soleOrganismId = useMemo(() => {
+    if (!proteins || proteins.length === 0) return undefined;
+    const ids = new Set(proteins.map((p) => p.organism_id));
+    return ids.size === 1 ? proteins[0].organism_id : undefined;
+  }, [proteins]);
 
-  const handleJump = useCallback(() => {
-    const trimmed = jumpValue.trim();
-    if (!trimmed) return;
-    router.push(`/proteins/${trimmed}`);
-  }, [jumpValue, router]);
+  const totalCount = data?.total_count ?? undefined;
+  const anyFilterActive =
+    !!filters.search ||
+    !!filters.hasStructure ||
+    !!filters.isEnzyme ||
+    !!filters.hasChembl ||
+    filters.reviewed != null ||
+    filters.minLength != null ||
+    filters.maxLength != null;
 
   // ── Filter handlers ──────────────────────────────────────────────────────
   function applyReviewed(state: ReviewedState) {
     setReviewedState(state);
     setFilters((prev) => ({ ...prev, reviewed: reviewedToFilter(state) }));
+  }
+
+  function toggleBool(key: "hasStructure" | "isEnzyme" | "hasChembl") {
+    setFilters((prev) => ({ ...prev, [key]: prev[key] ? undefined : true }));
   }
 
   function applyMinLength(raw: string) {
@@ -196,90 +252,113 @@ export function ProteinListPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      {/* Page header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Proteins</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">Browse the protein catalog</p>
-        </div>
+      {/* Page header with organism + count context */}
+      <div>
+        <h1 className="text-2xl font-semibold tracking-tight">Proteins</h1>
+        <p className="mt-0.5 flex items-center gap-1.5 text-sm text-muted-foreground">
+          {soleOrganismId ? (
+            <>
+              <OrganismRef id={soleOrganismId} className="text-sm font-medium text-foreground" />
+              <span aria-hidden>·</span>
+            </>
+          ) : null}
+          {totalCount != null ? (
+            <span>
+              {totalCount.toLocaleString()} {anyFilterActive ? "matching" : "proteins"}
+            </span>
+          ) : (
+            <span>Target-triage catalog</span>
+          )}
+        </p>
       </div>
 
       {/* Toolbar */}
-      <div className="flex flex-wrap items-end gap-3 rounded-lg border bg-muted/20 px-4 py-3">
-        {/* Reviewed tri-state */}
-        <div className="flex flex-col gap-1.5">
-          <Label className="text-xs text-muted-foreground">Database</Label>
-          <ReviewedToggle value={reviewedState} onChange={applyReviewed} />
-        </div>
-
-        {/* Min length */}
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="min-length" className="text-xs text-muted-foreground">
-            Min length
-          </Label>
-          <Input
-            id="min-length"
-            type="number"
-            min={1}
-            placeholder="—"
-            value={minLengthInput}
-            onChange={(e) => applyMinLength(e.target.value)}
-            className="h-8 w-24"
-          />
-        </div>
-
-        {/* Max length */}
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="max-length" className="text-xs text-muted-foreground">
-            Max length
-          </Label>
-          <Input
-            id="max-length"
-            type="number"
-            min={1}
-            placeholder="—"
-            value={maxLengthInput}
-            onChange={(e) => applyMaxLength(e.target.value)}
-            className="h-8 w-24"
-          />
-        </div>
-
-        {/* Separator */}
-        <div className="ml-auto flex flex-col gap-1.5">
-          <Label htmlFor="id-jump" className="text-xs text-muted-foreground">
-            Open accession / ID
-          </Label>
-          <div className="flex items-center gap-1.5">
+      <div className="flex flex-col gap-3 rounded-lg border bg-muted/20 px-4 py-3">
+        <div className="flex flex-wrap items-center gap-3">
+          {/* Search */}
+          <div className="relative min-w-[260px] flex-1">
+            <Search className="-translate-y-1/2 absolute top-1/2 left-2.5 h-4 w-4 text-muted-foreground" />
             <Input
-              id="id-jump"
-              placeholder="P12345 or ALBU_HUMAN"
-              value={jumpValue}
-              onChange={(e) => setJumpValue(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") handleJump();
-              }}
-              className="h-8 w-56"
+              placeholder="Search gene, locus (Rv1908c), accession, or name…"
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              className="h-9 pl-8"
+              aria-label="Search proteins"
             />
-            <Button
-              type="button"
-              size="sm"
-              variant="outline"
-              onClick={handleJump}
-              disabled={!jumpValue.trim()}
-              className="h-8"
-            >
-              Open
-            </Button>
           </div>
+
+          {/* Database tri-state */}
+          <ReviewedToggle value={reviewedState} onChange={applyReviewed} />
+
+          {/* Boolean facets */}
+          <FilterChip active={!!filters.hasStructure} onClick={() => toggleBool("hasStructure")}>
+            Has structure
+          </FilterChip>
+          <FilterChip
+            active={!!filters.isEnzyme}
+            onClick={() => toggleBool("isEnzyme")}
+            icon={FlaskConical}
+          >
+            Enzyme
+          </FilterChip>
+          <FilterChip active={!!filters.hasChembl} onClick={() => toggleBool("hasChembl")}>
+            Has inhibitors
+          </FilterChip>
+
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="ml-auto h-8 text-muted-foreground"
+            onClick={() => setShowMore((s) => !s)}
+          >
+            <SlidersHorizontal className="mr-1 h-3.5 w-3.5" />
+            Length
+          </Button>
         </div>
+
+        {/* Length range (collapsible) */}
+        {showMore && (
+          <div className="flex items-end gap-3 border-t pt-3">
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="min-length" className="text-xs text-muted-foreground">
+                Min length
+              </Label>
+              <Input
+                id="min-length"
+                type="number"
+                min={1}
+                placeholder="—"
+                value={minLengthInput}
+                onChange={(e) => applyMinLength(e.target.value)}
+                className="h-8 w-24"
+              />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="max-length" className="text-xs text-muted-foreground">
+                Max length
+              </Label>
+              <Input
+                id="max-length"
+                type="number"
+                min={1}
+                placeholder="—"
+                value={maxLengthInput}
+                onChange={(e) => applyMaxLength(e.target.value)}
+                className="h-8 w-24"
+              />
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Data grid */}
-      <DataGrid
+      <DataGrid<ProteinListItem>
         rowData={proteins}
         columnDefs={proteinColumnDefs}
         loading={isLoading}
-        height="calc(100vh - 310px)"
+        rowHeight={PROTEIN_ROW_HEIGHT}
+        height="calc(100vh - 320px)"
         suppressFilters
         searchPlaceholder={false}
         onRowClick={(protein) => router.push(`/proteins/${protein.primary_accession}`)}

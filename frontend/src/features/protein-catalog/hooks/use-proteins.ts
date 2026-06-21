@@ -20,6 +20,11 @@ export function useProteins(filters: ProteinListFilters = {}, cursor?: string) {
     max_length: filters.maxLength ?? undefined,
     organism_id: filters.organismId ?? undefined,
     gene_id: filters.geneId ?? undefined,
+    q: filters.search?.trim() ? filters.search.trim() : undefined,
+    has_structure: filters.hasStructure ?? undefined,
+    is_enzyme: filters.isEnzyme ?? undefined,
+    // "Has inhibitors" maps onto the generic cross-reference filter.
+    xref_db: filters.hasChembl ? "ChEMBL" : undefined,
     cursor: cursor ?? undefined,
   });
 }

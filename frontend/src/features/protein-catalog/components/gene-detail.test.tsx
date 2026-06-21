@@ -26,7 +26,7 @@ vi.mock("../hooks/use-proteins", () => ({
           id: "p1",
           primary_accession: "P04637",
           is_reviewed: true,
-          protein_names: { recommended: "Cellular tumor antigen p53" },
+          recommended_name: "Cellular tumor antigen p53",
         },
       ],
       next_cursor: null,

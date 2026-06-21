@@ -9,7 +9,6 @@ import { Dna, ExternalLink } from "lucide-react";
 import Link from "next/link";
 import { useGene } from "../hooks/use-genes";
 import { useProteins } from "../hooks/use-proteins";
-import { toProtein } from "../types";
 import { AXIS_TITLES, AxisAnnotationsSection } from "./sections/axis-annotations-section";
 import { GenomicContextSection } from "./sections/genomic-context-section";
 
@@ -145,7 +144,7 @@ function GeneMetadataCard({ gene }: GeneMetadataCardProps) {
 
 function LinkedProteinsSection({ geneId }: { geneId: string }) {
   const { data, isLoading, isError } = useProteins({ geneId });
-  const proteins = (data?.items ?? []).map(toProtein);
+  const proteins = data?.items ?? [];
 
   return (
     <section aria-labelledby="proteins-heading">
@@ -179,9 +178,9 @@ function LinkedProteinsSection({ geneId }: { geneId: string }) {
                     >
                       {p.primary_accession}
                     </Link>
-                    {p.protein_names?.recommended && (
+                    {p.recommended_name && (
                       <span className="truncate text-xs text-muted-foreground">
-                        {p.protein_names.recommended}
+                        {p.recommended_name}
                       </span>
                     )}
                   </div>

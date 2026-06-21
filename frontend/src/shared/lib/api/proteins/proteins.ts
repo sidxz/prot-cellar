@@ -29,7 +29,7 @@ import type {
   GetProteinApiV1ProteinsAccessionGetParams,
   HTTPValidationError,
   ListProteinsApiV1ProteinsGetParams,
-  PaginatedResponseProteinResponse,
+  PaginatedResponseProteinListItemResponse,
   ProtcellarInterfaceRoutesProteinsBulkUpsertBody,
   ProteinResponse,
   UpdateProteinBody
@@ -141,7 +141,7 @@ export const listProteinsApiV1ProteinsGet = (
 ) => {
       
       
-      return customInstance<PaginatedResponseProteinResponse>(
+      return customInstance<PaginatedResponseProteinListItemResponse>(
       {url: `/api/v1/proteins`, method: 'GET',
         params, signal
     },

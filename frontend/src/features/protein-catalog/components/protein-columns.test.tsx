@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import type { ColDef } from "ag-grid-community";
 import { describe, expect, it, vi } from "vitest";
-import type { Protein } from "../types";
+import type { ProteinListItem } from "../types";
 import { proteinColumnDefs } from "./protein-columns";
 
 // next/link → plain anchor so cells render without an app-router context.
@@ -14,64 +14,100 @@ vi.mock("next/link", () => ({
   ),
 }));
 
-function makeProtein(overrides: Partial<Protein> = {}): Protein {
+function makeItem(overrides: Partial<ProteinListItem> = {}): ProteinListItem {
   return {
-    primary_accession: "P0DG01",
-    protein_names: { recommended: "Transcription termination factor Rho", short_names: ["Rho"] },
+    id: "p-1",
+    primary_accession: "P9WIE5",
+    entry_name: "RHO_MYCTU",
+    is_reviewed: true,
+    recommended_name: "Transcription termination factor Rho",
+    short_names: ["Rho"],
+    ec_numbers: ["3.6.4.-"],
     gene: { id: "g-1", primary_name: "rho", synonyms: ["nusG", "Rv1297"] },
+    organism_id: "org-1",
+    seq_length: 740,
+    structure: { pdb_count: 6, has_alphafold: true },
+    chem: { has_chembl: true, has_drugbank: false },
     ...overrides,
     // biome-ignore lint/suspicious/noExplicitAny: minimal fixture for column rendering
   } as any;
 }
 
-function col(headerName: string): ColDef<Protein> {
+function col(headerName: string): ColDef<ProteinListItem> {
   const found = proteinColumnDefs.find((c) => c.headerName === headerName);
   if (!found) throw new Error(`column ${headerName} not found`);
   return found;
 }
 
-function renderCell(c: ColDef<Protein>, data: Protein | undefined) {
+function renderCell(c: ColDef<ProteinListItem>, data: ProteinListItem | undefined) {
   // biome-ignore lint/suspicious/noExplicitAny: ag-grid cellRenderer is loosely typed
   const Renderer = c.cellRenderer as React.FC<any>;
   return render(<Renderer data={data} />);
 }
 
-describe("protein columns — Gene", () => {
-  it("renders the gene name linked plus synonyms", () => {
-    renderCell(col("Gene"), makeProtein());
-    const link = screen.getByText("rho");
-    expect(link).toHaveAttribute("href", "/genes/g-1");
+describe("protein columns — Protein / Gene identity", () => {
+  it("links gene + accession and shows the protein name and synonyms", () => {
+    renderCell(col("Protein / Gene"), makeItem());
+    expect(screen.getByText("rho")).toHaveAttribute("href", "/genes/g-1");
     expect(screen.getByText("nusG, Rv1297")).toBeInTheDocument();
+    expect(screen.getByText("Transcription termination factor Rho")).toBeInTheDocument();
+    expect(screen.getByText("P9WIE5")).toHaveAttribute("href", "/proteins/P9WIE5");
+    expect(screen.getByText("RHO_MYCTU")).toBeInTheDocument();
   });
 
-  it("shows a dash when the protein has no linked gene", () => {
-    const { container } = renderCell(col("Gene"), makeProtein({ gene: null }));
-    expect(container.textContent).toBe("—");
-  });
-
-  it("hides a synonym that duplicates the primary name", () => {
-    const data = makeProtein({
-      // biome-ignore lint/suspicious/noExplicitAny: minimal fixture
-      gene: { id: "g-2", primary_name: "rho", synonyms: ["rho", "nusG"] } as any,
-    });
-    renderCell(col("Gene"), data);
-    expect(screen.getByText("nusG")).toBeInTheDocument();
-    expect(screen.queryByText("rho, nusG")).not.toBeInTheDocument();
+  it("falls back to 'Uncharacterized protein' and a dash gene when unlinked", () => {
+    renderCell(col("Protein / Gene"), makeItem({ gene: null, recommended_name: null }));
+    expect(screen.getByText("Uncharacterized protein")).toBeInTheDocument();
   });
 });
 
-describe("protein columns — Short Name", () => {
-  // biome-ignore lint/suspicious/noExplicitAny: ag-grid ValueGetterParams is partial here
-  const get = (data: Protein | undefined) => (col("Short Name").valueGetter as any)({ data });
-
-  it("joins protein short names", () => {
-    expect(get(makeProtein())).toBe("Rho");
-    expect(get(makeProtein({ protein_names: { short_names: ["PptT", "Sfp"] } }))).toBe(
-      "PptT / Sfp",
-    );
+describe("protein columns — EC / Structure / Chem", () => {
+  it("renders EC chips, capping at two with a +N overflow", () => {
+    renderCell(col("EC / Class"), makeItem({ ec_numbers: ["1.1.1.1", "2.2.2.2", "3.3.3.3"] }));
+    expect(screen.getByText("1.1.1.1")).toBeInTheDocument();
+    expect(screen.getByText("2.2.2.2")).toBeInTheDocument();
+    expect(screen.getByText("+1")).toBeInTheDocument();
+    expect(screen.queryByText("3.3.3.3")).not.toBeInTheDocument();
   });
 
-  it("falls back to a dash when there is no short name", () => {
-    expect(get(makeProtein({ protein_names: { recommended: "x" } }))).toBe("—");
+  it("prefers experimental PDB (with count) over AlphaFold", () => {
+    const { container } = renderCell(
+      col("Structure"),
+      makeItem({ structure: { pdb_count: 6, has_alphafold: true } }),
+    );
+    expect(container.textContent).toBe("PDB·6");
+  });
+
+  it("shows AlphaFold when there is no PDB, and a dash when neither", () => {
+    let r = renderCell(
+      col("Structure"),
+      makeItem({ structure: { pdb_count: 0, has_alphafold: true } }),
+    );
+    expect(r.container.textContent).toBe("AlphaFold");
+    r.unmount();
+    r = renderCell(
+      col("Structure"),
+      makeItem({ structure: { pdb_count: 0, has_alphafold: false } }),
+    );
+    expect(r.container.textContent).toBe("—");
+  });
+
+  it("shows ChEMBL chemical matter, else dash", () => {
+    let r = renderCell(col("Chem"), makeItem({ chem: { has_chembl: true, has_drugbank: false } }));
+    expect(r.container.textContent).toBe("ChEMBL");
+    r.unmount();
+    r = renderCell(col("Chem"), makeItem({ chem: { has_chembl: false, has_drugbank: false } }));
+    expect(r.container.textContent).toBe("—");
+  });
+});
+
+describe("protein columns — Database", () => {
+  it("badges Swiss-Prot vs TrEMBL by reviewed status", () => {
+    expect(renderCell(col("Database"), makeItem({ is_reviewed: true })).container.textContent).toBe(
+      "Swiss-Prot",
+    );
+    expect(
+      renderCell(col("Database"), makeItem({ is_reviewed: false })).container.textContent,
+    ).toBe("TrEMBL");
   });
 });

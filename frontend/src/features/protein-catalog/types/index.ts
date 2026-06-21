@@ -1,4 +1,9 @@
-import type { CrossReferenceResponse, GeneResponse, ProteinResponse } from "@/shared/lib/api/model";
+import type {
+  CrossReferenceResponse,
+  GeneResponse,
+  ProteinListItemResponse,
+  ProteinResponse,
+} from "@/shared/lib/api/model";
 
 /**
  * Re-narrowed protein type: `protein_names` is typed with known fields
@@ -24,6 +29,13 @@ export function toProtein(r: ProteinResponse): Protein {
   return r as unknown as Protein;
 }
 
+/**
+ * A row in the protein catalog list — the slim, decision-oriented projection
+ * returned by `GET /api/v1/proteins` (gene summary + derived structure/chem flags).
+ * Already well-typed by the generated DTO; no narrowing needed.
+ */
+export type ProteinListItem = ProteinListItemResponse;
+
 /** Gene (alias of generated DTO — no narrowing needed). */
 export type Gene = GeneResponse;
 
@@ -37,6 +49,14 @@ export interface ProteinListFilters {
   maxLength?: number;
   organismId?: string;
   geneId?: string;
+  /** Free-text query across accession, entry name, protein name, gene name + synonyms. */
+  search?: string;
+  /** Only proteins with a 3D structure (PDB / AlphaFold / …). */
+  hasStructure?: boolean;
+  /** Only enzymes (proteins carrying an EC number). */
+  isEnzyme?: boolean;
+  /** Only proteins with chemical matter in ChEMBL. */
+  hasChembl?: boolean;
 }
 
 /** Filter parameters for listing genes. */
