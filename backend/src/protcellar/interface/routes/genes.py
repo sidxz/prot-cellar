@@ -7,15 +7,21 @@ import uuid
 from fastapi import APIRouter
 from pydantic import BaseModel
 
+from protcellar.application.protein_catalog.bulk_upsert_genes import (
+    BulkUpsertGenesCommand,
+    GeneImportRecord,
+)
 from protcellar.application.protein_catalog.create_gene import CreateGeneCommand
 from protcellar.application.protein_catalog.get_gene import GetGeneQuery
 from protcellar.application.protein_catalog.list_genes import ListGenesQuery
 from protcellar.application.protein_catalog.update_gene import UpdateGeneCommand
 from protcellar.application.shared.sentinel import UNSET
 from protcellar.domain.protein_catalog.gene import Gene
+from protcellar.domain.shared.cross_reference import CrossReference
 from protcellar.infrastructure.identifiers.registry import IdentifierRegistry
 from protcellar.interface.dependencies import (
     AuthDep,
+    BulkUpsertGenesDep,
     CreateGeneDep,
     GetGeneDep,
     ListGenesDep,
@@ -101,6 +107,50 @@ class UpdateGeneBody(BaseModel):
     model_config = {"extra": "forbid"}
 
 
+class BulkCrossReferenceBody(BaseModel):
+    database: str
+    accession: str
+    properties: dict[str, str] | None = None
+    evidence: str | None = None
+
+
+class BulkGeneRecordBody(BaseModel):
+    primary_name: str
+    organism_id: uuid.UUID
+    source: str
+    source_release: str
+    source_record_id: str
+    source_record_checksum: str
+    synonyms: list[str] = []
+    ncbi_gene_id: str | None = None
+    ensembl_gene_id: str | None = None
+    cross_references: list[BulkCrossReferenceBody] = []
+
+
+class BulkUpsertGenesBody(BaseModel):
+    records: list[BulkGeneRecordBody]
+    dry_run: bool = False
+
+
+class GeneItemResultResponse(BaseModel):
+    index: int
+    status: str
+    id: str | None = None
+    error: str | None = None
+
+
+class GeneBulkSummaryResponse(BaseModel):
+    created: int
+    updated: int
+    skipped: int
+    failed: int
+
+
+class GeneBulkUpsertResponse(BaseModel):
+    results: list[GeneItemResultResponse]
+    summary: GeneBulkSummaryResponse
+
+
 @router.get("", response_model=PaginatedResponse[GeneResponse])
 async def list_genes(
     auth: AuthDep,
@@ -132,6 +182,54 @@ async def get_gene(
     query = GetGeneQuery(gene_id=gene_id)
     gene = result_to_response(await use_case(query, auth=auth))
     return GeneResponse.from_domain(gene)
+
+
+@router.post("/bulk", response_model=GeneBulkUpsertResponse)
+async def bulk_upsert_genes(
+    body: BulkUpsertGenesBody,
+    auth: AuthDep,
+    use_case: BulkUpsertGenesDep,
+) -> GeneBulkUpsertResponse:
+    command = BulkUpsertGenesCommand(
+        records=tuple(
+            GeneImportRecord(
+                primary_name=r.primary_name,
+                organism_id=r.organism_id,
+                source=r.source,
+                source_release=r.source_release,
+                source_record_id=r.source_record_id,
+                source_record_checksum=r.source_record_checksum,
+                synonyms=tuple(r.synonyms),
+                ncbi_gene_id=r.ncbi_gene_id,
+                ensembl_gene_id=r.ensembl_gene_id,
+                cross_references=tuple(
+                    CrossReference(
+                        database=xr.database,
+                        accession=xr.accession,
+                        properties=xr.properties,
+                        evidence=xr.evidence,
+                    )
+                    for xr in r.cross_references
+                ),
+            )
+            for r in body.records
+        ),
+        dry_run=body.dry_run,
+    )
+    items = result_to_response(await use_case(command, auth=auth))
+    summary = GeneBulkSummaryResponse(
+        created=sum(1 for i in items if i.status == "created"),
+        updated=sum(1 for i in items if i.status == "updated"),
+        skipped=sum(1 for i in items if i.status == "skipped"),
+        failed=sum(1 for i in items if i.status == "failed"),
+    )
+    return GeneBulkUpsertResponse(
+        results=[
+            GeneItemResultResponse(index=i.index, status=i.status, id=i.id, error=i.error)
+            for i in items
+        ],
+        summary=summary,
+    )
 
 
 @router.post("", response_model=GeneResponse, status_code=201)

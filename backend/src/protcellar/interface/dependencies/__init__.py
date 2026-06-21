@@ -11,6 +11,7 @@ from protcellar.interface.dependencies._core import (
     get_uow,
 )
 from protcellar.interface.dependencies._protein_catalog import (
+    BulkUpsertGenesDep,
     BulkUpsertProteinsDep,
     CreateGeneDep,
     CreateProteinDep,
@@ -52,6 +53,7 @@ from protcellar.interface.dependencies._workspace_config import (
 
 __all__ = [
     "AuthDep",
+    "BulkUpsertGenesDep",
     "BulkUpsertOrganismsDep",
     "BulkUpsertProteinsDep",
     "CreateGeneDep",
