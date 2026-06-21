@@ -5,7 +5,6 @@ import { SequenceViewer } from "@/shared/components/sequence/sequence-viewer";
 import { Badge } from "@/shared/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/card";
 import { Skeleton } from "@/shared/components/ui/skeleton";
-import { CrossReferenceLinks } from "@/shared/components/xrefs/cross-reference-links";
 import { Dna, ExternalLink } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -14,6 +13,7 @@ import { useProtein, useProteinFasta, useResolveProtein } from "../hooks/use-pro
 import { proteinExistenceLabel } from "../lib/protein-format";
 import type { Protein } from "../types";
 import { CitationsSection } from "./sections/citations-section";
+import { CrossReferencesSection } from "./sections/cross-references-section";
 import { FeaturesSection } from "./sections/features-section";
 import { FunctionSection } from "./sections/function-section";
 import { GoGraphCard } from "./sections/go-graph-card";
@@ -320,23 +320,7 @@ export function ProteinDetailPage({ accession }: ProteinDetailPageProps) {
       </div>
 
       {/* ── Cross-references ── */}
-      {protein.cross_references && protein.cross_references.length > 0 && (
-        <section aria-labelledby="xrefs-heading">
-          <h2 id="xrefs-heading" className="text-base font-semibold mb-3 text-foreground">
-            Cross-References
-          </h2>
-          <Card>
-            <CardContent className="pt-4">
-              <CrossReferenceLinks
-                // ProteinResponseCrossReferencesItem is typed as {[key:string]:string|null}
-                // but the actual shape matches CrossReference — cast at the feature boundary.
-                // biome-ignore lint/suspicious/noExplicitAny: cast at feature boundary
-                items={protein.cross_references as any}
-              />
-            </CardContent>
-          </Card>
-        </section>
-      )}
+      <CrossReferencesSection protein={protein} />
     </div>
   );
 }
