@@ -7,6 +7,7 @@ from datetime import UTC, datetime
 from typing import Any
 
 from protcellar.domain.protein_catalog.events import GeneCreated, GeneUpdated
+from protcellar.domain.protein_catalog.gene_annotation import GeneAnnotation
 from protcellar.domain.shared.cross_reference import CrossReference
 from protcellar.domain.shared.entity import AggregateRoot
 from protcellar.domain.shared.errors import ValidationError
@@ -25,6 +26,12 @@ class Gene(AggregateRoot):
         ensembl_gene_id: str | None = None,
         hgnc_id: str | None = None,
         cross_references: list[CrossReference] | None = None,
+        genomic_accession: str | None = None,
+        genomic_start: int | None = None,
+        genomic_end: int | None = None,
+        genomic_strand: str | None = None,
+        assembly: str | None = None,
+        annotations: list[GeneAnnotation] | None = None,
         source: str | None = None,
         source_release: str | None = None,
         source_record_id: str | None = None,
@@ -46,6 +53,12 @@ class Gene(AggregateRoot):
         self.ensembl_gene_id = ensembl_gene_id
         self.hgnc_id = hgnc_id
         self.cross_references = cross_references if cross_references is not None else []
+        self.genomic_accession = genomic_accession
+        self.genomic_start = genomic_start
+        self.genomic_end = genomic_end
+        self.genomic_strand = genomic_strand
+        self.assembly = assembly
+        self.annotations = annotations if annotations is not None else []
         self.source = source
         self.source_release = source_release
         self.source_record_id = source_record_id
@@ -63,6 +76,12 @@ class Gene(AggregateRoot):
         ensembl_gene_id: str | None = None,
         hgnc_id: str | None = None,
         cross_references: list[CrossReference] | None = None,
+        genomic_accession: str | None = None,
+        genomic_start: int | None = None,
+        genomic_end: int | None = None,
+        genomic_strand: str | None = None,
+        assembly: str | None = None,
+        annotations: list[GeneAnnotation] | None = None,
     ) -> Gene:
         gene = cls(
             primary_name=primary_name,
@@ -72,6 +91,12 @@ class Gene(AggregateRoot):
             ensembl_gene_id=ensembl_gene_id,
             hgnc_id=hgnc_id,
             cross_references=cross_references,
+            genomic_accession=genomic_accession,
+            genomic_start=genomic_start,
+            genomic_end=genomic_end,
+            genomic_strand=genomic_strand,
+            assembly=assembly,
+            annotations=annotations,
         )
         gene.register_event(
             GeneCreated(
@@ -83,6 +108,12 @@ class Gene(AggregateRoot):
             )
         )
         return gene
+
+    @property
+    def length_bp(self) -> int | None:
+        if self.genomic_start is None or self.genomic_end is None:
+            return None
+        return self.genomic_end - self.genomic_start + 1
 
     def update(self, **fields: Any) -> None:
         if "primary_name" in fields:
@@ -100,6 +131,11 @@ class Gene(AggregateRoot):
             self.hgnc_id = fields["hgnc_id"]
         if "cross_references" in fields:
             self.cross_references = list(fields["cross_references"] or [])
+        for _loc in ("genomic_accession", "genomic_start", "genomic_end", "genomic_strand", "assembly"):
+            if _loc in fields:
+                setattr(self, _loc, fields[_loc])
+        if "annotations" in fields:
+            self.annotations = list(fields["annotations"] or [])
         self._touch()
 
     def _touch(self) -> None:
