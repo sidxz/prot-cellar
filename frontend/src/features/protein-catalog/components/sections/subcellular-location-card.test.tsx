@@ -1,5 +1,5 @@
 import { render, screen } from "@testing-library/react";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import type { Protein } from "../../types";
 import { SubcellularLocationCard } from "./subcellular-location-card";
@@ -7,17 +7,6 @@ import { SubcellularLocationCard } from "./subcellular-location-card";
 vi.mock("@/shared/lib/api/organisms/organisms", () => ({
   useGetOrganismApiV1OrganismsOrganismIdGet: () => ({ data: { ncbi_tax_id: 83332 } }),
 }));
-
-beforeEach(() => {
-  vi.stubGlobal(
-    "fetch",
-    vi.fn(() => Promise.resolve({ ok: true, text: () => Promise.resolve("<svg/>") })),
-  );
-});
-
-afterEach(() => {
-  vi.unstubAllGlobals();
-});
 
 const protein = {
   organism_id: "org-1",
@@ -31,10 +20,12 @@ const protein = {
 } as unknown as Protein;
 
 describe("SubcellularLocationCard", () => {
-  it("renders location names, the SwissBioPics diagram host (keyed by taxid), and a UniProt link", () => {
-    const { container } = render(<SubcellularLocationCard protein={protein} />);
+  it("renders location names, the SwissBioPics cell diagram (taxid + SL ids), and a UniProt link", () => {
+    render(<SubcellularLocationCard protein={protein} />);
     expect(screen.getByText("Cell membrane")).toBeInTheDocument();
-    expect(container.querySelector("[data-taxid='83332']")).toBeInTheDocument();
+    expect(screen.getByRole("img", { name: /cell diagram/i }).getAttribute("src")).toBe(
+      "https://www.swissbiopics.org/api/83332/sl/39",
+    );
     expect(screen.getByRole("link", { name: /UniProt/i })).toBeInTheDocument();
   });
 
