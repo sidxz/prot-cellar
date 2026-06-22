@@ -112,9 +112,7 @@ class ProteomeProteinModel(Base, EntityModelMixin):
     """Membership link between a Proteome and a Protein (shared reference data)."""
 
     __tablename__ = "proteome_proteins"
-    __table_args__ = (
-        UniqueConstraint("proteome_id", "protein_id", name="uq_proteome_protein"),
-    )
+    __table_args__ = (UniqueConstraint("proteome_id", "protein_id", name="uq_proteome_protein"),)
 
     proteome_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("proteomes.id"), nullable=False, index=True

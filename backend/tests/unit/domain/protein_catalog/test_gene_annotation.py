@@ -1,3 +1,5 @@
+from dataclasses import FrozenInstanceError
+
 import pytest
 
 from protcellar.domain.protein_catalog.gene_annotation import GeneAnnotation, GeneAnnotationAxis
@@ -30,6 +32,8 @@ def test_key_and_value_required_nonempty() -> None:
 
 
 def test_is_frozen() -> None:
-    a = GeneAnnotation(axis=GeneAnnotationAxis.CONTEXT, key="functional_category", value="Cell wall")
-    with pytest.raises(Exception):
+    a = GeneAnnotation(
+        axis=GeneAnnotationAxis.CONTEXT, key="functional_category", value="Cell wall"
+    )
+    with pytest.raises(FrozenInstanceError):
         a.value = "other"  # type: ignore[misc]

@@ -60,11 +60,16 @@ def test_gene_length_bp_none_when_coords_missing() -> None:
 
 
 def test_gene_holds_annotations_and_update_replaces_them() -> None:
-    from protcellar.domain.protein_catalog.gene_annotation import GeneAnnotation, GeneAnnotationAxis
+    from protcellar.domain.protein_catalog.gene_annotation import (
+        GeneAnnotation,
+        GeneAnnotationAxis,
+    )
 
     g = Gene.create(primary_name="katG", organism_id=uuid.uuid4())
     assert g.annotations == []
-    ann = GeneAnnotation(axis=GeneAnnotationAxis.VULNERABILITY, key="essentiality", value="non-essential")
+    ann = GeneAnnotation(
+        axis=GeneAnnotationAxis.VULNERABILITY, key="essentiality", value="non-essential"
+    )
     g.update(annotations=[ann])
     assert g.annotations == [ann]
     g.update(genomic_strand="-")

@@ -48,6 +48,7 @@ async def test_proteome_adapter_passes_reporter_to_runner(monkeypatch) -> None:
 # helpers
 # ---------------------------------------------------------------------------
 
+
 def _runtime(*, params: dict):
     """Build a minimal ImportRuntime with stubs — no real DB or network."""
     from protcellar.application.imports.progress_reporter import NoopProgressReporter

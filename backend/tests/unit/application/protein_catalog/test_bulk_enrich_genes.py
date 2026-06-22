@@ -72,9 +72,7 @@ def _gene(
     synonyms: tuple[str, ...] = (),
     srid: str | None = None,
 ) -> Gene:
-    gene = Gene.create(
-        primary_name=primary, organism_id=organism, synonyms=list(synonyms)
-    )
+    gene = Gene.create(primary_name=primary, organism_id=organism, synonyms=list(synonyms))
     if srid is not None:
         gene.source = "uniprot"
         gene.source_record_id = srid
@@ -175,7 +173,9 @@ async def test_merge_replaces_same_dataset_key_but_keeps_others() -> None:
     repo = _FakeGeneRepo([existing])
     uc = _uc(repo)
 
-    summary = (await uc(org, [_essentiality_record("Rv0667")], auth=FakeAuth(role="admin"))).unwrap()
+    summary = (
+        await uc(org, [_essentiality_record("Rv0667")], auth=FakeAuth(role="admin"))
+    ).unwrap()
     assert summary.annotations_written == 1
 
     g = repo.by_locus("Rv0667")

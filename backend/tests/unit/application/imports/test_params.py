@@ -16,7 +16,6 @@ from protcellar.application.imports.params import (
 from protcellar.domain.imports.enums import ImportType
 from protcellar.domain.shared.errors import ValidationError
 
-
 # ---------------------------------------------------------------------------
 # ProteomeParams
 # ---------------------------------------------------------------------------

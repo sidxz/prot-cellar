@@ -131,7 +131,13 @@ class Gene(AggregateRoot):
             self.hgnc_id = fields["hgnc_id"]
         if "cross_references" in fields:
             self.cross_references = list(fields["cross_references"] or [])
-        for _loc in ("genomic_accession", "genomic_start", "genomic_end", "genomic_strand", "assembly"):
+        for _loc in (
+            "genomic_accession",
+            "genomic_start",
+            "genomic_end",
+            "genomic_strand",
+            "assembly",
+        ):
             if _loc in fields:
                 setattr(self, _loc, fields[_loc])
         if "annotations" in fields:

@@ -5,6 +5,7 @@ from __future__ import annotations
 import uuid
 
 import pytest
+from returns.result import Failure, Success
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
 from protcellar.application.imports.store_upload import GetUpload, StoreUpload
@@ -13,7 +14,6 @@ from protcellar.infrastructure.persistence.sqlalchemy.imports.import_upload_repo
     SQLAlchemyImportUploadRepository,
 )
 from protcellar.infrastructure.persistence.unit_of_work import AsyncUnitOfWork
-from returns.result import Failure, Success
 from tests.fakes.fake_auth import FakeAuth
 
 pytestmark = pytest.mark.asyncio

@@ -5,6 +5,11 @@ src = ["src"]
 [lint]
 select = ["E", "F", "W", "I", "UP", "B", "SIM", "RUF"]
 
+[lint.per-file-ignores]
+# GFF fixture rows are tab-separated genome records held in string literals;
+# they are line-oriented data and cannot be wrapped without corrupting them.
+"tests/unit/infrastructure/test_mycobrowser_gff.py" = ["E501"]
+
 [lint.flake8-bugbear]
 extend-immutable-calls = [
     "fastapi.Depends",

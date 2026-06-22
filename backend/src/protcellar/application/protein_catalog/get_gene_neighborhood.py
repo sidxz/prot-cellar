@@ -68,9 +68,7 @@ class GetGeneNeighborhood:
             if gene is None:
                 return Failure(NotFoundError("Gene", str(input.gene_id)))
             if gene.genomic_accession is None or gene.genomic_start is None:
-                return Failure(
-                    NotFoundError("GeneNeighborhood", str(input.gene_id))
-                )
+                return Failure(NotFoundError("GeneNeighborhood", str(input.gene_id)))
 
             neighbors = await self._repo.find_genomic_neighbors(
                 organism_id=gene.organism_id,

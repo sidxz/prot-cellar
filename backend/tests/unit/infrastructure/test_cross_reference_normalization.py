@@ -58,12 +58,16 @@ async def test_cross_references_persist_as_rows(xref_uow: AsyncUnitOfWork) -> No
         await uow.session.flush()
 
         rows = (
-            await uow.session.execute(
-                select(ProteinCrossReferenceModel).where(
-                    ProteinCrossReferenceModel.protein_id == protein.id
+            (
+                await uow.session.execute(
+                    select(ProteinCrossReferenceModel).where(
+                        ProteinCrossReferenceModel.protein_id == protein.id
+                    )
                 )
             )
-        ).scalars().all()
+            .scalars()
+            .all()
+        )
         assert {r.database for r in rows} == {"PDB", "GO"}
         pdb = next(r for r in rows if r.database == "PDB")
         assert pdb.accession == "1ABC"
