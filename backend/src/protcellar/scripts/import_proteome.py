@@ -13,14 +13,13 @@ from __future__ import annotations
 
 import argparse
 import asyncio
-import uuid
 
 import httpx
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
 from protcellar.application.protein_catalog.bulk_upsert_genes import BulkUpsertGenes
 from protcellar.application.protein_catalog.bulk_upsert_proteins import BulkUpsertProteins
-from protcellar.domain.shared.global_workspace import GLOBAL_WORKSPACE_ID
+from protcellar.application.service_auth import ServiceAuth
 from protcellar.infrastructure.ingestion.import_runner import ImportSummary, ProteomeImportRunner
 from protcellar.infrastructure.ingestion.uniprot_client import UniProtClient
 from protcellar.infrastructure.persistence.settings import DatabaseSettings
@@ -33,30 +32,9 @@ from protcellar.infrastructure.persistence.sqlalchemy.protein_catalog.protein_re
 from protcellar.infrastructure.persistence.unit_of_work import AsyncUnitOfWork
 
 _UNIPROT_BASE_URL = "https://rest.uniprot.org"
-_ROLE_HIERARCHY: dict[str, int] = {"viewer": 0, "editor": 1, "admin": 2, "owner": 3}
 
-
-class _ServiceAuth:
-    """Admin auth context for the import service (satisfies ``AuthContext``)."""
-
-    workspace_role = "admin"
-
-    @property
-    def user_id(self) -> uuid.UUID:
-        return GLOBAL_WORKSPACE_ID
-
-    @property
-    def workspace_id(self) -> uuid.UUID:
-        return GLOBAL_WORKSPACE_ID
-
-    @property
-    def is_admin(self) -> bool:
-        return True
-
-    def has_role(self, minimum_role: str) -> bool:
-        return _ROLE_HIERARCHY.get(self.workspace_role, -1) >= _ROLE_HIERARCHY.get(
-            minimum_role, 99
-        )
+# Backward-compat alias: enrich_genes.py imports _ServiceAuth from this module.
+_ServiceAuth = ServiceAuth
 
 
 class _NoopDispatcher:

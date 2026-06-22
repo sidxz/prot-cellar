@@ -18,6 +18,7 @@ from protcellar.infrastructure.di._protein_catalog import register_protein_catal
 from protcellar.infrastructure.di._target import register_target
 from protcellar.infrastructure.di._taxonomy import register_taxonomy
 from protcellar.infrastructure.di._workspace_config import register_workspace_config
+from protcellar.infrastructure.di.imports import register_imports
 from protcellar.infrastructure.identifiers.registry import IdentifierRegistry
 from protcellar.infrastructure.messaging.event_dispatcher import EventDispatcher
 from protcellar.infrastructure.persistence.database import create_engine_and_sessionmaker
@@ -78,5 +79,6 @@ def create_container(db_settings: DatabaseSettings | None = None) -> Container:
     register_taxonomy(container)
     register_protein_catalog(container)
     register_target(container)
+    register_imports(container)
 
     return container
