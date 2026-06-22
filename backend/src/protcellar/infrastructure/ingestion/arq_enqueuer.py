@@ -7,6 +7,7 @@ instance.  The pool is created on the first call to :meth:`enqueue_import`.
 
 from __future__ import annotations
 
+import asyncio
 import os
 import uuid
 
@@ -31,10 +32,13 @@ class ArqJobEnqueuer:
 
     def __init__(self) -> None:
         self._pool: arq.ArqRedis | None = None
+        self._lock = asyncio.Lock()
 
     async def _get_pool(self) -> arq.ArqRedis:
         if self._pool is None:
-            self._pool = await arq.create_pool(redis_settings_from_env())
+            async with self._lock:
+                if self._pool is None:
+                    self._pool = await arq.create_pool(redis_settings_from_env())
         return self._pool
 
     async def enqueue_import(self, import_run_id: uuid.UUID) -> None:

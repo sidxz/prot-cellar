@@ -102,6 +102,7 @@ async def run_import(ctx: dict, import_run_id: str) -> None:
     except (Exception, SystemExit) as exc:
         # Best-effort: reload and mark FAILED so the run record reflects the error.
         try:
+            fail_events: list = []
             async with AsyncUnitOfWork(session_factory) as uow:
                 repo = SQLAlchemyImportRunRepository(uow)
                 failed_run = await repo.get(run_id)
