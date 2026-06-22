@@ -51,6 +51,9 @@ class _BulkEnrich(Protocol):
 # a coroutine so a file read or a network fetch both fit; ``None`` skips essentiality.
 EssentialityLoader = Callable[[], Awaitable[str]]
 
+# A GFF fetcher takes a URL and returns decoded GFF text.
+GffFetch = Callable[[str], Awaitable[str]]
+
 
 class GeneEnrichmentRunner:
     def __init__(
@@ -59,6 +62,7 @@ class GeneEnrichmentRunner:
         gff_client: GffClient,
         *,
         gff_url: str,
+        gff_fetch: GffFetch | None = None,
         essentiality_loader: EssentialityLoader | None = None,
         assembly: str = _DEFAULT_ASSEMBLY,
         reporter: ProgressReporter = _NOOP_REPORTER,
@@ -66,6 +70,9 @@ class GeneEnrichmentRunner:
         self._bulk = bulk_enrich
         self._client = gff_client
         self._gff_url = gff_url
+        # Allow callers to inject a custom fetch coroutine (e.g. SSRF-safe
+        # fetch_text_secure); fall back to the injected client's fetch_text.
+        self._gff_fetch: GffFetch = gff_fetch if gff_fetch is not None else gff_client.fetch_text
         self._load_essentiality = essentiality_loader
         self._assembly = assembly
         self._reporter = reporter
@@ -74,7 +81,7 @@ class GeneEnrichmentRunner:
         self, organism_id: uuid.UUID, *, auth: AuthContext | None = None
     ) -> EnrichSummary:
         await self._reporter.phase("fetch GFF")
-        gff_text = await self._client.fetch_text(self._gff_url)
+        gff_text = await self._gff_fetch(self._gff_url)
 
         await self._reporter.phase("parse")
         gff = parse_mycobrowser_gff(gff_text)

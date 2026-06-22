@@ -176,6 +176,8 @@ class GeneEnrichmentAdapter:
                 bulk,
                 client,
                 gff_url=gff_url,
+                # Use the SSRF-safe fetch so every redirect hop is validated
+                gff_fetch=client.fetch_text_secure,
                 essentiality_loader=essentiality_loader,
                 reporter=rt.reporter,
             )

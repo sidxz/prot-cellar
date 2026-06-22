@@ -5,6 +5,13 @@ raises on HTTP error, and transparently gunzips ``.gz`` payloads so callers
 always get decoded text. The ``httpx.AsyncClient`` is injected so tests supply a
 ``MockTransport`` and production configures timeouts. All parsing lives in the
 pure ``mycobrowser_gff`` / ``dejesus_essentiality`` modules.
+
+``fetch_text_secure`` is the SSRF-safe variant for admin-supplied URLs: it
+delegates to :func:`~protcellar.infrastructure.ingestion.url_guard.fetch_bytes_guarded`
+which follows redirects **manually** and validates every hop's ``Location``
+against :func:`~protcellar.infrastructure.ingestion.url_guard.validate_public_url`
+before connecting.  ``.gz`` decompression is applied after the guarded fetch so
+legitimate gzip payloads still work.
 """
 
 from __future__ import annotations
@@ -33,6 +40,21 @@ class MycobrowserClient:
         if url.endswith(".gz"):
             return gzip.decompress(resp.content).decode("utf-8")
         return resp.text
+
+    async def fetch_text_secure(self, url: str) -> str:
+        """SSRF-safe variant of :meth:`fetch_text` for admin-supplied URLs.
+
+        Uses :func:`~protcellar.infrastructure.ingestion.url_guard.fetch_bytes_guarded`
+        to follow redirects manually, validating every hop's ``Location`` header
+        before connecting.  After the guarded fetch, ``.gz`` payloads are
+        decompressed so callers always receive decoded text.
+        """
+        from protcellar.infrastructure.ingestion.url_guard import fetch_bytes_guarded
+
+        raw = await fetch_bytes_guarded(url, timeout=self._timeout)
+        if url.endswith(".gz"):
+            return gzip.decompress(raw).decode("utf-8")
+        return raw.decode("utf-8")
 
     async def __aenter__(self) -> MycobrowserClient:
         return self
