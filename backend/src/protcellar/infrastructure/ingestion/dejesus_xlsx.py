@@ -16,10 +16,13 @@ from __future__ import annotations
 import io
 
 import openpyxl
+import structlog
 
 from protcellar.infrastructure.ingestion.dejesus_essentiality import (
     parse_dejesus_essentiality,
 )
+
+logger = structlog.get_logger(__name__)
 
 # Column indices used by the real DeJesus 2017 Table S3 XLSX:
 #   col A (0) = ORF ID, col M (12) = Final Call.
@@ -55,7 +58,7 @@ def essentiality_upload_to_tsv(filename: str, data: bytes) -> str:
     """
     lower = filename.lower()
     if lower.endswith(".xlsx"):
-        text = _xlsx_to_tsv(data)
+        text = _xlsx_to_tsv(data, filename=filename)
     else:
         # .tsv / .csv / .txt — pass through as UTF-8
         text = data.decode("utf-8")
@@ -69,7 +72,7 @@ def essentiality_upload_to_tsv(filename: str, data: bytes) -> str:
 # ---------------------------------------------------------------------------
 
 
-def _xlsx_to_tsv(data: bytes) -> str:
+def _xlsx_to_tsv(data: bytes, *, filename: str = "<unknown>") -> str:
     """Extract locus + call columns from an XLSX and emit TSV."""
     wb = openpyxl.load_workbook(io.BytesIO(data), read_only=True, data_only=True)
     ws = wb.active
@@ -95,6 +98,10 @@ def _xlsx_to_tsv(data: bytes) -> str:
     if header_row_idx is None:
         # Fall back to script's hardcoded layout (row 2 header / row 3+ data)
         # and column positions used in the real Table S3.
+        logger.warning(
+            "dejesus_xlsx.header_detection_failed_using_fixed_indices",
+            filename=filename,
+        )
         orf_col = _REAL_ORF_COL
         call_col = _REAL_CALL_COL
         data_rows = all_rows[_REAL_DATA_START_ROW - 1 :]  # 0-indexed slice
@@ -114,9 +121,12 @@ def _xlsx_to_tsv(data: bytes) -> str:
 
 
 def _find_col(header_cells: list[str], aliases: tuple[str, ...]) -> int | None:
+    # Normalize each header cell: collapse internal whitespace/newlines so that
+    # e.g. "ORF\nID" or "ORF  ID" both match the alias "orf id".
+    normalized = [" ".join(str(h).split()).lower() for h in header_cells]
     for alias in aliases:
-        if alias in header_cells:
-            return header_cells.index(alias)
+        if alias in normalized:
+            return normalized.index(alias)
     return None
 
 

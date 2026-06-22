@@ -26,27 +26,25 @@ async def test_store_and_retrieve_upload(database_url: str, _run_migrations: Non
     payload = b"Rv0667\tES\nRv0668\tGD\n"
 
     try:
-        # Store via use case
-        async with AsyncUnitOfWork(factory) as uow:
-            repo = SQLAlchemyImportUploadRepository(uow)
-            use_case = StoreUpload(uow, repo)
-            result = await use_case(
-                filename="essentiality.tsv",
-                content_type="text/tab-separated-values",
-                data=payload,
-                auth=admin,
-            )
+        # Store via use case — let the use case manage the uow context internally
+        uow = AsyncUnitOfWork(factory)
+        repo = SQLAlchemyImportUploadRepository(uow)
+        result = await StoreUpload(uow, repo)(
+            filename="essentiality.tsv",
+            content_type="text/tab-separated-values",
+            data=payload,
+            auth=admin,
+        )
 
         assert isinstance(result, Success)
         upload = result.unwrap()
         assert upload.filename == "essentiality.tsv"
         upload_id = upload.id
 
-        # Retrieve via GetUpload with fresh UoW
-        async with AsyncUnitOfWork(factory) as uow2:
-            repo2 = SQLAlchemyImportUploadRepository(uow2)
-            get_use_case = GetUpload(uow2, repo2)
-            get_result = await get_use_case(upload_id, admin)
+        # Retrieve via GetUpload with a separate fresh UoW
+        uow2 = AsyncUnitOfWork(factory)
+        repo2 = SQLAlchemyImportUploadRepository(uow2)
+        get_result = await GetUpload(uow2, repo2)(upload_id, admin)
 
         assert isinstance(get_result, Success)
         loaded = get_result.unwrap()
@@ -64,10 +62,9 @@ async def test_get_upload_not_found(database_url: str, _run_migrations: None) ->
     admin = FakeAuth(role="admin")
 
     try:
-        async with AsyncUnitOfWork(factory) as uow:
-            repo = SQLAlchemyImportUploadRepository(uow)
-            get_use_case = GetUpload(uow, repo)
-            result = await get_use_case(uuid.uuid4(), admin)
+        uow = AsyncUnitOfWork(factory)
+        repo = SQLAlchemyImportUploadRepository(uow)
+        result = await GetUpload(uow, repo)(uuid.uuid4(), admin)
 
         assert isinstance(result, Failure)
         err = result.failure()

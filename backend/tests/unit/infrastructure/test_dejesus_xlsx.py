@@ -21,7 +21,7 @@ def _xlsx_bytes() -> bytes:
 
 def test_xlsx_to_tsv_extracts_locus_and_call() -> None:
     tsv = essentiality_upload_to_tsv("table_s3.xlsx", _xlsx_bytes())
-    assert "Rv0667" in tsv and "ES" in tsv
+    assert "Rv0667\tES" in tsv
 
 
 def test_tsv_passthrough() -> None:
