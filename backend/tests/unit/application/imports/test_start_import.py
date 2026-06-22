@@ -92,6 +92,7 @@ async def test_start_import_rejects_duplicate_active_run() -> None:
     assert isinstance(result, Failure)
     assert isinstance(result.failure(), ConflictError)
     assert enq.enqueued == []  # not enqueued
+    assert repo.saved == []  # not persisted
 
 
 async def test_start_import_sets_requested_by_from_auth() -> None:

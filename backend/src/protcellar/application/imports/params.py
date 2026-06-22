@@ -25,6 +25,12 @@ class GeneEnrichmentParams(pydantic.BaseModel):
     essentiality_upload_ref: uuid.UUID | None = None
     force: bool = False
 
+    @pydantic.model_validator(mode="after")
+    def _require_organism_identifier(self) -> "GeneEnrichmentParams":
+        if self.organism_id is None and self.tax_id is None:
+            raise ValueError("gene enrichment requires organism_id or tax_id")
+        return self
+
 
 class GoOntologyParams(pydantic.BaseModel):
     force: bool = False

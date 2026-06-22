@@ -38,8 +38,8 @@ def test_proteome_params_valid_full() -> None:
 
 
 def test_proteome_params_missing_proteome_id_raises() -> None:
-    with pytest.raises(Exception):  # pydantic ValidationError → domain ValidationError in validate_params
-        ProteomeParams()  # type: ignore[call-arg]
+    with pytest.raises(ValidationError):
+        validate_params(ImportType.PROTEOME, {})
 
 
 # ---------------------------------------------------------------------------
@@ -59,16 +59,15 @@ def test_gene_enrichment_params_with_tax_id() -> None:
     assert p.tax_id == 1773
 
 
-def test_gene_enrichment_params_all_none() -> None:
-    p = GeneEnrichmentParams()
-    assert p.organism_id is None
-    assert p.tax_id is None
-    assert p.force is False
+def test_gene_enrichment_params_all_none_raises() -> None:
+    with pytest.raises(ValidationError):
+        validate_params(ImportType.GENE_ENRICHMENT, {})
 
 
 def test_gene_enrichment_params_with_upload_ref() -> None:
     ref = uuid.uuid4()
-    p = GeneEnrichmentParams(essentiality_upload_ref=ref)
+    oid = uuid.uuid4()
+    p = GeneEnrichmentParams(organism_id=oid, essentiality_upload_ref=ref)
     assert p.essentiality_upload_ref == ref
 
 
@@ -121,6 +120,21 @@ def test_validate_params_proteome_missing_id_raises_domain_error() -> None:
 def test_validate_params_proteome_wrong_type_raises_domain_error() -> None:
     with pytest.raises(ValidationError):
         validate_params(ImportType.PROTEOME, {"proteome_id": 123})
+
+
+def test_validate_params_gene_enrichment_no_identifier_raises_domain_error() -> None:
+    with pytest.raises(ValidationError):
+        validate_params(ImportType.GENE_ENRICHMENT, {})
+
+
+def test_validate_params_gene_enrichment_bad_tax_id_type_raises_domain_error() -> None:
+    with pytest.raises(ValidationError):
+        validate_params(ImportType.GENE_ENRICHMENT, {"tax_id": "not-an-int"})
+
+
+def test_validate_params_go_ontology_bad_force_type_raises_domain_error() -> None:
+    with pytest.raises(ValidationError):
+        validate_params(ImportType.GO_ONTOLOGY, {"force": "not-a-bool"})
 
 
 # ---------------------------------------------------------------------------
