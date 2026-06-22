@@ -16,6 +16,7 @@ from typing import Any
 
 import httpx
 
+from protcellar.application.imports.progress_reporter import NoopProgressReporter, ProgressReporter
 from protcellar.infrastructure.ingestion.go_obo import parse_obo
 from protcellar.infrastructure.ingestion.go_obo import read_obo as _default_read_obo
 from protcellar.infrastructure.persistence.sqlalchemy.gene_ontology.go_ontology_repository import (
@@ -50,23 +51,33 @@ class GoImportRunner:
         source_url: str = GO_BASIC_OBO_URL,
         read_obo: Callable[[Any], Any] = _default_read_obo,
         probe_version: Callable[[str], str] = _probe_version,
+        reporter: ProgressReporter = NoopProgressReporter(),
     ) -> None:
         self._uow = uow
         self._source_url = source_url
         self._read_obo = read_obo
         self._probe_version = probe_version
+        self._reporter = reporter
 
     async def run(self, *, force: bool = False) -> GoImportSummary:
+        await self._reporter.phase("probe version")
         version = await asyncio.to_thread(self._probe_version, self._source_url)
+        await self._reporter.source_version(version or None)
         if not force:
             async with self._uow:
                 latest = await SQLAlchemyGoOntologyRepository(self._uow).latest_source_version()
             if version and version == latest:
                 return GoImportSummary(source_version=version, skipped_unchanged=True)
 
+        await self._reporter.phase("download")
         graph = await asyncio.to_thread(self._read_obo, self._source_url)
+
+        await self._reporter.phase("parse")
         terms, edges, data_version = parse_obo(graph)
         version = data_version or version
+        await self._reporter.source_version(version or None)
+
+        await self._reporter.phase("upsert")
         async with self._uow:
             repo = SQLAlchemyGoOntologyRepository(self._uow)
             await repo.upsert_terms(terms, source_version=version)

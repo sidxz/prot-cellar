@@ -19,6 +19,7 @@ from dataclasses import dataclass, replace
 from typing import Any, Protocol
 
 from protcellar.application.auth import AuthContext
+from protcellar.application.imports.progress_reporter import NoopProgressReporter, ProgressReporter
 from protcellar.application.protein_catalog.bulk_upsert_genes import (
     BulkUpsertGenes,
     BulkUpsertGenesCommand,
@@ -93,12 +94,14 @@ class ProteomeImportRunner:
         *,
         gene_bulk: BulkUpsertGenes | None = None,
         chunk_size: int = 500,
+        reporter: ProgressReporter = NoopProgressReporter(),
     ) -> None:
         self._uow = uow
         self._client = client
         self._bulk = bulk_upsert
         self._gene_bulk = gene_bulk
         self._chunk_size = chunk_size
+        self._reporter = reporter
 
     async def run(
         self,
@@ -111,6 +114,7 @@ class ProteomeImportRunner:
     ) -> ImportSummary:
         meta = await self._client.fetch_proteome(proteome_id)
         source_release = str(meta.get("modified") or "")
+        await self._reporter.source_version(source_release or None)
         if not force and not dry_run and await self._is_unchanged(proteome_id, meta):
             return ImportSummary(proteome_id=proteome_id, skipped_unchanged=True)
         organism_id, strain_id = await self._resolve_taxa(meta, dry_run=dry_run, auth=auth)
@@ -119,6 +123,11 @@ class ProteomeImportRunner:
         )
 
         tax_id = (meta.get("taxonomy") or {}).get("taxonId")
+
+        await self._reporter.phase("streaming entries")
+        total: int | None = (meta.get("proteinCount") or None)
+        if total is not None:
+            await self._reporter.advance(0, total)
 
         summary = ImportSummary(proteome_id=proteome_id)
         seen: set[str] = set()
@@ -140,6 +149,7 @@ class ProteomeImportRunner:
                     auth=auth,
                 )
                 chunk = []
+                await self._reporter.advance(summary.entries)
             if limit is not None and summary.entries >= limit:
                 break
         if chunk:
@@ -154,7 +164,9 @@ class ProteomeImportRunner:
                 dry_run=dry_run,
                 auth=auth,
             )
+            await self._reporter.advance(summary.entries)
         if not dry_run and limit is None:
+            await self._reporter.phase("linking membership")
             await self._reconcile_membership(proteome_db_id, seen, summary)
         return summary
 

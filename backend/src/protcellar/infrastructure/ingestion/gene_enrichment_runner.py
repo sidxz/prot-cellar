@@ -20,6 +20,7 @@ from typing import Protocol
 from returns.result import Result
 
 from protcellar.application.auth import AuthContext
+from protcellar.application.imports.progress_reporter import NoopProgressReporter, ProgressReporter
 from protcellar.application.protein_catalog.bulk_enrich_genes import (
     EnrichSummary,
     GeneEnrichmentRecord,
@@ -59,22 +60,32 @@ class GeneEnrichmentRunner:
         gff_url: str,
         essentiality_loader: EssentialityLoader | None = None,
         assembly: str = _DEFAULT_ASSEMBLY,
+        reporter: ProgressReporter = NoopProgressReporter(),
     ) -> None:
         self._bulk = bulk_enrich
         self._client = gff_client
         self._gff_url = gff_url
         self._load_essentiality = essentiality_loader
         self._assembly = assembly
+        self._reporter = reporter
 
     async def run(
         self, organism_id: uuid.UUID, *, auth: AuthContext | None = None
     ) -> EnrichSummary:
+        await self._reporter.phase("fetch GFF")
         gff_text = await self._client.fetch_text(self._gff_url)
+
+        await self._reporter.phase("parse")
         gff = parse_mycobrowser_gff(gff_text)
 
         essentiality: dict[str, str] = {}
         if self._load_essentiality is not None:
+            await self._reporter.phase("fetch essentiality")
             essentiality = parse_dejesus_essentiality(await self._load_essentiality())
 
         records = build_enrichment_records(gff, essentiality, assembly=self._assembly)
-        return (await self._bulk(organism_id, records, auth)).unwrap()
+
+        await self._reporter.phase("enrich")
+        result = (await self._bulk(organism_id, records, auth)).unwrap()
+        await self._reporter.advance(len(records), len(records))
+        return result
