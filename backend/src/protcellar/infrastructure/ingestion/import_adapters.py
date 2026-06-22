@@ -39,6 +39,7 @@ from protcellar.infrastructure.ingestion.mycobrowser_client import (
 )
 from protcellar.infrastructure.ingestion.organism_resolver import resolve_organism_id
 from protcellar.infrastructure.ingestion.uniprot_client import UniProtClient
+from protcellar.infrastructure.ingestion.url_guard import fetch_text_guarded, validate_public_url
 from protcellar.infrastructure.persistence.sqlalchemy.protein_catalog.gene_repository import (
     SQLAlchemyGeneRepository,
 )
@@ -144,6 +145,8 @@ class GeneEnrichmentAdapter:
             raise ValueError(f"organism {resolved_id} has no genes to enrich")
 
         gff_url: str = params.get("gff_url") or MYCOBROWSER_H37RV_GFF_URL
+        # Guard admin-supplied GFF URL against SSRF before any network I/O
+        validate_public_url(gff_url)
 
         # Build essentiality loader
         essentiality_loader = None
@@ -158,10 +161,8 @@ class GeneEnrichmentAdapter:
             ess_url: str = params["essentiality_url"]
 
             async def _load_from_url() -> str:
-                async with httpx.AsyncClient() as http:
-                    resp = await http.get(ess_url, follow_redirects=True, timeout=120.0)
-                    resp.raise_for_status()
-                    return resp.text
+                # Manual redirect following validates every hop for SSRF safety
+                return await fetch_text_guarded(ess_url)
 
             essentiality_loader = _load_from_url
 
