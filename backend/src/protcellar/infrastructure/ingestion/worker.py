@@ -13,16 +13,19 @@ module directly.
 from __future__ import annotations
 
 import uuid
+from typing import Any, ClassVar
 
-from sqlalchemy.ext.asyncio import async_sessionmaker
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from protcellar.application.service_auth import ServiceAuth
 from protcellar.domain.shared.events import DomainEvent
 from protcellar.infrastructure.ingestion.arq_enqueuer import redis_settings_from_env
 
 # Re-export so tests can monkeypatch worker.IMPORT_ADAPTERS
-from protcellar.infrastructure.ingestion.import_adapters import IMPORT_ADAPTERS  # noqa: F401
-from protcellar.infrastructure.ingestion.import_adapters import ImportRuntime
+from protcellar.infrastructure.ingestion.import_adapters import (
+    IMPORT_ADAPTERS,
+    ImportRuntime,
+)
 from protcellar.infrastructure.messaging.audit_event_handler import AuditEventHandler
 from protcellar.infrastructure.messaging.event_dispatcher import EventDispatcher
 from protcellar.infrastructure.persistence.database import create_engine_and_sessionmaker
@@ -39,7 +42,7 @@ from protcellar.infrastructure.persistence.sqlalchemy.imports.import_upload_repo
 from protcellar.infrastructure.persistence.unit_of_work import AsyncUnitOfWork
 
 
-async def run_import(ctx: dict, import_run_id: str) -> None:
+async def run_import(ctx: dict[str, Any], import_run_id: str) -> None:
     """Execute a queued import run.
 
     Called by arq with ``ctx`` containing:
@@ -58,7 +61,7 @@ async def run_import(ctx: dict, import_run_id: str) -> None:
     worker.  ``asyncio.CancelledError`` and ``KeyboardInterrupt`` are
     intentionally NOT caught.
     """
-    session_factory: async_sessionmaker = ctx["session_factory"]
+    session_factory: async_sessionmaker[AsyncSession] = ctx["session_factory"]
     dispatcher: EventDispatcher = ctx["dispatcher"]
 
     run_id = uuid.UUID(import_run_id)
@@ -102,7 +105,7 @@ async def run_import(ctx: dict, import_run_id: str) -> None:
     except (Exception, SystemExit) as exc:
         # Best-effort: reload and mark FAILED so the run record reflects the error.
         try:
-            fail_events: list = []
+            fail_events: list[Any] = []
             async with AsyncUnitOfWork(session_factory) as uow:
                 repo = SQLAlchemyImportRunRepository(uow)
                 failed_run = await repo.get(run_id)
@@ -132,7 +135,7 @@ async def run_import(ctx: dict, import_run_id: str) -> None:
 # ---------------------------------------------------------------------------
 
 
-async def _on_startup(ctx: dict) -> None:
+async def _on_startup(ctx: dict[str, Any]) -> None:
     """Build engine, session factory, and wired dispatcher; store in ctx."""
     db_settings = DatabaseSettings()  # type: ignore[call-arg]
     engine, session_factory = create_engine_and_sessionmaker(db_settings)
@@ -144,7 +147,7 @@ async def _on_startup(ctx: dict) -> None:
     ctx["dispatcher"] = dispatcher
 
 
-async def _on_shutdown(ctx: dict) -> None:
+async def _on_shutdown(ctx: dict[str, Any]) -> None:
     """Dispose the engine on shutdown."""
     engine = ctx.get("engine")
     if engine is not None:
@@ -154,7 +157,7 @@ async def _on_shutdown(ctx: dict) -> None:
 class WorkerSettings:
     """arq WorkerSettings — mirrors the lifespan wiring in ``interface/app.py``."""
 
-    functions = [run_import]
+    functions: ClassVar[list[Any]] = [run_import]
     redis_settings = redis_settings_from_env()
     on_startup = _on_startup
     on_shutdown = _on_shutdown

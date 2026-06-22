@@ -85,6 +85,9 @@ class ImportSummary:
     skipped_unchanged: bool = False
 
 
+_NOOP_REPORTER: ProgressReporter = NoopProgressReporter()
+
+
 class ProteomeImportRunner:
     def __init__(
         self,
@@ -94,7 +97,7 @@ class ProteomeImportRunner:
         *,
         gene_bulk: BulkUpsertGenes | None = None,
         chunk_size: int = 500,
-        reporter: ProgressReporter = NoopProgressReporter(),
+        reporter: ProgressReporter = _NOOP_REPORTER,
     ) -> None:
         self._uow = uow
         self._client = client
@@ -125,7 +128,7 @@ class ProteomeImportRunner:
         tax_id = (meta.get("taxonomy") or {}).get("taxonId")
 
         await self._reporter.phase("streaming entries")
-        total: int | None = (meta.get("proteinCount") or None)
+        total: int | None = meta.get("proteinCount") or None
         if total is not None:
             await self._reporter.advance(0, total)
 

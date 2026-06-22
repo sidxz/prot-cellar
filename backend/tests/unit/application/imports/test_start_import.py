@@ -5,7 +5,7 @@ from __future__ import annotations
 import uuid
 
 import pytest
-from returns.result import Failure, Success
+from returns.result import Failure
 
 from protcellar.application.imports.start_import import StartImport, StartImportCommand
 from protcellar.domain.imports.enums import ImportStatus, ImportType
@@ -72,7 +72,9 @@ def _admin() -> FakeAuth:
 async def test_start_import_persists_queued_and_enqueues() -> None:
     repo, enq = _FakeRunRepo(), _FakeEnqueuer()
     uc = StartImport(_FakeUoW(), repo, _NoopDispatcher(), enq)  # type: ignore[arg-type]
-    cmd = StartImportCommand(import_type=ImportType.PROTEOME, params={"proteome_id": "UP000001584"})
+    cmd = StartImportCommand(
+        import_type=ImportType.PROTEOME, params={"proteome_id": "UP000001584"}
+    )
     result = await uc(cmd, auth=_admin())
     run = result.unwrap()
     assert run.status is ImportStatus.QUEUED
@@ -82,12 +84,16 @@ async def test_start_import_persists_queued_and_enqueues() -> None:
 
 async def test_start_import_rejects_duplicate_active_run() -> None:
     existing = ImportRun.create(
-        import_type=ImportType.PROTEOME, params={"proteome_id": "UP000001584"},
-        target_key="UP000001584", requested_by=uuid.uuid4(),
+        import_type=ImportType.PROTEOME,
+        params={"proteome_id": "UP000001584"},
+        target_key="UP000001584",
+        requested_by=uuid.uuid4(),
     )
     repo, enq = _FakeRunRepo(active=existing), _FakeEnqueuer()
     uc = StartImport(_FakeUoW(), repo, _NoopDispatcher(), enq)  # type: ignore[arg-type]
-    cmd = StartImportCommand(import_type=ImportType.PROTEOME, params={"proteome_id": "UP000001584"})
+    cmd = StartImportCommand(
+        import_type=ImportType.PROTEOME, params={"proteome_id": "UP000001584"}
+    )
     result = await uc(cmd, auth=_admin())
     assert isinstance(result, Failure)
     assert isinstance(result.failure(), ConflictError)
@@ -100,7 +106,9 @@ async def test_start_import_sets_requested_by_from_auth() -> None:
     auth = _admin()
     repo, enq = _FakeRunRepo(), _FakeEnqueuer()
     uc = StartImport(_FakeUoW(), repo, _NoopDispatcher(), enq)  # type: ignore[arg-type]
-    cmd = StartImportCommand(import_type=ImportType.PROTEOME, params={"proteome_id": "UP000001584"})
+    cmd = StartImportCommand(
+        import_type=ImportType.PROTEOME, params={"proteome_id": "UP000001584"}
+    )
     result = await uc(cmd, auth=auth)
     run = result.unwrap()
     assert run.requested_by == auth.user_id

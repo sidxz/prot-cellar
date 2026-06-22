@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import uuid
+from datetime import datetime
 from typing import Protocol, runtime_checkable
 
 from protcellar.domain.imports.enums import ImportType
@@ -19,13 +20,11 @@ class ImportRunRepository(Protocol):
     async def list(
         self,
         *,
-        cursor: tuple | None = None,
+        cursor: tuple[datetime, uuid.UUID] | None = None,
         limit: int = 50,
     ) -> list[ImportRun]: ...
 
-    async def find_active(
-        self, import_type: ImportType, target_key: str
-    ) -> ImportRun | None: ...
+    async def find_active(self, import_type: ImportType, target_key: str) -> ImportRun | None: ...
 
 
 @runtime_checkable

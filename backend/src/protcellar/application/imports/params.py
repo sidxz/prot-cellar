@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import uuid
+from typing import Any
 
 import pydantic
 
@@ -26,7 +27,7 @@ class GeneEnrichmentParams(pydantic.BaseModel):
     force: bool = False
 
     @pydantic.model_validator(mode="after")
-    def _require_organism_identifier(self) -> "GeneEnrichmentParams":
+    def _require_organism_identifier(self) -> GeneEnrichmentParams:
         if self.organism_id is None and self.tax_id is None:
             raise ValueError("gene enrichment requires organism_id or tax_id")
         return self
@@ -43,7 +44,7 @@ _PARAM_MODELS: dict[ImportType, type[pydantic.BaseModel]] = {
 }
 
 
-def validate_params(import_type: ImportType, raw: dict) -> dict:
+def validate_params(import_type: ImportType, raw: dict[str, Any]) -> dict[str, Any]:
     """Validate and normalise raw params for the given import type.
 
     Returns a JSON-serialisable dict (mode="json" model_dump).
@@ -57,24 +58,24 @@ def validate_params(import_type: ImportType, raw: dict) -> dict:
     return instance.model_dump(mode="json")
 
 
-def target_key(import_type: ImportType, params: dict) -> str:
+def target_key(import_type: ImportType, params: dict[str, Any]) -> str:
     """Derive the target_key string for an import run from its normalised params."""
     if import_type is ImportType.PROTEOME:
-        return params["proteome_id"]
+        return str(params["proteome_id"])
     if import_type is ImportType.GENE_ENRICHMENT:
         return str(params.get("organism_id") or params.get("tax_id"))
     # GO_ONTOLOGY
     return "go"
 
 
-def needs_upload(import_type: ImportType, params: dict) -> bool:
+def needs_upload(import_type: ImportType, params: dict[str, Any]) -> bool:
     """Return True if this import type + params require an upload reference."""
     if import_type is ImportType.GENE_ENRICHMENT:
         return bool(params.get("essentiality_upload_ref"))
     return False
 
 
-def upload_ref_of(import_type: ImportType, params: dict) -> uuid.UUID | None:
+def upload_ref_of(import_type: ImportType, params: dict[str, Any]) -> uuid.UUID | None:
     """Return the upload UUID for this run, or None."""
     if import_type is ImportType.GENE_ENRICHMENT:
         ref = params.get("essentiality_upload_ref")

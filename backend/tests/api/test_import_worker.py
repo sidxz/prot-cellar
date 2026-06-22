@@ -38,7 +38,9 @@ async def _seed_queued(factory) -> uuid.UUID:
         return run.id
 
 
-async def test_worker_drives_queued_to_succeeded(database_url, _run_migrations, monkeypatch) -> None:
+async def test_worker_drives_queued_to_succeeded(
+    database_url: str, _run_migrations: None, monkeypatch: object
+) -> None:
     engine = create_async_engine(database_url)
     factory = async_sessionmaker(engine, expire_on_commit=False)
     try:
@@ -62,7 +64,9 @@ async def test_worker_drives_queued_to_succeeded(database_url, _run_migrations, 
         await engine.dispose()
 
 
-async def test_worker_marks_failed_on_adapter_error(database_url, _run_migrations, monkeypatch) -> None:
+async def test_worker_marks_failed_on_adapter_error(
+    database_url: str, _run_migrations: None, monkeypatch: object
+) -> None:
     engine = create_async_engine(database_url)
     factory = async_sessionmaker(engine, expire_on_commit=False)
     try:
@@ -86,7 +90,9 @@ async def test_worker_marks_failed_on_adapter_error(database_url, _run_migration
         await engine.dispose()
 
 
-async def test_worker_marks_failed_on_system_exit(database_url, _run_migrations, monkeypatch) -> None:
+async def test_worker_marks_failed_on_system_exit(
+    database_url: str, _run_migrations: None, monkeypatch: object
+) -> None:
     """SystemExit (raised by resolve_organism_id) is caught and turns the run FAILED."""
     engine = create_async_engine(database_url)
     factory = async_sessionmaker(engine, expire_on_commit=False)

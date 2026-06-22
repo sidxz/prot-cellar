@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import uuid
 from datetime import UTC, datetime
+from typing import Any
 
 from protcellar.domain.imports.enums import ImportStatus, ImportType
 from protcellar.domain.imports.events import (
@@ -23,14 +24,14 @@ class ImportRun(AggregateRoot):
         *,
         id: uuid.UUID | None = None,
         import_type: ImportType,
-        params: dict | None = None,
+        params: dict[str, Any] | None = None,
         target_key: str,
         requested_by: uuid.UUID,
         status: ImportStatus = ImportStatus.QUEUED,
         phase: str | None = None,
         processed: int | None = None,
         total: int | None = None,
-        summary: dict | None = None,
+        summary: dict[str, Any] | None = None,
         source_version: str | None = None,
         error: str | None = None,
         upload_ref: uuid.UUID | None = None,
@@ -62,7 +63,7 @@ class ImportRun(AggregateRoot):
         cls,
         *,
         import_type: ImportType,
-        params: dict,
+        params: dict[str, Any],
         target_key: str,
         requested_by: uuid.UUID,
         upload_ref: uuid.UUID | None = None,
@@ -94,7 +95,9 @@ class ImportRun(AggregateRoot):
         self.started_at = datetime.now(UTC)
         self._touch()
         self.register_event(
-            ImportRunStarted(aggregate_id=self.id, aggregate_type=_AGG, workspace_id=self.workspace_id)
+            ImportRunStarted(
+                aggregate_id=self.id, aggregate_type=_AGG, workspace_id=self.workspace_id
+            )
         )
 
     def record_progress(
@@ -112,11 +115,11 @@ class ImportRun(AggregateRoot):
         self.source_version = version
         self._touch()
 
-    def record_summary(self, summary: dict) -> None:
+    def record_summary(self, summary: dict[str, Any]) -> None:
         self.summary = dict(summary)
         self._touch()
 
-    def succeed(self, summary: dict) -> None:
+    def succeed(self, summary: dict[str, Any]) -> None:
         if self.status is not ImportStatus.RUNNING:
             raise ConflictError(f"Cannot succeed import in status '{self.status}'")
         self.status = ImportStatus.SUCCEEDED
@@ -124,7 +127,9 @@ class ImportRun(AggregateRoot):
         self.finished_at = datetime.now(UTC)
         self._touch()
         self.register_event(
-            ImportRunSucceeded(aggregate_id=self.id, aggregate_type=_AGG, workspace_id=self.workspace_id)
+            ImportRunSucceeded(
+                aggregate_id=self.id, aggregate_type=_AGG, workspace_id=self.workspace_id
+            )
         )
 
     def fail(self, error: str) -> None:
@@ -136,6 +141,9 @@ class ImportRun(AggregateRoot):
         self._touch()
         self.register_event(
             ImportRunFailed(
-                aggregate_id=self.id, aggregate_type=_AGG, workspace_id=self.workspace_id, error=error
+                aggregate_id=self.id,
+                aggregate_type=_AGG,
+                workspace_id=self.workspace_id,
+                error=error,
             )
         )

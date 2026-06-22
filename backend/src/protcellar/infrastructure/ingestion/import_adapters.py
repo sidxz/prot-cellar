@@ -18,7 +18,7 @@ import dataclasses
 import uuid
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
-from typing import Protocol
+from typing import Any, Protocol
 
 import httpx
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
@@ -63,7 +63,7 @@ class ImportRuntime:
     session_factory: async_sessionmaker[AsyncSession]
     dispatcher: EventDispatcherProtocol
     reporter: ProgressReporter
-    params: dict
+    params: dict[str, Any]
     auth: AuthContext
     load_upload: Callable[[uuid.UUID], Awaitable[bytes]]
 
@@ -78,7 +78,7 @@ class ImportAdapter(Protocol):
 
     import_type: ImportType
 
-    async def run(self, rt: ImportRuntime) -> dict: ...
+    async def run(self, rt: ImportRuntime) -> dict[str, Any]: ...
 
 
 # ---------------------------------------------------------------------------
@@ -91,7 +91,7 @@ class ProteomeAdapter:
 
     import_type = ImportType.PROTEOME
 
-    async def run(self, rt: ImportRuntime) -> dict:
+    async def run(self, rt: ImportRuntime) -> dict[str, Any]:
         params = rt.params
         proteome_id: str = params["proteome_id"]
         force: bool = bool(params.get("force", False))
@@ -127,7 +127,7 @@ class GeneEnrichmentAdapter:
 
     import_type = ImportType.GENE_ENRICHMENT
 
-    async def run(self, rt: ImportRuntime) -> dict:
+    async def run(self, rt: ImportRuntime) -> dict[str, Any]:
         params = rt.params
 
         # Coerce organism_id from JSON string to UUID if provided
@@ -188,7 +188,7 @@ class GoOntologyAdapter:
 
     import_type = ImportType.GO_ONTOLOGY
 
-    async def run(self, rt: ImportRuntime) -> dict:
+    async def run(self, rt: ImportRuntime) -> dict[str, Any]:
         force: bool = bool(rt.params.get("force", False))
         uow = AsyncUnitOfWork(rt.session_factory)
         runner = GoImportRunner(uow, reporter=rt.reporter)

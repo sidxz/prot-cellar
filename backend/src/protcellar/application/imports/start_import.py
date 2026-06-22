@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import uuid
 from dataclasses import dataclass, field
+from typing import Any
 
 from returns.result import Failure, Result, Success
 
@@ -21,7 +22,7 @@ from protcellar.domain.shared.errors import ConflictError, DomainError
 @dataclass(frozen=True, kw_only=True)
 class StartImportCommand:
     import_type: ImportType
-    params: dict = field(default_factory=dict)
+    params: dict[str, Any] = field(default_factory=dict)
 
 
 class StartImport:

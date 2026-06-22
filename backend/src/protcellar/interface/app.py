@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import contextlib
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
@@ -9,8 +10,8 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.ext.asyncio import AsyncEngine, async_sessionmaker
 
-from protcellar.domain.shared.events import DomainEvent
 from protcellar.application.imports.job_enqueuer import JobEnqueuer
+from protcellar.domain.shared.events import DomainEvent
 from protcellar.infrastructure.di.container import create_container
 from protcellar.infrastructure.logging import configure_logging
 from protcellar.infrastructure.messaging.audit_event_handler import AuditEventHandler
@@ -38,12 +39,10 @@ def create_app() -> FastAPI:
         async with sentinel.lifespan(app):
             yield
 
-        enq = container[JobEnqueuer]
+        enq = container[JobEnqueuer]  # type: ignore[type-abstract]
         if hasattr(enq, "aclose"):
-            try:
+            with contextlib.suppress(Exception):
                 await enq.aclose()
-            except Exception:
-                pass
 
         engine = container[AsyncEngine]
         await engine.dispose()

@@ -66,7 +66,7 @@ class ImportRunResponse(BaseModel):
 
 class StartImportBody(BaseModel):
     import_type: ImportType
-    params: dict = {}
+    params: dict[str, Any] = {}
 
 
 class UploadResponse(BaseModel):

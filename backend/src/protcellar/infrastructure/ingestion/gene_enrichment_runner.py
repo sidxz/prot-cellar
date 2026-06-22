@@ -31,6 +31,7 @@ from protcellar.infrastructure.ingestion.gene_enrichment_mapper import build_enr
 from protcellar.infrastructure.ingestion.mycobrowser_gff import parse_mycobrowser_gff
 
 _DEFAULT_ASSEMBLY = "ASM19595v2"
+_NOOP_REPORTER: ProgressReporter = NoopProgressReporter()
 
 
 class GffClient(Protocol):
@@ -60,7 +61,7 @@ class GeneEnrichmentRunner:
         gff_url: str,
         essentiality_loader: EssentialityLoader | None = None,
         assembly: str = _DEFAULT_ASSEMBLY,
-        reporter: ProgressReporter = NoopProgressReporter(),
+        reporter: ProgressReporter = _NOOP_REPORTER,
     ) -> None:
         self._bulk = bulk_enrich
         self._client = gff_client

@@ -26,6 +26,7 @@ from protcellar.infrastructure.persistence.unit_of_work import AsyncUnitOfWork
 
 GO_BASIC_OBO_URL = "http://purl.obolibrary.org/obo/go/go-basic.obo"
 _VERSION_RE = re.compile(r"^data-version:\s*(\S+)", re.MULTILINE)
+_NOOP_REPORTER: ProgressReporter = NoopProgressReporter()
 
 
 @dataclass
@@ -51,7 +52,7 @@ class GoImportRunner:
         source_url: str = GO_BASIC_OBO_URL,
         read_obo: Callable[[Any], Any] = _default_read_obo,
         probe_version: Callable[[str], str] = _probe_version,
-        reporter: ProgressReporter = NoopProgressReporter(),
+        reporter: ProgressReporter = _NOOP_REPORTER,
     ) -> None:
         self._uow = uow
         self._source_url = source_url

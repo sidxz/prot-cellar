@@ -19,7 +19,6 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_asyn
 
 from protcellar.application.imports.progress_reporter import ProgressReporter
 
-
 # --------------------------------------------------------------------------- #
 # Recording reporter                                                            #
 # --------------------------------------------------------------------------- #
@@ -68,7 +67,8 @@ _GFF = "##gff-version 3\n#!genome-build ASM19595v2\n" + "\n".join(
             ".",
             "-",
             "0",
-            "Locus=Rv1908c;Name=katG;Functional_Category=Virulence%2C detoxification%2C adaptation",
+            "Locus=Rv1908c;Name=katG;"
+            "Functional_Category=Virulence%2C detoxification%2C adaptation",
         ),
     )
 )
@@ -92,8 +92,9 @@ class _CapturingBulkEnrich:
         records: Sequence[object],
         auth: object | None = None,
     ) -> object:
-        from protcellar.application.protein_catalog.bulk_enrich_genes import EnrichSummary
         from returns.result import Success
+
+        from protcellar.application.protein_catalog.bulk_enrich_genes import EnrichSummary
 
         self.records = list(records)
         return Success(
@@ -183,9 +184,7 @@ async def test_gene_enrichment_runner_reports_phases() -> None:
     assert reporter.phases[0] == "fetch GFF", (
         f"Expected 'fetch GFF' as first phase, got: {reporter.phases}"
     )
-    assert "enrich" in reporter.phases, (
-        f"Expected 'enrich' in phases, got: {reporter.phases}"
-    )
+    assert "enrich" in reporter.phases, f"Expected 'enrich' in phases, got: {reporter.phases}"
     # parse should come before enrich
     assert reporter.phases.index("parse") < reporter.phases.index("enrich")
 
@@ -215,9 +214,7 @@ async def test_go_import_runner_reports_phases(go_runner_uow: object) -> None:
     assert reporter.phases[0] == "probe version", (
         f"Expected 'probe version' as first phase, got: {reporter.phases}"
     )
-    assert "upsert" in reporter.phases, (
-        f"Expected 'upsert' in phases, got: {reporter.phases}"
-    )
+    assert "upsert" in reporter.phases, f"Expected 'upsert' in phases, got: {reporter.phases}"
     # source_version should have been reported
     assert any(v is not None and "2026-99-01" in v for v in reporter.versions), (
         f"Expected a version containing '2026-99-01', got: {reporter.versions}"
@@ -234,7 +231,8 @@ async def test_go_import_runner_noop_default_keeps_existing_behavior(
     runner = _build_go_runner(go_runner_uow)  # no reporter= kwarg
     result = await runner.run(force=True)  # type: ignore[attr-defined]
     assert isinstance(result, GoImportSummary)
-    assert result.terms_upserted == 2  # OBO fixture defines exactly 2 terms (GO:0099001 + GO:0099002)
+    # OBO fixture defines exactly 2 terms (GO:0099001 + GO:0099002)
+    assert result.terms_upserted == 2
 
 
 # --------------------------------------------------------------------------- #

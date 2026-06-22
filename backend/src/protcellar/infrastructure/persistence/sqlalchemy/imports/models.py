@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import uuid
+from typing import Any
 
 from sqlalchemy import JSON, DateTime, Integer, LargeBinary, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
@@ -19,8 +20,8 @@ class ImportRunModel(Base, EntityModelMixin, WorkspaceIdMixin, VersionMixin):
     import_type: Mapped[str] = mapped_column(String(32), nullable=False, index=True)
     target_key: Mapped[str] = mapped_column(String(128), nullable=False, index=True)
     status: Mapped[str] = mapped_column(String(16), nullable=False, index=True)
-    params: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
-    summary: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
+    params: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False, default=dict)
+    summary: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False, default=dict)
     phase: Mapped[str | None] = mapped_column(String(64), nullable=True)
     processed: Mapped[int | None] = mapped_column(Integer, nullable=True)
     total: Mapped[int | None] = mapped_column(Integer, nullable=True)

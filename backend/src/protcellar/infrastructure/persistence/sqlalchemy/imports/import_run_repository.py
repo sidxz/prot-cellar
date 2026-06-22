@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import uuid
+from datetime import datetime
 
 from sqlalchemy import select, tuple_
 
@@ -81,30 +82,23 @@ class SQLAlchemyImportRunRepository(
     async def get(self, id: uuid.UUID) -> ImportRun | None:
         return await self.find_by_id_in_workspace(GLOBAL_WORKSPACE_ID, id)
 
-    async def list(self, *, cursor: tuple | None = None, limit: int = 50) -> list[ImportRun]:
+    async def list(
+        self, *, cursor: tuple[datetime, uuid.UUID] | None = None, limit: int = 50
+    ) -> list[ImportRun]:
         stmt = select(ImportRunModel).order_by(
             ImportRunModel.created_at.desc(), ImportRunModel.id.desc()
         )
         if cursor is not None:  # cursor = (created_at, id)
             ts, cid = cursor
-            stmt = stmt.where(
-                tuple_(ImportRunModel.created_at, ImportRunModel.id) < (ts, cid)
-            )
+            stmt = stmt.where(tuple_(ImportRunModel.created_at, ImportRunModel.id) < (ts, cid))
         stmt = stmt.limit(limit)
-        return [
-            self._to_domain_tracked(m)
-            for m in (await self._session.execute(stmt)).scalars()
-        ]
+        return [self._to_domain_tracked(m) for m in (await self._session.execute(stmt)).scalars()]
 
-    async def find_active(
-        self, import_type: ImportType, target_key: str
-    ) -> ImportRun | None:
+    async def find_active(self, import_type: ImportType, target_key: str) -> ImportRun | None:
         stmt = select(ImportRunModel).where(
             ImportRunModel.import_type == import_type.value,
             ImportRunModel.target_key == target_key,
-            ImportRunModel.status.in_(
-                [ImportStatus.QUEUED.value, ImportStatus.RUNNING.value]
-            ),
+            ImportRunModel.status.in_([ImportStatus.QUEUED.value, ImportStatus.RUNNING.value]),
         )
         m = (await self._session.execute(stmt)).scalars().first()
         return self._to_domain_tracked(m) if m is not None else None

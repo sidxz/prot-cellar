@@ -15,7 +15,9 @@ from protcellar.infrastructure.persistence.unit_of_work import AsyncUnitOfWork
 pytestmark = pytest.mark.asyncio
 
 
-async def test_import_run_round_trip_and_active_guard(database_url: str, _run_migrations: None) -> None:
+async def test_import_run_round_trip_and_active_guard(
+    database_url: str, _run_migrations: None
+) -> None:
     engine = create_async_engine(database_url)
     factory = async_sessionmaker(engine, expire_on_commit=False)
     try:

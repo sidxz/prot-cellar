@@ -37,7 +37,9 @@ def fake_enqueuer(api_app: FastAPI) -> _FakeEnqueuer:
     return enq
 
 
-async def test_start_import_returns_202_queued_and_enqueues(client: AsyncClient, fake_enqueuer) -> None:
+async def test_start_import_returns_202_queued_and_enqueues(
+    client: AsyncClient, fake_enqueuer: object
+) -> None:
     # Use a unique proteome_id so this test doesn't clash with other tests sharing the DB.
     proteome_id = f"UP{uuid.uuid4().hex[:9].upper()}"
     resp = await client.post(
@@ -66,13 +68,21 @@ async def test_duplicate_active_import_is_rejected(client: AsyncClient, fake_enq
 
 
 async def test_upload_essentiality_xlsx(client: AsyncClient) -> None:
-    wb = openpyxl.Workbook(); ws = wb.active
-    ws.append(["ORF ID", "Final Call"]); ws.append(["Rv0667", "ES"])
-    buf = io.BytesIO(); wb.save(buf)
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.append(["ORF ID", "Final Call"])
+    ws.append(["Rv0667", "ES"])
+    buf = io.BytesIO()
+    wb.save(buf)
     resp = await client.post(
         "/api/v1/imports/uploads",
-        files={"file": ("table_s3.xlsx", buf.getvalue(),
-                        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")},
+        files={
+            "file": (
+                "table_s3.xlsx",
+                buf.getvalue(),
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            )
+        },
     )
     assert resp.status_code == 200
     assert resp.json()["upload_ref"]

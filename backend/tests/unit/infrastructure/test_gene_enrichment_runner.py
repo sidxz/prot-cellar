@@ -50,7 +50,8 @@ _GFF = "##gff-version 3\n#!genome-build ASM19595v2\n" + "\n".join(
             ".",
             "-",
             "0",
-            "Locus=Rv1908c;Name=katG;Functional_Category=Virulence%2C detoxification%2C adaptation",
+            "Locus=Rv1908c;Name=katG;"
+            "Functional_Category=Virulence%2C detoxification%2C adaptation",
         ),
     )
 )

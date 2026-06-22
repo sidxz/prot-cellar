@@ -11,7 +11,7 @@ from protcellar.application.imports.get_import_run import GetImportRun
 from protcellar.application.imports.job_enqueuer import JobEnqueuer
 from protcellar.application.imports.list_import_runs import ListImportRuns
 from protcellar.application.imports.start_import import StartImport
-from protcellar.application.imports.store_upload import StoreUpload, GetUpload
+from protcellar.application.imports.store_upload import GetUpload, StoreUpload
 from protcellar.infrastructure.ingestion.arq_enqueuer import ArqJobEnqueuer
 from protcellar.infrastructure.messaging.event_dispatcher import EventDispatcher
 from protcellar.infrastructure.persistence.sqlalchemy.imports.import_run_repository import (
@@ -58,7 +58,7 @@ def register_imports(container: Container) -> None:
         return GetUpload(uow=uow, upload_repo=SQLAlchemyImportUploadRepository(uow))
 
     # JobEnqueuer as a singleton: one lazy pool per process.
-    container.define(JobEnqueuer, Singleton(ArqJobEnqueuer))
+    container.define(JobEnqueuer, Singleton(ArqJobEnqueuer))  # type: ignore[type-abstract]
 
     container.define(StartImport, _start_import)
     container.define(ListImportRuns, _list_import_runs)

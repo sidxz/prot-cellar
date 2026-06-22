@@ -108,12 +108,13 @@ def _xlsx_to_tsv(data: bytes, *, filename: str = "<unknown>") -> str:
     else:
         data_rows = all_rows[header_row_idx + 1 :]
 
+    assert orf_col is not None and call_col is not None  # always set above
     lines = ["ORF ID\tFinal Call"]
     for row in data_rows:
-        if len(row) <= max(orf_col, call_col):  # type: ignore[arg-type]
+        if len(row) <= max(orf_col, call_col):
             continue
-        orf = row[orf_col]  # type: ignore[index]
-        call = row[call_col]  # type: ignore[index]
+        orf = row[orf_col]
+        call = row[call_col]
         if orf and str(orf).strip():
             lines.append(f"{str(orf).strip()}\t{str(call).strip() if call else ''}")
 
