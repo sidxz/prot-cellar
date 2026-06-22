@@ -48,65 +48,19 @@ from protcellar.infrastructure.ingestion.mycobrowser_client import (
     MYCOBROWSER_H37RV_GFF_URL,
     MycobrowserClient,
 )
+from protcellar.infrastructure.ingestion.organism_resolver import resolve_organism_id
 from protcellar.infrastructure.persistence.settings import DatabaseSettings
 from protcellar.infrastructure.persistence.sqlalchemy.protein_catalog.gene_repository import (
     SQLAlchemyGeneRepository,
-)
-from protcellar.infrastructure.persistence.sqlalchemy.taxonomy.organism_repository import (
-    SQLAlchemyOrganismRepository,
 )
 from protcellar.infrastructure.persistence.unit_of_work import AsyncUnitOfWork
 from protcellar.scripts.import_proteome import _NoopDispatcher, _ServiceAuth
 
 _DEFAULT_TAX_ID = 83332  # M. tuberculosis H37Rv
 
-
-async def _resolve_organism_id(
-    uow: AsyncUnitOfWork,
-    *,
-    organism_id: uuid.UUID | None,
-    tax_id: int,
-) -> tuple[uuid.UUID, int]:
-    """Return ``(organism_id, gene_count)`` for the organism to enrich.
-
-    An explicit ``--organism-id`` wins. Otherwise resolve by NCBI tax id and,
-    if that node has no genes (e.g. the strain taxon after genes were repointed
-    to the species), walk up to its parent — picking the first organism that
-    actually carries genes.
-    """
-    async with uow:
-        gene_repo = SQLAlchemyGeneRepository(uow)
-        if organism_id is not None:
-            count = len(await gene_repo.list_by_organism(organism_id))
-            return organism_id, count
-
-        org_repo = SQLAlchemyOrganismRepository(uow)
-        org = await org_repo.find_by_tax_id(tax_id)
-        if org is None:
-            raise SystemExit(f"No organism found for NCBI tax id {tax_id}.")
-
-        # Candidate chain: the resolved node, then its ancestors (species, ...).
-        candidates: list[uuid.UUID] = [org.id]
-        seen = {org.id}
-        cursor = org
-        while cursor.parent_id is not None and cursor.parent_id not in seen:
-            parent = await org_repo.find_by_id(cursor.parent_id)
-            if parent is None:
-                break
-            candidates.append(parent.id)
-            seen.add(parent.id)
-            cursor = parent
-
-        best: tuple[uuid.UUID, int] | None = None
-        for cand in candidates:
-            count = len(await gene_repo.list_by_organism(cand))
-            if count > 0:
-                return cand, count
-            if best is None:
-                best = (cand, count)
-        # No ancestor had genes — return the originally-resolved node (count 0).
-        assert best is not None
-        return best
+# Re-export under the old private name so any external callers that imported
+# it directly (tests, etc.) continue to work without changes.
+_resolve_organism_id = resolve_organism_id
 
 
 def _essentiality_loader(path: Path | None) -> EssentialityLoader | None:
