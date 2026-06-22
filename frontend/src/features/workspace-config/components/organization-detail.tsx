@@ -133,9 +133,6 @@ export function OrganizationDetailPage({ organizationId }: OrganizationDetailPag
                 <span className="whitespace-pre-wrap">{org.notes}</span>
               </MetadataRow>
             )}
-            <MetadataRow label="Workspace">
-              <span className="font-mono text-xs">{org.workspace_id}</span>
-            </MetadataRow>
             <MetadataRow label="Version">
               <span className="font-mono text-xs">{org.version}</span>
             </MetadataRow>

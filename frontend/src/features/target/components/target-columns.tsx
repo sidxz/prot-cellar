@@ -1,3 +1,4 @@
+import { OrganismRef } from "@/shared/components/common/organism-ref";
 import { Badge } from "@/shared/components/ui/badge";
 import type { ColDef, ICellRendererParams } from "ag-grid-community";
 import Link from "next/link";
@@ -35,16 +36,7 @@ function ComponentCountCell({ data }: ICellRendererParams<Target>) {
 
 function OrganismCell({ data }: ICellRendererParams<Target>) {
   if (!data?.organism_id) return <span>—</span>;
-  // Plan 3: resolve organism_id to organism name
-  return (
-    <Link
-      href={`/organisms/${data.organism_id}`}
-      className="rounded bg-muted px-1.5 py-0.5 text-xs font-mono text-foreground hover:bg-muted/80"
-      onClick={(e) => e.stopPropagation()}
-    >
-      {data.organism_id}
-    </Link>
-  );
+  return <OrganismRef id={data.organism_id} className="text-xs" />;
 }
 
 function ChemblIdCell({ data }: ICellRendererParams<Target>) {

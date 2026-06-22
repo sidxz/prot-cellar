@@ -1,3 +1,4 @@
+import { OrganismRef } from "@/shared/components/common/organism-ref";
 import { Badge } from "@/shared/components/ui/badge";
 import type { ColDef, ICellRendererParams } from "ag-grid-community";
 import Link from "next/link";
@@ -23,17 +24,7 @@ function SynonymsCell({ data }: ICellRendererParams<Gene>) {
 
 function OrganismCell({ data }: ICellRendererParams<Gene>) {
   if (!data?.organism_id) return <span className="text-muted-foreground">—</span>;
-  // Plan 3 will resolve organism_id → display name
-  const shortId = data.organism_id.replace(/^taxon:/, "");
-  return (
-    <Link
-      href={`/organisms/${data.organism_id}`}
-      className="rounded bg-muted px-1.5 py-0.5 text-xs font-mono text-foreground hover:bg-muted/80"
-      onClick={(e) => e.stopPropagation()}
-    >
-      {shortId}
-    </Link>
-  );
+  return <OrganismRef id={data.organism_id} className="text-xs" />;
 }
 
 function NcbiCell({ data }: ICellRendererParams<Gene>) {

@@ -256,7 +256,6 @@ export function GeneDetailPage({ geneId }: GeneDetailPageProps) {
           </h1>
           <Badge variant="default">Gene</Badge>
         </div>
-        <p className="text-sm text-muted-foreground font-mono">{data.id}</p>
       </header>
 
       {/* ── Metadata card ── */}
