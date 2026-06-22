@@ -25,9 +25,7 @@ export function GeneRef({ id, className }: GeneRefProps) {
 
   if (isError || !data) {
     return (
-      <span className={cn("text-muted-foreground font-mono text-xs", className)}>
-        {id.slice(0, 8)}
-      </span>
+      <span className={cn("text-muted-foreground text-xs italic", className)}>Unknown gene</span>
     );
   }
 

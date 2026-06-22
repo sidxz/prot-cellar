@@ -25,8 +25,8 @@ export function OrganismRef({ id, className }: OrganismRefProps) {
 
   if (isError || !data) {
     return (
-      <span className={cn("text-muted-foreground font-mono text-xs", className)}>
-        {id.slice(0, 8)}
+      <span className={cn("text-muted-foreground text-xs italic", className)}>
+        Unknown organism
       </span>
     );
   }
