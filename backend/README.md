@@ -19,16 +19,21 @@ make dev        # start backend :8001 + frontend :3000
 make up
 ```
 
-### API worker
+### ARQ worker (required — imports stay `queued` without it)
 
 The background worker processes import jobs enqueued via the API.
-Run it in a separate shell after `make up`:
+**`make up` does NOT start the worker** — it only starts Postgres + Valkey and
+runs migrations.  If the worker is not running, every import you submit will sit
+in `queued` state indefinitely and never transition to `running`.
+
+Run the worker in a **separate terminal**, after `make up` and alongside `make dev`:
 
 ```bash
 uv run --directory backend arq protcellar.infrastructure.ingestion.worker.WorkerSettings
 ```
 
 The worker reads `DATABASE_URL` and `REDIS_URL` from `backend/.env`.
+Keep it running for as long as you want imports to be processed.
 
 ### API flow
 
