@@ -12,5 +12,6 @@ import protcellar.infrastructure.persistence.sqlalchemy.target.models
 import protcellar.infrastructure.persistence.sqlalchemy.taxonomy.models
 
 # --- model module imports (appended by Tasks 9, 10, taxonomy plan) ---
+import protcellar.infrastructure.persistence.sqlalchemy.imports.models  # noqa: F401
 import protcellar.infrastructure.persistence.sqlalchemy.workspace_config.models  # noqa: F401
 from protcellar.infrastructure.persistence.sqlalchemy.base import Base  # noqa: F401
