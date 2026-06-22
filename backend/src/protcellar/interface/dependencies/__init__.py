@@ -10,6 +10,13 @@ from protcellar.interface.dependencies._core import (
     get_event_dispatcher,
     get_uow,
 )
+from protcellar.interface.dependencies._imports import (
+    GetImportRunDep,
+    GetUploadDep,
+    ListImportRunsDep,
+    StartImportDep,
+    StoreUploadDep,
+)
 from protcellar.interface.dependencies._protein_catalog import (
     BulkUpsertGenesDep,
     BulkUpsertProteinsDep,
@@ -55,6 +62,11 @@ from protcellar.interface.dependencies._workspace_config import (
 __all__ = [
     "AuthDep",
     "BulkUpsertGenesDep",
+    "GetImportRunDep",
+    "GetUploadDep",
+    "ListImportRunsDep",
+    "StartImportDep",
+    "StoreUploadDep",
     "BulkUpsertOrganismsDep",
     "BulkUpsertProteinsDep",
     "CreateGeneDep",

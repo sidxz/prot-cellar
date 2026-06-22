@@ -10,6 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.ext.asyncio import AsyncEngine, async_sessionmaker
 
 from protcellar.domain.shared.events import DomainEvent
+from protcellar.application.imports.job_enqueuer import JobEnqueuer
 from protcellar.infrastructure.di.container import create_container
 from protcellar.infrastructure.logging import configure_logging
 from protcellar.infrastructure.messaging.audit_event_handler import AuditEventHandler
@@ -36,6 +37,13 @@ def create_app() -> FastAPI:
 
         async with sentinel.lifespan(app):
             yield
+
+        enq = container[JobEnqueuer]
+        if hasattr(enq, "aclose"):
+            try:
+                await enq.aclose()
+            except Exception:
+                pass
 
         engine = container[AsyncEngine]
         await engine.dispose()
@@ -98,6 +106,10 @@ def create_app() -> FastAPI:
     from protcellar.interface.routes.targets import router as target_router
 
     app.include_router(target_router)
+
+    from protcellar.interface.routes.imports import router as imports_router
+
+    app.include_router(imports_router)
 
     return app
 

@@ -9,6 +9,7 @@ from returns.result import Failure, Result, Success
 
 from protcellar.application.auth import AuthContext, require_authenticated
 from protcellar.application.shared.query import Query
+from protcellar.application.shared.unit_of_work import UnitOfWork
 from protcellar.domain.imports.import_run import ImportRun
 from protcellar.domain.imports.repository import ImportRunRepository
 from protcellar.domain.shared.errors import DomainError, NotFoundError
@@ -20,7 +21,8 @@ class GetImportRunQuery(Query):
 
 
 class GetImportRun:
-    def __init__(self, run_repo: ImportRunRepository) -> None:
+    def __init__(self, uow: UnitOfWork, run_repo: ImportRunRepository) -> None:
+        self._uow = uow
         self._run_repo = run_repo
 
     async def __call__(
@@ -28,7 +30,8 @@ class GetImportRun:
     ) -> Result[ImportRun, DomainError]:
         require_authenticated(auth)
 
-        run = await self._run_repo.get(input.import_run_id)
+        async with self._uow:
+            run = await self._run_repo.get(input.import_run_id)
         if run is None:
             return Failure(NotFoundError("ImportRun", str(input.import_run_id)))
         return Success(run)

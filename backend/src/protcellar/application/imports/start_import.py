@@ -45,20 +45,21 @@ class StartImport:
         params = validate_params(cmd.import_type, cmd.params)
         tkey = target_key(cmd.import_type, params)
 
-        # Reject if there's already an active (QUEUED/RUNNING) run for this target.
-        active = await self._run_repo.find_active(cmd.import_type, tkey)
-        if active is not None:
-            return Failure(
-                ConflictError(
-                    f"An active import run already exists for {cmd.import_type}/{tkey}",
-                    detail=f"active_run_id={active.id}",
-                )
-            )
-
         requested_by: uuid.UUID = auth.user_id  # type: ignore[union-attr]
         upload_ref = upload_ref_of(cmd.import_type, params)
 
         async with self._uow:
+            # Reject if there's already an active (QUEUED/RUNNING) run for this target.
+            # Guard check runs inside the UoW so the session is active.
+            active = await self._run_repo.find_active(cmd.import_type, tkey)
+            if active is not None:
+                return Failure(
+                    ConflictError(
+                        f"An active import run already exists for {cmd.import_type}/{tkey}",
+                        detail=f"active_run_id={active.id}",
+                    )
+                )
+
             run = ImportRun.create(
                 import_type=cmd.import_type,
                 params=params,

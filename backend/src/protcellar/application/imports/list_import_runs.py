@@ -14,6 +14,7 @@ from protcellar.application.shared.pagination import (
     parse_ts_cursor,
 )
 from protcellar.application.shared.query import Query
+from protcellar.application.shared.unit_of_work import UnitOfWork
 from protcellar.domain.imports.import_run import ImportRun
 from protcellar.domain.imports.repository import ImportRunRepository
 from protcellar.domain.shared.errors import DomainError
@@ -26,7 +27,8 @@ class ListImportRunsQuery(Query):
 
 
 class ListImportRuns:
-    def __init__(self, run_repo: ImportRunRepository) -> None:
+    def __init__(self, uow: UnitOfWork, run_repo: ImportRunRepository) -> None:
+        self._uow = uow
         self._run_repo = run_repo
 
     async def __call__(
@@ -37,10 +39,11 @@ class ListImportRuns:
         effective_limit = clamp_limit(input.limit)
         parsed_cursor = parse_ts_cursor(input.cursor)
 
-        runs = await self._run_repo.list(
-            cursor=parsed_cursor,
-            limit=effective_limit + 1,
-        )
+        async with self._uow:
+            runs = await self._run_repo.list(
+                cursor=parsed_cursor,
+                limit=effective_limit + 1,
+            )
 
         next_cursor: str | None = None
         if len(runs) > effective_limit:

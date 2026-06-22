@@ -43,11 +43,11 @@ def register_imports(container: Container) -> None:
 
     def _list_import_runs(c: Any) -> ListImportRuns:
         uow = AsyncUnitOfWork(c[async_sessionmaker])
-        return ListImportRuns(run_repo=SQLAlchemyImportRunRepository(uow))
+        return ListImportRuns(uow=uow, run_repo=SQLAlchemyImportRunRepository(uow))
 
     def _get_import_run(c: Any) -> GetImportRun:
         uow = AsyncUnitOfWork(c[async_sessionmaker])
-        return GetImportRun(run_repo=SQLAlchemyImportRunRepository(uow))
+        return GetImportRun(uow=uow, run_repo=SQLAlchemyImportRunRepository(uow))
 
     def _store_upload(c: Any) -> StoreUpload:
         uow = AsyncUnitOfWork(c[async_sessionmaker])
