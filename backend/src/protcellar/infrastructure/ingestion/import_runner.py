@@ -149,7 +149,7 @@ class ProteomeImportRunner:
                     auth=auth,
                 )
                 chunk = []
-                await self._reporter.advance(summary.entries)
+                await self._reporter.advance(summary.entries, total)
             if limit is not None and summary.entries >= limit:
                 break
         if chunk:
@@ -164,7 +164,7 @@ class ProteomeImportRunner:
                 dry_run=dry_run,
                 auth=auth,
             )
-            await self._reporter.advance(summary.entries)
+            await self._reporter.advance(summary.entries, total)
         if not dry_run and limit is None:
             await self._reporter.phase("linking membership")
             await self._reconcile_membership(proteome_db_id, seen, summary)

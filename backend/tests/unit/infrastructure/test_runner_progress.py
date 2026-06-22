@@ -193,9 +193,12 @@ async def test_gene_enrichment_runner_reports_phases() -> None:
 @pytest.mark.asyncio
 async def test_gene_enrichment_runner_noop_default_keeps_existing_behavior() -> None:
     """Regression guard: runner without reporter still returns valid summary."""
+    from protcellar.application.protein_catalog.bulk_enrich_genes import EnrichSummary
+
     runner = _build_enrichment_runner()  # no reporter= kwarg
     summary = await runner.run(uuid.uuid4(), auth=_admin())  # type: ignore[attr-defined]
-    assert summary.matched >= 0  # type: ignore[attr-defined]
+    assert isinstance(summary, EnrichSummary)
+    assert summary.matched == 2  # fake GFF has exactly 2 CDS records (rpoB + katG)
 
 
 # --------------------------------------------------------------------------- #
@@ -226,9 +229,12 @@ async def test_go_import_runner_noop_default_keeps_existing_behavior(
     go_runner_uow: object,
 ) -> None:
     """Regression guard: runner without reporter still returns valid summary."""
+    from protcellar.infrastructure.ingestion.go_import_runner import GoImportSummary
+
     runner = _build_go_runner(go_runner_uow)  # no reporter= kwarg
     result = await runner.run(force=True)  # type: ignore[attr-defined]
-    assert result.terms_upserted >= 0  # type: ignore[attr-defined]
+    assert isinstance(result, GoImportSummary)
+    assert result.terms_upserted == 2  # OBO fixture defines exactly 2 terms (GO:0099001 + GO:0099002)
 
 
 # --------------------------------------------------------------------------- #
