@@ -13,9 +13,7 @@ describe("OrganismCombobox", () => {
   it("lists results and calls onSelect with id + label", () => {
     useOrganismsMock.mockReturnValue({
       data: {
-        items: [
-          { id: "org-1", scientific_name: "Mycobacterium tuberculosis", ncbi_tax_id: 1773 },
-        ],
+        items: [{ id: "org-1", scientific_name: "Mycobacterium tuberculosis", ncbi_tax_id: 1773 }],
       },
       isLoading: false,
     });
@@ -29,9 +27,7 @@ describe("OrganismCombobox", () => {
   it("omits tax-id suffix when ncbi_tax_id is null", () => {
     useOrganismsMock.mockReturnValue({
       data: {
-        items: [
-          { id: "org-2", scientific_name: "Homo sapiens", ncbi_tax_id: null },
-        ],
+        items: [{ id: "org-2", scientific_name: "Homo sapiens", ncbi_tax_id: null }],
       },
       isLoading: false,
     });

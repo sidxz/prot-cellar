@@ -42,7 +42,9 @@ export function OrganismCombobox({ onSelect, placeholder }: OrganismComboboxProp
         onChange={(e) => handleChange(e.target.value)}
         onFocus={() => setOpen(true)}
         onBlur={() => setTimeout(() => setOpen(false), 150)}
-        onKeyDown={(e) => { if (e.key === "Escape") setOpen(false); }}
+        onKeyDown={(e) => {
+          if (e.key === "Escape") setOpen(false);
+        }}
         role="combobox"
         aria-expanded={open}
         autoComplete="off"

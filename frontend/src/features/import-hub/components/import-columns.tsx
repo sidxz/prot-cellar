@@ -3,7 +3,7 @@ import Link from "next/link";
 
 import { Badge } from "@/shared/components/ui/badge";
 
-import { IMPORT_TYPE_LABELS, STATUS_VARIANTS, type ImportRun } from "../types";
+import { IMPORT_TYPE_LABELS, type ImportRun, STATUS_VARIANTS } from "../types";
 
 function TargetCell({ data, value }: ICellRendererParams<ImportRun, string>) {
   if (!data) return <span>—</span>;

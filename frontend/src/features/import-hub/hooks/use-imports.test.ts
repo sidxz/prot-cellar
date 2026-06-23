@@ -21,7 +21,10 @@ vi.mock("@/shared/lib/api/imports/imports", async (importOriginal) => {
       capturedStart = options;
       return { mutateAsync: vi.fn(), isPending: false };
     },
-    useUploadEssentialityFileApiV1ImportsUploadsPost: () => ({ mutateAsync: vi.fn(), isPending: false }),
+    useUploadEssentialityFileApiV1ImportsUploadsPost: () => ({
+      mutateAsync: vi.fn(),
+      isPending: false,
+    }),
     useListImportRunsApiV1ImportsGet: () => ({ data: undefined, isLoading: false }),
     // biome-ignore lint/suspicious/noExplicitAny: test stub
     useGetImportRunApiV1ImportsImportRunIdGet: (_id: string, options: any) => {

@@ -9,6 +9,7 @@ import {
   Microscope,
   Network,
   ScrollText,
+  Upload,
 } from "lucide-react";
 
 export interface NavItem {
@@ -46,6 +47,7 @@ export const navigation: { home: NavItem; groups: NavGroup[] } = {
       label: "Administration",
       items: [
         { title: "Organizations", href: "/admin/organizations", icon: Building2 },
+        { title: "Imports", href: "/admin/imports", icon: Upload },
         { title: "Audit", href: "/admin/audit", icon: ScrollText },
       ],
     },

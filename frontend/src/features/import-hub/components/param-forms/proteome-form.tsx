@@ -46,7 +46,11 @@ export function ProteomeForm({ onSuccess }: { onSuccess: () => void }) {
       <div className="grid gap-5 py-4">
         <div className="grid gap-2">
           <Label htmlFor="proteome_id">UniProt proteome ID</Label>
-          <Input id="proteome_id" placeholder="e.g. UP000001584" {...form.register("proteome_id")} />
+          <Input
+            id="proteome_id"
+            placeholder="e.g. UP000001584"
+            {...form.register("proteome_id")}
+          />
           {form.formState.errors.proteome_id && (
             <p className="text-xs text-destructive">{form.formState.errors.proteome_id.message}</p>
           )}
@@ -55,7 +59,13 @@ export function ProteomeForm({ onSuccess }: { onSuccess: () => void }) {
           <Label htmlFor="prot_limit">
             Limit <span className="text-muted-foreground font-normal text-xs">(optional)</span>
           </Label>
-          <Input id="prot_limit" type="number" min={1} placeholder="All" {...form.register("limit")} />
+          <Input
+            id="prot_limit"
+            type="number"
+            min={1}
+            placeholder="All"
+            {...form.register("limit")}
+          />
         </div>
         <label className="flex items-center gap-2 text-sm">
           <input type="checkbox" {...form.register("force")} /> Force re-import

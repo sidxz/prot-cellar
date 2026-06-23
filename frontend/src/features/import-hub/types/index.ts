@@ -2,11 +2,7 @@ import type { ComponentProps } from "react";
 
 import type { Badge } from "@/shared/components/ui/badge";
 import { ImportStatus, ImportType } from "@/shared/lib/api/model";
-import type {
-  ImportRunResponse,
-  StartImportBody,
-  UploadResponse,
-} from "@/shared/lib/api/model";
+import type { ImportRunResponse, StartImportBody, UploadResponse } from "@/shared/lib/api/model";
 
 /** Narrowed alias — one import run (list row or detail). */
 export type ImportRun = ImportRunResponse;

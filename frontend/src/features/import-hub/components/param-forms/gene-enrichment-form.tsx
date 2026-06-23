@@ -97,14 +97,22 @@ export function GeneEnrichmentForm({ onSuccess }: { onSuccess: () => void }) {
             …or NCBI tax ID{" "}
             <span className="text-muted-foreground font-normal text-xs">(if not in the list)</span>
           </Label>
-          <Input id="tax_id" type="number" min={1} placeholder="e.g. 83332" {...form.register("tax_id")} />
+          <Input
+            id="tax_id"
+            type="number"
+            min={1}
+            placeholder="e.g. 83332"
+            {...form.register("tax_id")}
+          />
         </div>
 
         {/* Inline essentiality upload */}
         <div className="grid gap-2">
           <Label htmlFor="essentiality_file">
             Essentiality file{" "}
-            <span className="text-muted-foreground font-normal text-xs">(.xlsx / .tsv, optional)</span>
+            <span className="text-muted-foreground font-normal text-xs">
+              (.xlsx / .tsv, optional)
+            </span>
           </Label>
           <Input
             id="essentiality_file"
@@ -126,14 +134,23 @@ export function GeneEnrichmentForm({ onSuccess }: { onSuccess: () => void }) {
         {/* Advanced URLs */}
         <Collapsible>
           <CollapsibleTrigger asChild>
-            <Button type="button" variant="ghost" size="sm" className="w-fit px-0 text-muted-foreground">
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="w-fit px-0 text-muted-foreground"
+            >
               Advanced
             </Button>
           </CollapsibleTrigger>
           <CollapsibleContent className="grid gap-4 pt-3">
             <div className="grid gap-2">
               <Label htmlFor="gff_url">GFF URL</Label>
-              <Input id="gff_url" placeholder="https://…/annotations.gff" {...form.register("gff_url")} />
+              <Input
+                id="gff_url"
+                placeholder="https://…/annotations.gff"
+                {...form.register("gff_url")}
+              />
               {form.formState.errors.gff_url && (
                 <p className="text-xs text-destructive">{form.formState.errors.gff_url.message}</p>
               )}

@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
 import type { ReactElement } from "react";
+import { describe, expect, it } from "vitest";
 
 import type { ImportRun } from "../types";
 import { importColumnDefs } from "./import-columns";
