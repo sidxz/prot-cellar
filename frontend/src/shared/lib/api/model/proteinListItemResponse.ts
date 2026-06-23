@@ -8,6 +8,7 @@ import type { ProteinListItemResponseUniprotUrl } from './proteinListItemRespons
 import type { ProteinListItemResponseEntryName } from './proteinListItemResponseEntryName';
 import type { ProteinListItemResponseRecommendedName } from './proteinListItemResponseRecommendedName';
 import type { ProteinListItemResponseGene } from './proteinListItemResponseGene';
+import type { ProteinListItemResponseStrainId } from './proteinListItemResponseStrainId';
 import type { ProteinListItemResponseSeqMass } from './proteinListItemResponseSeqMass';
 import type { ProteinListItemResponseProteinExistence } from './proteinListItemResponseProteinExistence';
 import type { ProteinStructureSummary } from './proteinStructureSummary';
@@ -31,6 +32,7 @@ export interface ProteinListItemResponse {
   ec_numbers?: string[];
   gene?: ProteinListItemResponseGene;
   organism_id: string;
+  strain_id?: ProteinListItemResponseStrainId;
   seq_length: number;
   seq_mass?: ProteinListItemResponseSeqMass;
   protein_existence?: ProteinListItemResponseProteinExistence;

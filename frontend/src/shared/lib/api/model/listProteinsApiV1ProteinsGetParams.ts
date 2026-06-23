@@ -7,6 +7,7 @@
 
 export type ListProteinsApiV1ProteinsGetParams = {
 organism_id?: string | null;
+strain_id?: string | null;
 gene_id?: string | null;
 reviewed?: boolean | null;
 min_length?: number | null;

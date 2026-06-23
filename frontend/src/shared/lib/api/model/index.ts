@@ -277,6 +277,7 @@ export * from './proteinListItemResponseGene';
 export * from './proteinListItemResponseProteinExistence';
 export * from './proteinListItemResponseRecommendedName';
 export * from './proteinListItemResponseSeqMass';
+export * from './proteinListItemResponseStrainId';
 export * from './proteinListItemResponseUniprotUrl';
 export * from './proteinNamesBody';
 export * from './proteinNamesBodyRecommended';
