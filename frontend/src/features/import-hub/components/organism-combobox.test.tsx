@@ -37,4 +37,12 @@ describe("OrganismCombobox", () => {
     fireEvent.click(screen.getByText("Homo sapiens"));
     expect(onSelect).toHaveBeenCalledWith("org-2", "Homo sapiens");
   });
+
+  it("clears the committed selection when the search text is edited", () => {
+    useOrganismsMock.mockReturnValue({ data: { items: [] }, isLoading: false });
+    const onSelect = vi.fn();
+    render(<OrganismCombobox onSelect={onSelect} />);
+    fireEvent.change(screen.getByRole("combobox"), { target: { value: "myco" } });
+    expect(onSelect).toHaveBeenCalledWith("", "");
+  });
 });

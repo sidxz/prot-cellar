@@ -23,6 +23,10 @@ export function OrganismCombobox({ onSelect, placeholder }: OrganismComboboxProp
   function handleChange(raw: string) {
     setQuery(raw);
     setOpen(true);
+    // Editing the search text invalidates any committed pick: clear the parent's
+    // bound value until the user selects a result again. Without this the form
+    // keeps a stale selection with no UI affordance to undo it.
+    onSelect("", "");
   }
 
   const { data, isLoading } = useOrganisms({ name: debounced || undefined });
