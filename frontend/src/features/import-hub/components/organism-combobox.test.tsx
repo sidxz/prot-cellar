@@ -25,4 +25,20 @@ describe("OrganismCombobox", () => {
     fireEvent.click(screen.getByText("Mycobacterium tuberculosis — 1773"));
     expect(onSelect).toHaveBeenCalledWith("org-1", "Mycobacterium tuberculosis — 1773");
   });
+
+  it("omits tax-id suffix when ncbi_tax_id is null", () => {
+    useOrganismsMock.mockReturnValue({
+      data: {
+        items: [
+          { id: "org-2", scientific_name: "Homo sapiens", ncbi_tax_id: null },
+        ],
+      },
+      isLoading: false,
+    });
+    const onSelect = vi.fn();
+    render(<OrganismCombobox onSelect={onSelect} />);
+    fireEvent.focus(screen.getByRole("combobox"));
+    fireEvent.click(screen.getByText("Homo sapiens"));
+    expect(onSelect).toHaveBeenCalledWith("org-2", "Homo sapiens");
+  });
 });

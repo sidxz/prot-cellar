@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useState } from "react";
 
 import { useOrganisms } from "@/features/taxonomy/hooks/use-organisms";
 import { Input } from "@/shared/components/ui/input";
@@ -14,13 +14,15 @@ export function OrganismCombobox({ onSelect, placeholder }: OrganismComboboxProp
   const [query, setQuery] = useState("");
   const [debounced, setDebounced] = useState("");
   const [open, setOpen] = useState(false);
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    const id = setTimeout(() => setDebounced(query.trim()), 300);
+    return () => clearTimeout(id);
+  }, [query]);
 
   function handleChange(raw: string) {
     setQuery(raw);
     setOpen(true);
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => setDebounced(raw.trim()), 300);
   }
 
   const { data, isLoading } = useOrganisms({ name: debounced || undefined });
@@ -39,6 +41,8 @@ export function OrganismCombobox({ onSelect, placeholder }: OrganismComboboxProp
         placeholder={placeholder ?? "Search organisms…"}
         onChange={(e) => handleChange(e.target.value)}
         onFocus={() => setOpen(true)}
+        onBlur={() => setTimeout(() => setOpen(false), 150)}
+        onKeyDown={(e) => { if (e.key === "Escape") setOpen(false); }}
         role="combobox"
         aria-expanded={open}
         autoComplete="off"
