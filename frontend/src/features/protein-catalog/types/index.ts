@@ -48,6 +48,7 @@ export interface ProteinListFilters {
   minLength?: number;
   maxLength?: number;
   organismId?: string;
+  strainId?: string;
   geneId?: string;
   /** Free-text query across accession, entry name, protein name, gene name + synonyms. */
   search?: string;

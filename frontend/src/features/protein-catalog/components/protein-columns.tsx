@@ -1,3 +1,4 @@
+import { StrainRef } from "@/shared/components/common/strain-ref";
 import { Badge } from "@/shared/components/ui/badge";
 import { cn } from "@/shared/lib/utils";
 import type { ColDef, ICellRendererParams } from "ag-grid-community";
@@ -64,6 +65,11 @@ function IdentityCell({ data }: ICellRendererParams<ProteinListItem>) {
       </div>
     </div>
   );
+}
+
+/** Source strain — links to the strain record; em dash when a protein has none. */
+function StrainCell({ data }: ICellRendererParams<ProteinListItem>) {
+  return <StrainRef id={data?.strain_id} className="text-sm" />;
 }
 
 /** EC numbers — the enzyme-class signal. Shows up to two, then "+N". */
@@ -150,6 +156,13 @@ export const proteinColumnDefs: ColDef<ProteinListItem>[] = [
     flex: 1,
     minWidth: 300,
     cellRenderer: IdentityCell,
+    sortable: false,
+  },
+  {
+    headerName: "Strain",
+    colId: "strain",
+    width: 180,
+    cellRenderer: StrainCell,
     sortable: false,
   },
   {

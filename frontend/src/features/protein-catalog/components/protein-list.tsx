@@ -1,6 +1,7 @@
 "use client";
 
 import { OrganismRef } from "@/shared/components/common/organism-ref";
+import { StrainRef } from "@/shared/components/common/strain-ref";
 import { DataGrid } from "@/shared/components/data-grid/data-grid";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
@@ -12,6 +13,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useProteins } from "../hooks/use-proteins";
 import type { ProteinListFilters, ProteinListItem } from "../types";
 import { PROTEIN_ROW_HEIGHT, proteinColumnDefs } from "./protein-columns";
+import { ProteinTaxonFilters } from "./protein-taxon-filters";
 
 // ---------------------------------------------------------------------------
 // LocalStorage helpers
@@ -197,6 +199,8 @@ export function ProteinListPage() {
     !!filters.hasStructure ||
     !!filters.isEnzyme ||
     !!filters.hasChembl ||
+    !!filters.organismId ||
+    !!filters.strainId ||
     filters.reviewed != null ||
     filters.minLength != null ||
     filters.maxLength != null;
@@ -205,6 +209,16 @@ export function ProteinListPage() {
   function applyReviewed(state: ReviewedState) {
     setReviewedState(state);
     setFilters((prev) => ({ ...prev, reviewed: reviewedToFilter(state) }));
+  }
+
+  // Picking an organism resets the strain — a strain from another organism could
+  // never co-occur with the new pick, so a stale selection would zero the results.
+  function applyOrganism(organismId: string | undefined) {
+    setFilters((prev) => ({ ...prev, organismId, strainId: undefined }));
+  }
+
+  function applyStrain(strainId: string | undefined) {
+    setFilters((prev) => ({ ...prev, strainId }));
   }
 
   function toggleBool(key: "hasStructure" | "isEnzyme" | "hasChembl") {
@@ -264,6 +278,12 @@ export function ProteinListPage() {
               <span aria-hidden>·</span>
             </>
           ) : null}
+          {filters.strainId ? (
+            <>
+              <StrainRef id={filters.strainId} className="text-sm font-medium text-foreground" />
+              <span aria-hidden>·</span>
+            </>
+          ) : null}
           {totalCount != null ? (
             <span>
               {totalCount.toLocaleString()} {anyFilterActive ? "matching" : "proteins"}
@@ -276,7 +296,7 @@ export function ProteinListPage() {
 
       {/* Toolbar */}
       <div className="flex flex-col gap-3 rounded-lg border bg-muted/20 px-4 py-3">
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="flex flex-wrap items-end gap-3">
           {/* Search */}
           <div className="relative min-w-[260px] flex-1">
             <Search className="-translate-y-1/2 absolute top-1/2 left-2.5 h-4 w-4 text-muted-foreground" />
@@ -288,6 +308,14 @@ export function ProteinListPage() {
               aria-label="Search proteins"
             />
           </div>
+
+          {/* Organism + strain scope */}
+          <ProteinTaxonFilters
+            organismId={filters.organismId}
+            strainId={filters.strainId}
+            onOrganismChange={applyOrganism}
+            onStrainChange={applyStrain}
+          />
 
           {/* Database tri-state */}
           <ReviewedToggle value={reviewedState} onChange={applyReviewed} />

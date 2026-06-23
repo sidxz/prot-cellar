@@ -19,6 +19,7 @@ export function useProteins(filters: ProteinListFilters = {}, cursor?: string) {
     min_length: filters.minLength ?? undefined,
     max_length: filters.maxLength ?? undefined,
     organism_id: filters.organismId ?? undefined,
+    strain_id: filters.strainId ?? undefined,
     gene_id: filters.geneId ?? undefined,
     q: filters.search?.trim() ? filters.search.trim() : undefined,
     has_structure: filters.hasStructure ?? undefined,

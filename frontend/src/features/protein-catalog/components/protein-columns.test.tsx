@@ -14,6 +14,15 @@ vi.mock("next/link", () => ({
   ),
 }));
 
+// StrainRef resolves the strain via a generated react-query hook; stub it so the
+// Strain cell renders the name without a QueryClient or network.
+vi.mock("@/shared/lib/api/strains/strains", () => ({
+  useGetStrainApiV1StrainsStrainIdGet: (id: string) =>
+    id
+      ? { data: { id, name: "ATCC 25618 / H37Rv" }, isLoading: false, isError: false }
+      : { data: undefined, isLoading: false, isError: false },
+}));
+
 function makeItem(overrides: Partial<ProteinListItem> = {}): ProteinListItem {
   return {
     id: "p-1",
@@ -97,6 +106,18 @@ describe("protein columns — EC / Structure / Chem", () => {
     expect(r.container.textContent).toBe("ChEMBL");
     r.unmount();
     r = renderCell(col("Chem"), makeItem({ chem: { has_chembl: false, has_drugbank: false } }));
+    expect(r.container.textContent).toBe("—");
+  });
+});
+
+describe("protein columns — Strain", () => {
+  it("links the source strain to its record", () => {
+    renderCell(col("Strain"), makeItem({ strain_id: "s-1" }));
+    expect(screen.getByText("ATCC 25618 / H37Rv")).toHaveAttribute("href", "/strains/s-1");
+  });
+
+  it("shows a dash when the protein has no strain", () => {
+    const r = renderCell(col("Strain"), makeItem({ strain_id: null }));
     expect(r.container.textContent).toBe("—");
   });
 });

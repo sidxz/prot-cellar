@@ -26,6 +26,21 @@ vi.mock("../hooks/use-proteins", () => ({
     isError: false,
   }),
 }));
+// Taxonomy hooks feed the organism + strain filter dropdowns.
+vi.mock("@/features/taxonomy/hooks/use-organisms", () => ({
+  useOrganisms: () => ({
+    data: { items: [{ id: "o1", scientific_name: "Mycobacterium tuberculosis" }] },
+  }),
+}));
+vi.mock("@/features/taxonomy/hooks/use-strains", () => ({
+  useStrains: () => ({
+    data: {
+      items: [
+        { id: "s1", species_organism_id: "o1", name: "H37Rv", workspace_id: "w", version: 1 },
+      ],
+    },
+  }),
+}));
 // AG Grid does not render cell content in jsdom; stub DataGrid to render rows as plain divs.
 vi.mock("@/shared/components/data-grid/data-grid", () => ({
   DataGrid: ({ rowData }: { rowData: Array<Record<string, unknown>> }) => (
@@ -51,5 +66,11 @@ describe("ProteinListPage", () => {
   it("renders a protein row", () => {
     renderPage();
     expect(screen.getByText("P12345")).toBeInTheDocument();
+  });
+
+  it("renders the organism and strain filters", () => {
+    renderPage();
+    expect(screen.getByRole("combobox", { name: "Filter by organism" })).toBeInTheDocument();
+    expect(screen.getByRole("combobox", { name: "Filter by strain" })).toBeInTheDocument();
   });
 });
