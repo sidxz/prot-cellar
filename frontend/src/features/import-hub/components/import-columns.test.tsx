@@ -1,11 +1,12 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
+import type { ReactElement } from "react";
 
 import type { ImportRun } from "../types";
 import { importColumnDefs } from "./import-columns";
 
 // biome-ignore lint/suspicious/noExplicitAny: cell renderer prop shape
-function cellFor(field: string): (p: any) => JSX.Element {
+function cellFor(field: string): (p: any) => ReactElement {
   const col = importColumnDefs.find((c) => c.field === field);
   if (!col?.cellRenderer) throw new Error(`no renderer for ${field}`);
   // biome-ignore lint/suspicious/noExplicitAny: ag-grid renderer cast
