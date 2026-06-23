@@ -13,8 +13,8 @@ import { useStartImport } from "../../hooks/use-imports";
 
 const schema = z.object({
   proteome_id: z.string().min(1, "Proteome ID is required"),
-  force: z.boolean().default(false),
-  dry_run: z.boolean().default(false),
+  force: z.boolean(),
+  dry_run: z.boolean(),
   limit: z.string().optional(), // numeric text; coerced on submit
 });
 type Values = z.infer<typeof schema>;
