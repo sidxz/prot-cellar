@@ -19,6 +19,15 @@ async def _organism(client: AsyncClient, tax_id: int, name: str) -> str:
     return resp.json()["id"]
 
 
+async def _strain(client: AsyncClient, species_organism_id: str, name: str) -> str:
+    resp = await client.post(
+        "/api/v1/strains",
+        json={"species_organism_id": species_organism_id, "name": name},
+    )
+    assert resp.status_code == 201, resp.text
+    return resp.json()["id"]
+
+
 @pytest.mark.asyncio
 async def test_protein_catalog_filters(client: AsyncClient) -> None:
     org = await _organism(client, 99930, "Filter testus")
@@ -289,3 +298,36 @@ async def test_invalid_accession_rejected_and_search_filters(client: AsyncClient
     assert listed.status_code == 200
     accs = [p["primary_accession"] for p in listed.json()["items"]]
     assert "P0AEX9" in accs
+
+
+@pytest.mark.asyncio
+async def test_protein_strain_filter_and_response(client: AsyncClient) -> None:
+    """The list projection carries strain_id, and ?strain_id= narrows page + total."""
+    org = await _organism(client, 99950, "Strain testus")
+    s1 = await _strain(client, org, "Strain One")
+    s2 = await _strain(client, org, "Strain Two")
+    base = {
+        "organism_id": org,
+        "sequence": "MKTAYIAKQR",
+        "is_reviewed": True,
+        "source": "uniprot",
+        "source_release": "x",
+        "source_record_checksum": "c",
+    }
+    rec1 = {**base, "primary_accession": "P0DX01", "source_record_id": "P0DX01", "strain_id": s1}
+    rec2 = {**base, "primary_accession": "P0DX02", "source_record_id": "P0DX02", "strain_id": s2}
+    resp = await client.post("/api/v1/proteins/bulk", json={"records": [rec1, rec2]})
+    assert resp.status_code == 200, resp.text
+
+    # Each list row exposes its strain_id (needed for the catalog Strain column).
+    listed = (await client.get("/api/v1/proteins?limit=200")).json()
+    by_acc = {p["primary_accession"]: p for p in listed["items"]}
+    assert by_acc["P0DX01"]["strain_id"] == s1
+    assert by_acc["P0DX02"]["strain_id"] == s2
+
+    # Filtering by strain narrows both the page and the matching total.
+    page = (await client.get(f"/api/v1/proteins?strain_id={s1}&limit=200")).json()
+    accs = {p["primary_accession"] for p in page["items"]}
+    assert "P0DX01" in accs
+    assert "P0DX02" not in accs
+    assert page["total_count"] == 1

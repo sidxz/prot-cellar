@@ -194,6 +194,7 @@ class ProteinListItemResponse(BaseModel):
     ec_numbers: list[str] = []
     gene: GeneSummaryResponse | None = None
     organism_id: uuid.UUID
+    strain_id: uuid.UUID | None = None
     seq_length: int
     seq_mass: int | None = None
     protein_existence: ProteinExistence | None = None
@@ -217,6 +218,7 @@ class ProteinListItemResponse(BaseModel):
             ec_numbers=list(names.ec_numbers),
             gene=GeneSummaryResponse.from_domain(item.gene) if item.gene is not None else None,
             organism_id=p.organism_id,
+            strain_id=p.strain_id,
             seq_length=p.seq_length,
             seq_mass=p.seq_mass,
             protein_existence=p.protein_existence,
@@ -490,6 +492,7 @@ async def list_proteins(
     auth: AuthDep,
     use_case: ListProteinsDep,
     organism_id: uuid.UUID | None = None,
+    strain_id: uuid.UUID | None = None,
     gene_id: uuid.UUID | None = None,
     reviewed: bool | None = None,
     min_length: int | None = None,
@@ -508,6 +511,7 @@ async def list_proteins(
         cursor_id=parse_cursor(cursor),
         limit=clamp_limit(limit),
         organism_id=organism_id,
+        strain_id=strain_id,
         gene_id=gene_id,
         is_reviewed=reviewed,
         min_length=min_length,

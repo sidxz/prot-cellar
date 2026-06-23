@@ -324,6 +324,7 @@ class SQLAlchemyProteinRepository(SQLAlchemyRepository[Protein, ProteinModel], P
         stmt: Select[Any],
         *,
         organism_id: uuid.UUID | None,
+        strain_id: uuid.UUID | None,
         gene_id: uuid.UUID | None,
         is_reviewed: bool | None,
         min_length: int | None,
@@ -342,6 +343,8 @@ class SQLAlchemyProteinRepository(SQLAlchemyRepository[Protein, ProteinModel], P
         """
         if organism_id is not None:
             stmt = stmt.where(ProteinModel.organism_id == organism_id)
+        if strain_id is not None:
+            stmt = stmt.where(ProteinModel.strain_id == strain_id)
         if gene_id is not None:
             stmt = stmt.where(ProteinModel.gene_id == gene_id)
         if is_reviewed is not None:
@@ -414,6 +417,7 @@ class SQLAlchemyProteinRepository(SQLAlchemyRepository[Protein, ProteinModel], P
         cursor_id: uuid.UUID | None = None,
         limit: int | None = None,
         organism_id: uuid.UUID | None = None,
+        strain_id: uuid.UUID | None = None,
         gene_id: uuid.UUID | None = None,
         is_reviewed: bool | None = None,
         min_length: int | None = None,
@@ -428,6 +432,7 @@ class SQLAlchemyProteinRepository(SQLAlchemyRepository[Protein, ProteinModel], P
         stmt = self._apply_filters(
             select(ProteinModel),
             organism_id=organism_id,
+            strain_id=strain_id,
             gene_id=gene_id,
             is_reviewed=is_reviewed,
             min_length=min_length,
@@ -449,6 +454,7 @@ class SQLAlchemyProteinRepository(SQLAlchemyRepository[Protein, ProteinModel], P
         self,
         *,
         organism_id: uuid.UUID | None = None,
+        strain_id: uuid.UUID | None = None,
         gene_id: uuid.UUID | None = None,
         is_reviewed: bool | None = None,
         min_length: int | None = None,
@@ -463,6 +469,7 @@ class SQLAlchemyProteinRepository(SQLAlchemyRepository[Protein, ProteinModel], P
         stmt = self._apply_filters(
             select(func.count()).select_from(ProteinModel),
             organism_id=organism_id,
+            strain_id=strain_id,
             gene_id=gene_id,
             is_reviewed=is_reviewed,
             min_length=min_length,

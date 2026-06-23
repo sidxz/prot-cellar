@@ -36,6 +36,7 @@ class ListProteinsQuery(Query):
     cursor_id: uuid.UUID | None = None
     limit: int | None = None
     organism_id: uuid.UUID | None = None
+    strain_id: uuid.UUID | None = None
     gene_id: uuid.UUID | None = None
     is_reviewed: bool | None = None
     min_length: int | None = None
@@ -81,6 +82,7 @@ class ListProteins:
                 cursor_id=input.cursor_id,
                 limit=fetch_limit,
                 organism_id=input.organism_id,
+                strain_id=input.strain_id,
                 gene_id=input.gene_id,
                 is_reviewed=input.is_reviewed,
                 min_length=input.min_length,
@@ -100,6 +102,7 @@ class ListProteins:
 
             total_count = await self._repo.count_all(
                 organism_id=input.organism_id,
+                strain_id=input.strain_id,
                 gene_id=input.gene_id,
                 is_reviewed=input.is_reviewed,
                 min_length=input.min_length,
