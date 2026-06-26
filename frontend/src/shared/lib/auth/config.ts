@@ -26,7 +26,7 @@ let _client: SentinelAuthz | null = null;
 export function getSentinelClient(config?: AppConfig): SentinelAuthz {
   if (!_client) {
     const sentinelUrl = config?.sentinelUrl ?? "http://localhost:9003";
-    const appUrl = config?.appUrl ?? "http://localhost:3000";
+    const appUrl = config?.appUrl ?? "http://localhost:3001";
 
     _client = new SentinelAuthz({
       sentinelUrl,

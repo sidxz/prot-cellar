@@ -350,7 +350,7 @@ export function useUploadEssentiality() {
 }
 ```
 
-> If Task 1 Step 4 found the upload op does **not** build FormData internally, change `useUploadEssentiality` to expose a wrapper that builds it: accept a `File`, `const fd = new FormData(); fd.append("file", file);` and call the generated mutate with `{ data: fd }`. Otherwise the version above is correct.
+> Task 1 confirmed the generated upload op builds `FormData` internally, so this wrapper returns the raw mutation unchanged (above). Note: orval types the body field `file` as `string` (FastAPI binary quirk), so the **caller** (Task 7) casts its `File` with `as unknown as string` — this hook needs no change.
 
 - [ ] **Step 4: Run it to verify it passes**
 
@@ -383,11 +383,13 @@ git commit -m "feat(imports): use-imports hooks (list, polled get, start, upload
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
+import type { ReactElement } from "react";
+
 import type { ImportRun } from "../types";
 import { importColumnDefs } from "./import-columns";
 
 // biome-ignore lint/suspicious/noExplicitAny: cell renderer prop shape
-function cellFor(field: string): (p: any) => JSX.Element {
+function cellFor(field: string): (p: any) => ReactElement {
   const col = importColumnDefs.find((c) => c.field === field);
   if (!col?.cellRenderer) throw new Error(`no renderer for ${field}`);
   // biome-ignore lint/suspicious/noExplicitAny: ag-grid renderer cast
@@ -782,8 +784,8 @@ import { useStartImport } from "../../hooks/use-imports";
 
 const schema = z.object({
   proteome_id: z.string().min(1, "Proteome ID is required"),
-  force: z.boolean().default(false),
-  dry_run: z.boolean().default(false),
+  force: z.boolean(),
+  dry_run: z.boolean(),
   limit: z.string().optional(), // numeric text; coerced on submit
 });
 type Values = z.infer<typeof schema>;
@@ -961,7 +963,7 @@ const schema = z
     gff_url: z.string().url("Enter a valid URL").optional().or(z.literal("")),
     essentiality_url: z.string().url("Enter a valid URL").optional().or(z.literal("")),
     essentiality_upload_ref: z.string().optional(),
-    force: z.boolean().default(false),
+    force: z.boolean(),
   })
   .refine((v) => Boolean(v.organism_id) !== Boolean(v.tax_id), {
     message: "Pick an organism OR enter a tax_id — exactly one.",
@@ -987,7 +989,9 @@ export function GeneEnrichmentForm({ onSuccess }: { onSuccess: () => void }) {
 
   async function handleFile(file: File | undefined) {
     if (!file) return;
-    const res = await upload.mutateAsync({ data: { file } });
+    // orval types the multipart body field `file` as `string` (FastAPI binary
+    // quirk); the File works at runtime via FormData — cast to satisfy tsc.
+    const res = await upload.mutateAsync({ data: { file: file as unknown as string } });
     form.setValue("essentiality_upload_ref", res.upload_ref);
     setUploadName(file.name);
   }

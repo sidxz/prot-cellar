@@ -20,7 +20,7 @@ export interface AppConfig {
 
 const defaultConfig: AppConfig = {
   apiBaseUrl: "http://localhost:8001",
-  appUrl: "http://localhost:3000",
+  appUrl: "http://localhost:3001",
   sentinelUrl: "http://localhost:9003",
   serviceName: "protcellar",
   idp: {

@@ -22,7 +22,7 @@
 export function GET() {
   return Response.json({
     apiBaseUrl: process.env.APP_API_BASE_URL ?? "http://localhost:8001",
-    appUrl: process.env.APP_URL ?? "http://localhost:3000",
+    appUrl: process.env.APP_URL ?? "http://localhost:3001",
     sentinelUrl: process.env.APP_SENTINEL_URL ?? "http://localhost:9003",
     serviceName: process.env.APP_SENTINEL_SERVICE_NAME ?? "protcellar",
     idp: {

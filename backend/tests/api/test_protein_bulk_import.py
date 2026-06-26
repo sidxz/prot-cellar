@@ -193,6 +193,43 @@ async def test_bulk_import_captures_isoforms(client: AsyncClient) -> None:
 
 
 @pytest.mark.asyncio
+async def test_bulk_import_persists_long_isoform_event(client: AsyncClient) -> None:
+    """Human isoforms concatenate multiple alternative-products events, so the
+    ``event`` string routinely exceeds 64 chars (regression: the column was
+    String(64), which truncated and aborted the UP000005640 import at ~8.5k)."""
+    organism_id = await _organism(client, ncbi_tax_id=99910)
+    long_event = (
+        "Alternative promoter usage, Alternative splicing, "
+        "Alternative initiation, Ribosomal frameshifting"
+    )
+    assert len(long_event) > 64
+    rec = {
+        "primary_accession": "Q9UBP0",
+        "organism_id": organism_id,
+        "sequence": "MADQLTEEQIAEFKEAFSLF",
+        "is_reviewed": True,
+        "source": "uniprot",
+        "source_release": "2026_02",
+        "source_record_id": "Q9UBP0",
+        "source_record_checksum": "crc1",
+        "isoforms": [
+            {
+                "isoform_accession": "Q9UBP0-1",
+                "name": "1",
+                "is_displayed": True,
+                "event": long_event,
+            },
+        ],
+    }
+    resp = await client.post("/api/v1/proteins/bulk", json={"records": [rec]})
+    assert resp.status_code == 200, resp.text
+    assert resp.json()["summary"]["created"] == 1
+    got = (await client.get("/api/v1/proteins/Q9UBP0")).json()
+    isos = got.get("isoforms") or []
+    assert any(i["event"] == long_event for i in isos)
+
+
+@pytest.mark.asyncio
 async def test_bulk_import_captures_structured_keywords(client: AsyncClient) -> None:
     organism_id = await _organism(client, ncbi_tax_id=99907)
     rec = {

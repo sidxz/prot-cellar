@@ -8,7 +8,7 @@ FastAPI + SQLAlchemy (async) backend for the prot-cellar protein-target database
 # From repo root
 make install    # install dependencies (uv + pnpm)
 make up         # start Postgres :5433 + Valkey :6380 and run migrations
-make dev        # start backend :8001 + frontend :3000
+make dev        # start backend :8001 + frontend :3001
 ```
 
 ## Running imports

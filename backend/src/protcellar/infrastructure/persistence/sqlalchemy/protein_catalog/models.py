@@ -160,7 +160,7 @@ class ProteinIsoformModel(Base, EntityModelMixin):
     name: Mapped[str | None] = mapped_column(String(256), nullable=True)
     is_displayed: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     sequence: Mapped[str | None] = mapped_column(Text, nullable=True)
-    event: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    event: Mapped[str | None] = mapped_column(Text, nullable=True)
     note: Mapped[str | None] = mapped_column(Text, nullable=True)
 
 

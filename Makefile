@@ -3,8 +3,8 @@
 # First run:
 #   make install      # backend (uv) + frontend (pnpm) deps
 #   make up           # start Postgres + Valkey, run DB migrations
-#   make dev          # start backend (:8001) + frontend (:3000) in the background
-#   open http://localhost:3000
+#   make dev          # start backend (:8001) + frontend (:3001) + import worker in the background
+#   open http://localhost:3001
 #
 # Day to day:  make logs (tail)  ·  make stop (stop servers)  ·  make down (stop containers)
 #
@@ -17,9 +17,11 @@ FRONTEND := cd frontend
 LOGDIR   := .logs
 # Load backend/.env (DATABASE_URL, SENTINEL_*) into the recipe shell.
 BE_ENV   := set -a && . ./.env && set +a
+# arq import worker entrypoint (processes FE-enqueued import jobs).
+WORKER   := uv run arq protcellar.infrastructure.ingestion.worker.WorkerSettings
 
 .DEFAULT_GOAL := help
-.PHONY: help up down install dev dev-be dev-fe stop logs migrate generate-api \
+.PHONY: help up down install dev dev-be dev-fe dev-worker stop logs migrate generate-api \
         test test-api test-all test-fe lint lint-fe nuke
 
 help: ## Show this help
@@ -43,19 +45,23 @@ install: ## Install backend (uv) + frontend (pnpm) dependencies
 migrate: ## Apply DB migrations (alembic)
 	$(BACKEND) && $(BE_ENV) && uv run alembic upgrade head
 
-dev: stop ## Start backend (:8001) + frontend (:3000) in the background
+dev: stop ## Start backend (:8001) + frontend (:3001) + import worker in the background
 	@mkdir -p $(LOGDIR)
 	@echo "Starting backend on :8001..."
 	@nohup sh -c '$(BACKEND) && $(BE_ENV) && exec uv run uvicorn protcellar.interface.app:app --reload --port 8001' \
 		> $(LOGDIR)/backend.log 2>&1 & echo "$$!" > $(LOGDIR)/backend.pid
-	@echo "Starting frontend on :3000..."
+	@echo "Starting frontend on :3001..."
 	@nohup sh -c '$(FRONTEND) && exec pnpm dev' \
 		> $(LOGDIR)/frontend.log 2>&1 & echo "$$!" > $(LOGDIR)/frontend.pid
+	@echo "Starting import worker..."
+	@nohup sh -c '$(BACKEND) && $(BE_ENV) && exec $(WORKER)' \
+		> $(LOGDIR)/worker.log 2>&1 & echo "$$!" > $(LOGDIR)/worker.pid
 	@sleep 1
 	@echo ""
 	@echo "  Backend   http://localhost:8001/docs   (pid $$(cat $(LOGDIR)/backend.pid), log $(LOGDIR)/backend.log)"
-	@echo "  Frontend  http://localhost:3000        (pid $$(cat $(LOGDIR)/frontend.pid), log $(LOGDIR)/frontend.log)"
-	@echo "  make logs — tail both    ·    make stop — stop both"
+	@echo "  Frontend  http://localhost:3001        (pid $$(cat $(LOGDIR)/frontend.pid), log $(LOGDIR)/frontend.log)"
+	@echo "  Worker    import jobs                   (pid $$(cat $(LOGDIR)/worker.pid), log $(LOGDIR)/worker.log)"
+	@echo "  make logs — tail all    ·    make stop — stop all"
 
 dev-be: ## (Re)start the backend only, in the background
 	@mkdir -p $(LOGDIR)
@@ -66,22 +72,32 @@ dev-be: ## (Re)start the backend only, in the background
 
 dev-fe: ## (Re)start the frontend only, in the background
 	@mkdir -p $(LOGDIR)
-	@lsof -ti:3000 | xargs kill 2>/dev/null || true
+	@lsof -ti:3001 | xargs kill 2>/dev/null || true
 	@nohup sh -c '$(FRONTEND) && exec pnpm dev' \
 		> $(LOGDIR)/frontend.log 2>&1 & echo "$$!" > $(LOGDIR)/frontend.pid
-	@echo "Frontend (re)started on :3000 (log $(LOGDIR)/frontend.log)"
+	@echo "Frontend (re)started on :3001 (log $(LOGDIR)/frontend.log)"
 
-stop: ## Stop the backend + frontend dev servers
+dev-worker: ## (Re)start the import worker only, in the background
+	@mkdir -p $(LOGDIR)
+	@[ -f $(LOGDIR)/worker.pid ] && kill $$(cat $(LOGDIR)/worker.pid) 2>/dev/null || true
+	@pkill -f 'arq protcellar.infrastructure.ingestion.worker.WorkerSettings' 2>/dev/null || true
+	@nohup sh -c '$(BACKEND) && $(BE_ENV) && exec $(WORKER)' \
+		> $(LOGDIR)/worker.log 2>&1 & echo "$$!" > $(LOGDIR)/worker.pid
+	@echo "Import worker (re)started (log $(LOGDIR)/worker.log)"
+
+stop: ## Stop the backend + frontend + worker dev processes
 	@[ -f $(LOGDIR)/backend.pid ]  && kill $$(cat $(LOGDIR)/backend.pid)  2>/dev/null || true
 	@[ -f $(LOGDIR)/frontend.pid ] && kill $$(cat $(LOGDIR)/frontend.pid) 2>/dev/null || true
+	@[ -f $(LOGDIR)/worker.pid ]   && kill $$(cat $(LOGDIR)/worker.pid)   2>/dev/null || true
 	@lsof -ti:8001 | xargs kill 2>/dev/null || true
-	@lsof -ti:3000 | xargs kill 2>/dev/null || true
-	@rm -f $(LOGDIR)/backend.pid $(LOGDIR)/frontend.pid
+	@lsof -ti:3001 | xargs kill 2>/dev/null || true
+	@pkill -f 'arq protcellar.infrastructure.ingestion.worker.WorkerSettings' 2>/dev/null || true
+	@rm -f $(LOGDIR)/backend.pid $(LOGDIR)/frontend.pid $(LOGDIR)/worker.pid
 	@echo "Dev servers stopped."
 
-logs: ## Tail backend + frontend dev logs
-	@mkdir -p $(LOGDIR) && touch $(LOGDIR)/backend.log $(LOGDIR)/frontend.log
-	tail -f $(LOGDIR)/backend.log $(LOGDIR)/frontend.log
+logs: ## Tail backend + frontend + worker dev logs
+	@mkdir -p $(LOGDIR) && touch $(LOGDIR)/backend.log $(LOGDIR)/frontend.log $(LOGDIR)/worker.log
+	tail -f $(LOGDIR)/backend.log $(LOGDIR)/frontend.log $(LOGDIR)/worker.log
 
 generate-api: ## Refresh the OpenAPI snapshot from the backend + regenerate the TS client
 	$(BACKEND) && $(BE_ENV) && uv run python -c \

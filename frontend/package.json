@@ -4,9 +4,9 @@
   "packageManager": "pnpm@11.0.8",
   "private": true,
   "scripts": {
-    "dev": "next dev --turbopack --port 3000",
+    "dev": "next dev --turbopack --port 3001",
     "build": "next build",
-    "start": "next start",
+    "start": "next start --port 3001",
     "lint": "biome check src/",
     "lint:fix": "biome check --write src/",
     "test": "vitest run",

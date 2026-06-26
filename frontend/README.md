@@ -47,7 +47,7 @@ pnpm install
 ### 3. Start the dev server
 
 ```bash
-pnpm dev   # Next.js on http://localhost:3000 (Turbopack)
+pnpm dev   # Next.js on http://localhost:3001 (Turbopack)
 ```
 
 ---
@@ -83,7 +83,7 @@ Commit both `openapi.json` and the regenerated files together so the snapshot an
 
 | Command | Description |
 |---|---|
-| `pnpm dev` | Dev server on :3000 (Turbopack) |
+| `pnpm dev` | Dev server on :3001 (Turbopack) |
 | `pnpm build` | Production build (outputs `.next/standalone`) |
 | `pnpm start` | Serve the production build locally |
 | `pnpm lint` | Biome check (exits 0 on warnings, non-zero on errors) |

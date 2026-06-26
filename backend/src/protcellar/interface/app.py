@@ -16,7 +16,10 @@ from protcellar.infrastructure.di.container import create_container
 from protcellar.infrastructure.logging import configure_logging
 from protcellar.infrastructure.messaging.audit_event_handler import AuditEventHandler
 from protcellar.infrastructure.messaging.event_dispatcher import EventDispatcher
-from protcellar.infrastructure.sentinel.auth import get_sentinel
+from protcellar.infrastructure.sentinel.auth import (
+    get_sentinel,
+    register_service_actions,
+)
 from protcellar.interface.error_handlers import register_error_handlers
 from protcellar.interface.middleware.request_context import RequestContextMiddleware
 from protcellar.version import build_info
@@ -36,7 +39,11 @@ def create_app() -> FastAPI:
         session_factory = container[async_sessionmaker]
         dispatcher.register(DomainEvent, AuditEventHandler(session_factory))
 
+        # sentinel.lifespan fetches the JWKS signing key (fatal if it fails —
+        # auth can't work without it). Action registration is best-effort and
+        # must not block boot, so it lives here rather than in the SDK lifespan.
         async with sentinel.lifespan(app):
+            await register_service_actions(sentinel)
             yield
 
         enq = container[JobEnqueuer]  # type: ignore[type-abstract]
@@ -59,7 +66,7 @@ def create_app() -> FastAPI:
 
     import os
 
-    cors_origins = os.getenv("CORS_ORIGINS", "http://localhost:3000").split(",")
+    cors_origins = os.getenv("CORS_ORIGINS", "http://localhost:3001").split(",")
     app.add_middleware(
         CORSMiddleware,
         allow_origins=[o.strip() for o in cors_origins],
