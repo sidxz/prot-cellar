@@ -27,6 +27,7 @@ class GeneImportRecord:
     source_release: str
     source_record_id: str
     source_record_checksum: str
+    strain_id: uuid.UUID | None = None
     synonyms: tuple[str, ...] = ()
     ncbi_gene_id: str | None = None
     ensembl_gene_id: str | None = None
@@ -64,6 +65,7 @@ class BulkUpsertGenes:
                             continue
                         existing.update(
                             primary_name=rec.primary_name,
+                            strain_id=rec.strain_id,
                             synonyms=list(rec.synonyms),
                             ncbi_gene_id=rec.ncbi_gene_id,
                             ensembl_gene_id=rec.ensembl_gene_id,
@@ -79,6 +81,7 @@ class BulkUpsertGenes:
                         gene = Gene.create(
                             primary_name=rec.primary_name,
                             organism_id=rec.organism_id,
+                            strain_id=rec.strain_id,
                             synonyms=list(rec.synonyms),
                             ncbi_gene_id=rec.ncbi_gene_id,
                             ensembl_gene_id=rec.ensembl_gene_id,

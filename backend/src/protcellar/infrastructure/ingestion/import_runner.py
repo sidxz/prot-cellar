@@ -354,7 +354,8 @@ class ProteomeImportRunner:
         auth: AuthContext | None,
     ) -> None:
         gene_id_by_key = await self._upsert_genes(
-            entries, organism_id, tax_id, source_release, summary, dry_run=dry_run, auth=auth
+            entries, organism_id, strain_id, tax_id, source_release, summary,
+            dry_run=dry_run, auth=auth,
         )
 
         records: list[ProteinImportRecord] = []
@@ -396,6 +397,7 @@ class ProteomeImportRunner:
         self,
         entries: list[dict[str, Any]],
         organism_id: uuid.UUID,
+        strain_id: uuid.UUID | None,
         tax_id: Any,
         source_release: str,
         summary: ImportSummary,
@@ -419,6 +421,8 @@ class ProteomeImportRunner:
         if not by_key:
             return {}
         gene_records = list(by_key.values())
+        if strain_id is not None:
+            gene_records = [replace(r, strain_id=strain_id) for r in gene_records]
         command = BulkUpsertGenesCommand(records=tuple(gene_records), dry_run=dry_run)
         items = (await self._gene_bulk(command, auth=auth)).unwrap()
         # Correlate results to input records by ItemResult.index (not positional zip),

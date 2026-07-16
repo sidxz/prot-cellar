@@ -75,6 +75,7 @@ class GeneResponse(BaseModel):
     id: uuid.UUID
     primary_name: str
     organism_id: uuid.UUID
+    strain_id: uuid.UUID | None = None
     synonyms: list[str]
     ncbi_gene_id: str | None = None
     ncbi_gene_url: str | None = None
@@ -107,6 +108,7 @@ class GeneResponse(BaseModel):
             id=g.id,
             primary_name=g.primary_name,
             organism_id=g.organism_id,
+            strain_id=g.strain_id,
             synonyms=g.synonyms,
             ncbi_gene_id=g.ncbi_gene_id,
             ncbi_gene_url=ncbi_gene_url,

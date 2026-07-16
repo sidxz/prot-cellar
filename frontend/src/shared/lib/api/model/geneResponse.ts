@@ -4,6 +4,7 @@
  * prot-cellar
  * OpenAPI spec version: 0.1.0
  */
+import type { GeneResponseStrainId } from './geneResponseStrainId';
 import type { GeneResponseNcbiGeneId } from './geneResponseNcbiGeneId';
 import type { GeneResponseNcbiGeneUrl } from './geneResponseNcbiGeneUrl';
 import type { GeneResponseEnsemblGeneId } from './geneResponseEnsemblGeneId';
@@ -22,6 +23,7 @@ export interface GeneResponse {
   id: string;
   primary_name: string;
   organism_id: string;
+  strain_id?: GeneResponseStrainId;
   synonyms: string[];
   ncbi_gene_id?: GeneResponseNcbiGeneId;
   ncbi_gene_url?: GeneResponseNcbiGeneUrl;

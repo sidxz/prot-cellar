@@ -180,6 +180,7 @@ export * from './geneResponseHgncId';
 export * from './geneResponseLengthBp';
 export * from './geneResponseNcbiGeneId';
 export * from './geneResponseNcbiGeneUrl';
+export * from './geneResponseStrainId';
 export * from './geneSummaryResponse';
 export * from './geneTargetBiologyResponse';
 export * from './getGeneNeighborhoodApiV1GenesGeneIdNeighborhoodGetParams';

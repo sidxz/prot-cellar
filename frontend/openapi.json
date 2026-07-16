@@ -5258,6 +5258,18 @@
             "format": "uuid",
             "title": "Organism Id"
           },
+          "strain_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Strain Id"
+          },
           "synonyms": {
             "items": {
               "type": "string"

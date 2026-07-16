@@ -21,6 +21,7 @@ class Gene(AggregateRoot):
         id: uuid.UUID | None = None,
         primary_name: str,
         organism_id: uuid.UUID,
+        strain_id: uuid.UUID | None = None,
         synonyms: list[str] | None = None,
         ncbi_gene_id: str | None = None,
         ensembl_gene_id: str | None = None,
@@ -48,6 +49,7 @@ class Gene(AggregateRoot):
         self.workspace_id = GLOBAL_WORKSPACE_ID
         self.primary_name = primary_name.strip()
         self.organism_id = organism_id
+        self.strain_id = strain_id
         self.synonyms = synonyms if synonyms is not None else []
         self.ncbi_gene_id = ncbi_gene_id
         self.ensembl_gene_id = ensembl_gene_id
@@ -71,6 +73,7 @@ class Gene(AggregateRoot):
         *,
         primary_name: str,
         organism_id: uuid.UUID,
+        strain_id: uuid.UUID | None = None,
         synonyms: list[str] | None = None,
         ncbi_gene_id: str | None = None,
         ensembl_gene_id: str | None = None,
@@ -86,6 +89,7 @@ class Gene(AggregateRoot):
         gene = cls(
             primary_name=primary_name,
             organism_id=organism_id,
+            strain_id=strain_id,
             synonyms=synonyms,
             ncbi_gene_id=ncbi_gene_id,
             ensembl_gene_id=ensembl_gene_id,
@@ -129,6 +133,8 @@ class Gene(AggregateRoot):
             self.ensembl_gene_id = fields["ensembl_gene_id"]
         if "hgnc_id" in fields:
             self.hgnc_id = fields["hgnc_id"]
+        if "strain_id" in fields:
+            self.strain_id = fields["strain_id"]
         if "cross_references" in fields:
             self.cross_references = list(fields["cross_references"] or [])
         for _loc in (

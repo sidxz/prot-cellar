@@ -29,6 +29,7 @@ class SQLAlchemyGeneRepository(SQLAlchemyRepository[Gene, GeneModel], GeneReposi
             id=model.id,
             primary_name=model.primary_name,
             organism_id=model.organism_id,
+            strain_id=model.strain_id,
             synonyms=list(model.synonyms) if model.synonyms else [],
             ncbi_gene_id=model.ncbi_gene_id,
             ensembl_gene_id=model.ensembl_gene_id,
@@ -56,6 +57,7 @@ class SQLAlchemyGeneRepository(SQLAlchemyRepository[Gene, GeneModel], GeneReposi
             workspace_id=aggregate.workspace_id,
             primary_name=aggregate.primary_name,
             organism_id=aggregate.organism_id,
+            strain_id=aggregate.strain_id,
             synonyms=aggregate.synonyms or None,
             ncbi_gene_id=aggregate.ncbi_gene_id,
             ensembl_gene_id=aggregate.ensembl_gene_id,
@@ -78,6 +80,7 @@ class SQLAlchemyGeneRepository(SQLAlchemyRepository[Gene, GeneModel], GeneReposi
     def _update_model(self, model: GeneModel, aggregate: Gene) -> None:
         model.primary_name = aggregate.primary_name
         model.organism_id = aggregate.organism_id
+        model.strain_id = aggregate.strain_id
         model.synonyms = aggregate.synonyms or None
         model.ncbi_gene_id = aggregate.ncbi_gene_id
         model.ensembl_gene_id = aggregate.ensembl_gene_id

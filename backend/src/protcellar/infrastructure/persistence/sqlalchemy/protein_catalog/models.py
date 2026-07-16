@@ -27,6 +27,9 @@ class GeneModel(Base, EntityModelMixin, WorkspaceIdMixin, VersionMixin, Provenan
     organism_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("organisms.id"), nullable=False, index=True
     )
+    strain_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("strains.id"), nullable=True, index=True
+    )
     synonyms: Mapped[list[str] | None] = mapped_column(ARRAY(String), nullable=True)
     ncbi_gene_id: Mapped[str | None] = mapped_column(String(32), nullable=True, index=True)
     ensembl_gene_id: Mapped[str | None] = mapped_column(String(32), nullable=True, index=True)

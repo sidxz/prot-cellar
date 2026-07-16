@@ -33,6 +33,18 @@ def test_update_gene_fields() -> None:
     assert any(isinstance(e, GeneUpdated) for e in gene.collect_events())
 
 
+def test_gene_carries_strain() -> None:
+    # A gene belongs to a specific strain's genome (null for single-genome species).
+    strain = uuid.uuid4()
+    gene = Gene.create(primary_name="rpoB", organism_id=uuid.uuid4(), strain_id=strain)
+    assert gene.strain_id == strain
+    other = uuid.uuid4()
+    gene.update(strain_id=other)
+    assert gene.strain_id == other
+    human = Gene.create(primary_name="TP53", organism_id=uuid.uuid4())
+    assert human.strain_id is None
+
+
 def test_update_rejects_empty_primary_name() -> None:
     gene = Gene.create(primary_name="TP53", organism_id=uuid.uuid4())
     with pytest.raises(ValidationError):
