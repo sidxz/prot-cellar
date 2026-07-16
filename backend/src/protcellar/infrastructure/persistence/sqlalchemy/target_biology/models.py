@@ -29,7 +29,7 @@ class EssentialityRecordModel(Base, EntityModelMixin, WorkspaceIdMixin, VersionM
     condition: Mapped[str | None] = mapped_column(String(128), nullable=True)
     method: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True)
     confidence: Mapped[float | None] = mapped_column(Float, nullable=True)
-    provenance: Mapped[dict[str, object] | None] = mapped_column(JSON, nullable=True)
+    provenance: Mapped[dict[str, object]] = mapped_column(JSON, nullable=False)
     # ponytail: JSON (not JSONB) to match existing columns; promote to JSONB when
     # the deferred extensions registry makes this queryable.
     extensions: Mapped[dict[str, object] | None] = mapped_column(JSON, nullable=True)
@@ -40,7 +40,7 @@ class CrispriStrainModel(Base, EntityModelMixin, WorkspaceIdMixin, VersionMixin)
 
     name: Mapped[str] = mapped_column(String(256), nullable=False, index=True)
     target_gene_id: Mapped[uuid.UUID] = mapped_column(Uuid, nullable=False, index=True)
-    provenance: Mapped[dict[str, object] | None] = mapped_column(JSON, nullable=True)
+    provenance: Mapped[dict[str, object]] = mapped_column(JSON, nullable=False)
     extensions: Mapped[dict[str, object] | None] = mapped_column(JSON, nullable=True)
 
 
@@ -52,7 +52,7 @@ class VulnerabilityRecordModel(Base, EntityModelMixin, WorkspaceIdMixin, Version
     method: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True)
     vulnerability_score: Mapped[float | None] = mapped_column(Float, nullable=True, index=True)
     confidence: Mapped[float | None] = mapped_column(Float, nullable=True)
-    provenance: Mapped[dict[str, object] | None] = mapped_column(JSON, nullable=True)
+    provenance: Mapped[dict[str, object]] = mapped_column(JSON, nullable=False)
     extensions: Mapped[dict[str, object] | None] = mapped_column(JSON, nullable=True)
 
 
@@ -65,7 +65,7 @@ class HypomorphModel(Base, EntityModelMixin, WorkspaceIdMixin, VersionMixin):
     growth_defect_severity: Mapped[str | None] = mapped_column(String(64), nullable=True)
     condition: Mapped[str | None] = mapped_column(String(128), nullable=True)
     method: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True)
-    provenance: Mapped[dict[str, object] | None] = mapped_column(JSON, nullable=True)
+    provenance: Mapped[dict[str, object]] = mapped_column(JSON, nullable=False)
     extensions: Mapped[dict[str, object] | None] = mapped_column(JSON, nullable=True)
 
 
@@ -79,7 +79,7 @@ class ResistanceMutationModel(Base, EntityModelMixin, WorkspaceIdMixin, VersionM
     parent_strain: Mapped[str | None] = mapped_column(String(128), nullable=True)
     protein_coordinate: Mapped[str | None] = mapped_column(String(64), nullable=True)
     method: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True)
-    provenance: Mapped[dict[str, object] | None] = mapped_column(JSON, nullable=True)
+    provenance: Mapped[dict[str, object]] = mapped_column(JSON, nullable=False)
     extensions: Mapped[dict[str, object] | None] = mapped_column(JSON, nullable=True)
 
 
@@ -92,7 +92,7 @@ class ProteinProductionModel(Base, EntityModelMixin, WorkspaceIdMixin, VersionMi
     purity: Mapped[float | None] = mapped_column(Float, nullable=True)
     condition: Mapped[str | None] = mapped_column(String(128), nullable=True)
     method: Mapped[str | None] = mapped_column(String(64), nullable=True)
-    provenance: Mapped[dict[str, object] | None] = mapped_column(JSON, nullable=True)
+    provenance: Mapped[dict[str, object]] = mapped_column(JSON, nullable=False)
     extensions: Mapped[dict[str, object] | None] = mapped_column(JSON, nullable=True)
 
 
@@ -105,7 +105,7 @@ class ProteinActivityAssayModel(Base, EntityModelMixin, WorkspaceIdMixin, Versio
     throughput: Mapped[str | None] = mapped_column(String(64), nullable=True)
     condition: Mapped[str | None] = mapped_column(String(128), nullable=True)
     method: Mapped[str | None] = mapped_column(String(64), nullable=True)
-    provenance: Mapped[dict[str, object] | None] = mapped_column(JSON, nullable=True)
+    provenance: Mapped[dict[str, object]] = mapped_column(JSON, nullable=False)
     extensions: Mapped[dict[str, object] | None] = mapped_column(JSON, nullable=True)
 
 
@@ -118,5 +118,5 @@ class UnpublishedStructureModel(Base, EntityModelMixin, WorkspaceIdMixin, Versio
     ligands: Mapped[list[dict[str, object]] | None] = mapped_column(JSON, nullable=True)
     is_published: Mapped[bool] = mapped_column(Boolean, nullable=False)
     is_experimental: Mapped[bool] = mapped_column(Boolean, nullable=False)
-    provenance: Mapped[dict[str, object] | None] = mapped_column(JSON, nullable=True)
+    provenance: Mapped[dict[str, object]] = mapped_column(JSON, nullable=False)
     extensions: Mapped[dict[str, object] | None] = mapped_column(JSON, nullable=True)
