@@ -7,6 +7,7 @@ import { SequenceViewer } from "@/shared/components/sequence/sequence-viewer";
 import { Badge } from "@/shared/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/card";
 import { Skeleton } from "@/shared/components/ui/skeleton";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/shared/components/ui/tabs";
 import { Dna, ExternalLink } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -22,9 +23,9 @@ import { GoGraphCard } from "./sections/go-graph-card";
 import { GoTermsSection } from "./sections/go-terms-section";
 import { IsoformsSection } from "./sections/isoforms-section";
 import { KeywordsSection } from "./sections/keywords-section";
+import { ProteinTargetBiologyTab } from "./sections/protein-target-biology-tab";
 import { StructureViewerCard } from "./sections/structure-viewer-card";
 import { SubcellularLocationCard } from "./sections/subcellular-location-card";
-import { ProteinTargetBiologySection } from "./sections/target-biology-section";
 
 // ---------------------------------------------------------------------------
 // Sub-components
@@ -298,35 +299,49 @@ export function ProteinDetailPage({ accession }: ProteinDetailPageProps) {
         )}
       </header>
 
-      {/* ── Two-column body ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-6 items-start">
-        {/* Main column */}
-        <div className="flex flex-col gap-6 min-w-0">
-          <FunctionSection protein={protein} />
-          <FeaturesSection protein={protein} />
-          <StructureViewerCard protein={protein} />
-          <ProteinTargetBiologySection proteinId={protein.id} />
-          <GoGraphCard protein={protein} />
-          <section aria-labelledby="seq-heading">
-            <h2 id="seq-heading" className="text-base font-semibold mb-3 text-foreground">
-              Sequence
-            </h2>
-            <SequenceSection protein={protein} />
-          </section>
-        </div>
-        {/* Side column */}
-        <div className="flex flex-col gap-6 min-w-0">
-          <MetadataCard protein={protein} />
-          <GoTermsSection protein={protein} />
-          <SubcellularLocationCard protein={protein} />
-          <KeywordsSection protein={protein} />
-          <CitationsSection protein={protein} />
-          <IsoformsSection protein={protein} />
-        </div>
-      </div>
+      <Tabs defaultValue="overview" className="flex flex-col gap-6">
+        <TabsList>
+          <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="target-biology">Target Biology</TabsTrigger>
+        </TabsList>
 
-      {/* ── Cross-references ── */}
-      <CrossReferencesSection protein={protein} />
+        {/* ── Overview ── */}
+        <TabsContent value="overview" className="flex flex-col gap-8">
+          {/* Two-column body */}
+          <div className="grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-6 items-start">
+            {/* Main column */}
+            <div className="flex flex-col gap-6 min-w-0">
+              <FunctionSection protein={protein} />
+              <FeaturesSection protein={protein} />
+              <StructureViewerCard protein={protein} />
+              <GoGraphCard protein={protein} />
+              <section aria-labelledby="seq-heading">
+                <h2 id="seq-heading" className="text-base font-semibold mb-3 text-foreground">
+                  Sequence
+                </h2>
+                <SequenceSection protein={protein} />
+              </section>
+            </div>
+            {/* Side column */}
+            <div className="flex flex-col gap-6 min-w-0">
+              <MetadataCard protein={protein} />
+              <GoTermsSection protein={protein} />
+              <SubcellularLocationCard protein={protein} />
+              <KeywordsSection protein={protein} />
+              <CitationsSection protein={protein} />
+              <IsoformsSection protein={protein} />
+            </div>
+          </div>
+
+          {/* Cross-references */}
+          <CrossReferencesSection protein={protein} />
+        </TabsContent>
+
+        {/* ── Target Biology (typed records, editable) ── */}
+        <TabsContent value="target-biology">
+          <ProteinTargetBiologyTab proteinId={protein.id} />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

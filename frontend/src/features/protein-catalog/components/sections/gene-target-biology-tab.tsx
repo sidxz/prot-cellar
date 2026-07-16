@@ -3,14 +3,15 @@
 import { Skeleton } from "@/shared/components/ui/skeleton";
 
 import { useGeneTargetBiology } from "../../hooks/use-target-biology";
-import { EssentialityTable } from "./essentiality-table";
-import { GeneTargetBiologySection } from "./target-biology-section";
+import {
+  CrispriStrainTable,
+  EssentialityTable,
+  HypomorphTable,
+  ResistanceMutationTable,
+  VulnerabilityTable,
+} from "./gene-record-tables";
 
-/**
- * Gene detail "Target Biology" tab. Essentiality is a fully editable table
- * (add / inline-edit / delete); the remaining gene-side records render
- * read-only for now — their editors follow the same pattern.
- */
+/** Gene detail "Target Biology" tab — the five gene-side records as editable tables. */
 export function GeneTargetBiologyTab({ geneId }: { geneId: string }) {
   const { data, isLoading } = useGeneTargetBiology(geneId);
 
@@ -21,7 +22,10 @@ export function GeneTargetBiologyTab({ geneId }: { geneId: string }) {
   return (
     <div className="flex flex-col gap-8">
       <EssentialityTable geneId={geneId} records={data?.essentiality ?? []} />
-      <GeneTargetBiologySection geneId={geneId} omit={["Essentiality"]} heading={null} />
+      <VulnerabilityTable geneId={geneId} records={data?.vulnerability ?? []} />
+      <HypomorphTable geneId={geneId} records={data?.hypomorph ?? []} />
+      <CrispriStrainTable geneId={geneId} records={data?.crispri_strain ?? []} />
+      <ResistanceMutationTable geneId={geneId} records={data?.resistance_mutation ?? []} />
     </div>
   );
 }
