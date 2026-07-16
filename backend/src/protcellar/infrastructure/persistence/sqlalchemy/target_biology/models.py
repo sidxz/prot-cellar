@@ -42,3 +42,15 @@ class CrispriStrainModel(Base, EntityModelMixin, WorkspaceIdMixin, VersionMixin)
     target_gene_id: Mapped[uuid.UUID] = mapped_column(Uuid, nullable=False, index=True)
     provenance: Mapped[dict[str, object] | None] = mapped_column(JSON, nullable=True)
     extensions: Mapped[dict[str, object] | None] = mapped_column(JSON, nullable=True)
+
+
+class VulnerabilityRecordModel(Base, EntityModelMixin, WorkspaceIdMixin, VersionMixin):
+    __tablename__ = "vulnerability_records"
+
+    gene_id: Mapped[uuid.UUID] = mapped_column(Uuid, nullable=False, index=True)
+    condition: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    method: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True)
+    vulnerability_score: Mapped[float | None] = mapped_column(Float, nullable=True, index=True)
+    confidence: Mapped[float | None] = mapped_column(Float, nullable=True)
+    provenance: Mapped[dict[str, object] | None] = mapped_column(JSON, nullable=True)
+    extensions: Mapped[dict[str, object] | None] = mapped_column(JSON, nullable=True)
