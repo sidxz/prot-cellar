@@ -20,7 +20,12 @@ from protcellar.application.target_biology._import_support import ItemResult, bu
 from protcellar.domain.protein_catalog.repository import GeneRepository
 from protcellar.domain.shared.errors import DomainError
 from protcellar.domain.shared.global_workspace import GLOBAL_WORKSPACE_ID
-from protcellar.domain.shared.provenance import Citation, Provenance, ProvenanceSourceType
+from protcellar.domain.shared.provenance import (
+    Citation,
+    GenerationMethod,
+    Provenance,
+    ProvenanceSourceType,
+)
 from protcellar.domain.target_biology.enums import EssentialityClass
 from protcellar.domain.target_biology.essentiality import Essentiality
 from protcellar.domain.target_biology.repository import EssentialityRepository
@@ -63,14 +68,33 @@ class BulkUpsertEssentialityCommand(Command):
     organism_id: uuid.UUID
     records: tuple[EssentialityImportRecord, ...]
     source_type: str = ProvenanceSourceType.PUBLISHED.value
+    generation_method: str = GenerationMethod.IMPORTED.value
+    source_run_id: uuid.UUID | None = None
     dry_run: bool = False
 
 
-def _provenance(source_type: str, rec: EssentialityImportRecord) -> Provenance:
+def _provenance(
+    source_type: str, generation_method: str, rec: EssentialityImportRecord
+) -> Provenance:
     citations: tuple[Citation, ...] = ()
     if rec.pmid or rec.dataset:
         citations = (Citation(pmid=rec.pmid, label=rec.dataset),)
-    return Provenance(source_type=ProvenanceSourceType(source_type), citations=citations)
+    return Provenance(
+        source_type=ProvenanceSourceType(source_type),
+        generation_method=GenerationMethod(generation_method),
+        citations=citations,
+    )
+
+
+def _extensions(
+    rec: EssentialityImportRecord, source_run_id: uuid.UUID | None
+) -> dict[str, object]:
+    ext: dict[str, object] = {"raw_call": rec.classification}
+    if source_run_id is not None:
+        # ponytail: source_run_id in the extensions bag (no migration); promote to
+        # an indexed column when the v1.1 undo-a-run feature needs to query by it.
+        ext["source_run_id"] = str(source_run_id)
+    return ext
 
 
 class BulkUpsertEssentiality:
@@ -104,7 +128,7 @@ class BulkUpsertEssentiality:
                         )
                         continue
                     classification = classify(rec.classification)
-                    provenance = _provenance(input.source_type, rec)
+                    provenance = _provenance(input.source_type, input.generation_method, rec)
                     existing = await self._ess_repo.find_by_gene(GLOBAL_WORKSPACE_ID, gene.id)
                     match = next(
                         (
@@ -121,7 +145,7 @@ class BulkUpsertEssentiality:
                             method=rec.method,
                             confidence=rec.confidence,
                             provenance=provenance,
-                            extensions={"raw_call": rec.classification},
+                            extensions=_extensions(rec, input.source_run_id),
                         )
                         if not input.dry_run:
                             await self._ess_repo.save(match)
@@ -135,7 +159,7 @@ class BulkUpsertEssentiality:
                             method=rec.method,
                             confidence=rec.confidence,
                             provenance=provenance,
-                            extensions={"raw_call": rec.classification},
+                            extensions=_extensions(rec, input.source_run_id),
                         )
                         if not input.dry_run:
                             await self._ess_repo.save(record)

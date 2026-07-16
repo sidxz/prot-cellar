@@ -12,6 +12,7 @@ from protcellar.application.target_biology.bulk_upsert_essentiality import (
     EssentialityImportRecord,
 )
 from protcellar.domain.protein_catalog.gene import Gene
+from protcellar.domain.shared.provenance import GenerationMethod
 from protcellar.domain.target_biology.enums import EssentialityClass
 from protcellar.domain.target_biology.essentiality import Essentiality
 from tests.fakes.fake_auth import FakeAuth
@@ -122,3 +123,37 @@ async def test_dry_run_writes_nothing() -> None:
     res = (await uc(cmd, auth=_admin())).unwrap()
     assert [r.status for r in res] == ["created"]
     assert ess_repo.items == []  # nothing persisted on dry run
+
+
+@pytest.mark.asyncio
+async def test_default_generation_method_is_imported() -> None:
+    org = uuid.uuid4()
+    gene = Gene.create(primary_name="Rv0667", organism_id=org, synonyms=["rpoB"])
+    ess_repo = _FakeEssRepo()
+    uc = _uc(_FakeGeneRepo([gene]), ess_repo)
+    cmd = BulkUpsertEssentialityCommand(
+        organism_id=org,
+        records=(EssentialityImportRecord(locus_key="rpoB", classification="ES"),),
+    )
+    (await uc(cmd, auth=_admin())).unwrap()
+    assert ess_repo.items[0].provenance.generation_method is GenerationMethod.IMPORTED
+
+
+@pytest.mark.asyncio
+async def test_stamps_generation_method_and_source_run_id() -> None:
+    org = uuid.uuid4()
+    run_id = uuid.uuid4()
+    gene = Gene.create(primary_name="Rv0667", organism_id=org, synonyms=["rpoB"])
+    ess_repo = _FakeEssRepo()
+    uc = _uc(_FakeGeneRepo([gene]), ess_repo)
+    cmd = BulkUpsertEssentialityCommand(
+        organism_id=org,
+        records=(EssentialityImportRecord(locus_key="rpoB", classification="ES"),),
+        generation_method=GenerationMethod.AI_EXTRACTED.value,
+        source_run_id=run_id,
+    )
+    (await uc(cmd, auth=_admin())).unwrap()
+    saved = ess_repo.items[0]
+    assert saved.provenance.generation_method is GenerationMethod.AI_EXTRACTED
+    assert saved.extensions["source_run_id"] == str(run_id)
+    assert saved.extensions["raw_call"] == "ES"
