@@ -6,6 +6,7 @@ vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
 import {
   type Column,
   EditableRecordTable,
+  ProvenanceLegend,
   generationMethodBadgeVariant,
 } from "./editable-record-table";
 
@@ -131,5 +132,14 @@ describe("generationMethodBadgeVariant", () => {
     expect(generationMethodBadgeVariant("nonsense")).toBe("outline");
     expect(generationMethodBadgeVariant(undefined)).toBe("outline");
     expect(generationMethodBadgeVariant(null)).toBe("outline");
+  });
+});
+
+describe("ProvenanceLegend", () => {
+  it("renders the three color meanings", () => {
+    render(<ProvenanceLegend />);
+    expect(screen.getByText("manual")).toBeInTheDocument();
+    expect(screen.getByText("imported")).toBeInTheDocument();
+    expect(screen.getByText("AI")).toBeInTheDocument();
   });
 });

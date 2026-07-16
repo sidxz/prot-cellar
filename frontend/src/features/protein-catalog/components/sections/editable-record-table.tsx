@@ -1,6 +1,6 @@
 "use client";
 
-import type { Badge } from "@/shared/components/ui/badge";
+import { Badge } from "@/shared/components/ui/badge";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
 import {
@@ -10,6 +10,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/shared/components/ui/select";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/shared/components/ui/tooltip";
 import type { ProvenanceBody } from "@/shared/lib/api/model";
 import { ProvenanceSourceType } from "@/shared/lib/api/model";
 import { Check, Loader2, Pencil, Plus, Trash2, X } from "lucide-react";
@@ -56,6 +62,7 @@ export const EMPTY_PROV: ProvDraft = { source_type: "published", pmid: "", note:
 /** Minimal provenance shape as it comes back on any record response. */
 interface ProvLike {
   source_type: string;
+  generation_method: string;
   citations: { pmid?: string | null }[];
   note?: string | null;
 }
@@ -87,6 +94,28 @@ function PmidCell({ p }: { p: ProvLike }) {
   );
 }
 
+function ProvenanceSourceBadge({ p }: { p: ProvLike }) {
+  const method = p.generation_method || "manual";
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Badge
+          variant={generationMethodBadgeVariant(method)}
+          aria-label={`Source: ${humanize(p.source_type)}. Generated: ${humanize(method)}.`}
+        >
+          {humanize(p.source_type)}
+        </Badge>
+      </TooltipTrigger>
+      <TooltipContent className="text-xs">
+        <div>Source: {humanize(p.source_type)}</div>
+        <div>Generated: {humanize(method)}</div>
+        {p.citations[0]?.pmid ? <div>PMID: {p.citations[0].pmid}</div> : null}
+        {p.note ? <div>{p.note}</div> : null}
+      </TooltipContent>
+    </Tooltip>
+  );
+}
+
 /** The three shared provenance columns appended to every record's table. */
 export function provColumns<R extends { provenance: ProvLike }>(): Column<R, ProvDraft>[] {
   return [
@@ -95,11 +124,7 @@ export function provColumns<R extends { provenance: ProvLike }>(): Column<R, Pro
       field: "source_type",
       type: "enum",
       options: SOURCE_OPTIONS,
-      render: (r) => (
-        <span className="text-xs uppercase text-muted-foreground">
-          {humanize(r.provenance.source_type)}
-        </span>
-      ),
+      render: (r) => <ProvenanceSourceBadge p={r.provenance} />,
     },
     {
       label: "Reference",
@@ -266,89 +291,105 @@ export function EditableRecordTable<R extends { id: string }, D extends Record<s
   );
 
   return (
-    <section aria-label={title} className="flex flex-col gap-2">
-      <div className="flex items-center justify-between">
-        <h3 className="text-sm font-semibold text-foreground">{title}</h3>
-        <Button
-          size="sm"
-          variant="outline"
-          className="h-7 gap-1"
-          onClick={() => {
-            setDraft(emptyDraft);
-            setEditingId(NEW);
-          }}
-          disabled={editingId === NEW}
-        >
-          <Plus className="h-3.5 w-3.5" />
-          Add
-        </Button>
-      </div>
-      <p className="text-xs text-muted-foreground">{description}</p>
-      <div className="overflow-x-auto rounded-md border border-border">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="bg-muted/40">
-              {columns.map((col) => (
-                <th key={col.label} className={TH}>
-                  {col.label}
-                </th>
-              ))}
-              <th className={`${TH} w-16`}>&nbsp;</th>
-            </tr>
-          </thead>
-          <tbody>
-            {editingId === NEW && editRow(NEW)}
-            {records.length === 0 && editingId !== NEW && (
-              <tr className="border-t border-border">
-                <td
-                  className="px-2 py-3 text-xs italic text-muted-foreground"
-                  colSpan={columns.length + 1}
-                >
-                  No {title.toLowerCase()} records yet.
-                </td>
+    // Tooltip needs a TooltipProvider ancestor and the app doesn't mount one
+    // globally; provide it here so every ProvenanceSourceBadge cell works.
+    <TooltipProvider>
+      <section aria-label={title} className="flex flex-col gap-2">
+        <div className="flex items-center justify-between">
+          <h3 className="text-sm font-semibold text-foreground">{title}</h3>
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-7 gap-1"
+            onClick={() => {
+              setDraft(emptyDraft);
+              setEditingId(NEW);
+            }}
+            disabled={editingId === NEW}
+          >
+            <Plus className="h-3.5 w-3.5" />
+            Add
+          </Button>
+        </div>
+        <p className="text-xs text-muted-foreground">{description}</p>
+        <div className="overflow-x-auto rounded-md border border-border">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="bg-muted/40">
+                {columns.map((col) => (
+                  <th key={col.label} className={TH}>
+                    {col.label}
+                  </th>
+                ))}
+                <th className={`${TH} w-16`}>&nbsp;</th>
               </tr>
-            )}
-            {records.map((r) =>
-              editingId === r.id ? (
-                editRow(r.id)
-              ) : (
-                <tr key={r.id} className="border-t border-border">
-                  {columns.map((col) => (
-                    <td key={col.label} className={`${TD} text-foreground`}>
-                      {col.render(r)}
-                    </td>
-                  ))}
-                  <td className={`${TD} whitespace-nowrap`}>
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      className="h-7 w-7"
-                      onClick={() => {
-                        setDraft(toDraft(r));
-                        setEditingId(r.id);
-                      }}
-                      disabled={busy}
-                    >
-                      <Pencil className="h-3.5 w-3.5" />
-                      <span className="sr-only">Edit</span>
-                    </Button>
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      className="h-7 w-7 text-destructive hover:text-destructive"
-                      onClick={() => del(r.id)}
-                      disabled={busy}
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                      <span className="sr-only">Delete</span>
-                    </Button>
+            </thead>
+            <tbody>
+              {editingId === NEW && editRow(NEW)}
+              {records.length === 0 && editingId !== NEW && (
+                <tr className="border-t border-border">
+                  <td
+                    className="px-2 py-3 text-xs italic text-muted-foreground"
+                    colSpan={columns.length + 1}
+                  >
+                    No {title.toLowerCase()} records yet.
                   </td>
                 </tr>
-              ),
-            )}
-          </tbody>
-        </table>
-      </div>
-    </section>
+              )}
+              {records.map((r) =>
+                editingId === r.id ? (
+                  editRow(r.id)
+                ) : (
+                  <tr key={r.id} className="border-t border-border">
+                    {columns.map((col) => (
+                      <td key={col.label} className={`${TD} text-foreground`}>
+                        {col.render(r)}
+                      </td>
+                    ))}
+                    <td className={`${TD} whitespace-nowrap`}>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="h-7 w-7"
+                        onClick={() => {
+                          setDraft(toDraft(r));
+                          setEditingId(r.id);
+                        }}
+                        disabled={busy}
+                      >
+                        <Pencil className="h-3.5 w-3.5" />
+                        <span className="sr-only">Edit</span>
+                      </Button>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="h-7 w-7 text-destructive hover:text-destructive"
+                        onClick={() => del(r.id)}
+                        disabled={busy}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                        <span className="sr-only">Delete</span>
+                      </Button>
+                    </td>
+                  </tr>
+                ),
+              )}
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </TooltipProvider>
+  );
+}
+
+/** Explains the Source-cell colors. Render once above a set of record tables. */
+export function ProvenanceLegend() {
+  return (
+    <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+      <span>Source color:</span>
+      <Badge variant="outline">manual</Badge>
+      <Badge variant="secondary">imported</Badge>
+      <Badge variant="info">AI</Badge>
+    </div>
   );
 }
