@@ -105,13 +105,10 @@ describe("GeneDetailPage", () => {
     expect(screen.getByText(/Cellular tumor antigen p53/)).toBeInTheDocument();
   });
 
-  it("renders the genomic-context location and the vulnerability annotation", () => {
+  it("renders the genomic-context location", () => {
     render(<GeneDetailPage geneId="g1" />);
     expect(screen.getByText("Genomic Context")).toBeInTheDocument();
     expect(screen.getByText(/NC_000962\.3/)).toBeInTheDocument();
-    expect(screen.getByText("Vulnerability")).toBeInTheDocument();
-    expect(screen.getByText("essential")).toBeInTheDocument();
-    expect(screen.getByText(/DeJesus 2017/)).toBeInTheDocument();
   });
 
   it("shows the functional category from the context annotation", () => {
@@ -120,7 +117,7 @@ describe("GeneDetailPage", () => {
     expect(screen.getByText("information pathways")).toBeInTheDocument();
   });
 
-  it("renders neither section for a bare gene without location or annotations", async () => {
+  it("omits the genomic-context section for a bare gene without location", async () => {
     const { useGene } = await import("../hooks/use-genes");
     (useGene as ReturnType<typeof vi.fn>).mockReturnValueOnce({
       data: {
@@ -138,6 +135,5 @@ describe("GeneDetailPage", () => {
 
     render(<GeneDetailPage geneId="g2" />);
     expect(screen.queryByText("Genomic Context")).not.toBeInTheDocument();
-    expect(screen.queryByText("Vulnerability")).not.toBeInTheDocument();
   });
 });

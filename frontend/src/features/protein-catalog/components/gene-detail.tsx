@@ -10,7 +10,6 @@ import { Dna, ExternalLink } from "lucide-react";
 import Link from "next/link";
 import { useGene } from "../hooks/use-genes";
 import { useProteins } from "../hooks/use-proteins";
-import { AXIS_TITLES, AxisAnnotationsSection } from "./sections/axis-annotations-section";
 import { GeneTargetBiologyTab } from "./sections/gene-target-biology-tab";
 import { GenomicContextSection } from "./sections/genomic-context-section";
 
@@ -268,7 +267,6 @@ export function GeneDetailPage({ geneId }: GeneDetailPageProps) {
           keeps its tabs.) */}
       <GeneMetadataCard gene={data} />
       <GenomicContextSection gene={data} />
-      <AxisAnnotationsSection gene={data} axis="vulnerability" title={AXIS_TITLES.vulnerability} />
 
       <section aria-labelledby="target-biology-heading" className="flex flex-col gap-4">
         <h2 id="target-biology-heading" className="text-base font-semibold text-foreground">
