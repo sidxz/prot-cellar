@@ -6,11 +6,15 @@ from protcellar.domain.shared.provenance import Citation, Provenance, Provenance
 from protcellar.domain.target_biology.crispri_strain import CrispriStrain
 from protcellar.domain.target_biology.enums import EssentialityClass
 from protcellar.domain.target_biology.essentiality import Essentiality
+from protcellar.domain.target_biology.vulnerability import Vulnerability
 from protcellar.infrastructure.persistence.sqlalchemy.target_biology.crispri_strain_repository import (  # noqa: E501
     SQLAlchemyCrispriStrainRepository,
 )
 from protcellar.infrastructure.persistence.sqlalchemy.target_biology.essentiality_repository import (  # noqa: E501
     SQLAlchemyEssentialityRepository,
+)
+from protcellar.infrastructure.persistence.sqlalchemy.target_biology.vulnerability_repository import (  # noqa: E501
+    SQLAlchemyVulnerabilityRepository,
 )
 from protcellar.infrastructure.persistence.unit_of_work import AsyncUnitOfWork
 
@@ -60,3 +64,28 @@ async def test_crispri_strain_round_trip(uow: AsyncUnitOfWork) -> None:
     async with uow:
         found = await SQLAlchemyCrispriStrainRepository(uow).find_by_id_in_workspace(ws, strain.id)
     assert found is not None and found.name == "sgRNA-rpoB-1"
+
+
+async def test_vulnerability_round_trip(uow: AsyncUnitOfWork) -> None:
+    ws, gene = uuid.uuid4(), uuid.uuid4()
+    record = Vulnerability.create(
+        workspace_id=ws,
+        gene_id=gene,
+        method="CRISPRi",
+        vulnerability_score=0.82,
+        confidence=0.9,
+        provenance=Provenance(
+            source_type=ProvenanceSourceType.PUBLISHED,
+            citations=(Citation(doi="10.1016/j.cell.2021.02.010", label="Bosch 2021"),),
+        ),
+        extensions={"vi_index": -3.1, "bin": "high"},
+    )
+    async with uow:
+        await SQLAlchemyVulnerabilityRepository(uow).save(record)
+        await uow.commit()
+    async with uow:
+        found = await SQLAlchemyVulnerabilityRepository(uow).find_by_gene(ws, gene)
+    assert len(found) == 1
+    assert found[0].vulnerability_score == 0.82
+    assert found[0].extensions == {"vi_index": -3.1, "bin": "high"}
+    assert found[0].provenance.citations[0].doi == "10.1016/j.cell.2021.02.010"
