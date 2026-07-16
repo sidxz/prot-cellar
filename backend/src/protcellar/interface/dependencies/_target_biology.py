@@ -6,10 +6,10 @@ from typing import Annotated
 
 from fastapi import Depends
 
-from protcellar.application.target_biology.crud_essentiality import (
-    CreateEssentiality,
-    DeleteEssentiality,
-    UpdateEssentiality,
+from protcellar.application.target_biology.crud import (
+    CreateTargetBiologyRecord,
+    DeleteTargetBiologyRecord,
+    UpdateTargetBiologyRecord,
 )
 from protcellar.application.target_biology.get_gene_target_biology import GetGeneTargetBiology
 from protcellar.application.target_biology.get_protein_target_biology import (
@@ -19,11 +19,11 @@ from protcellar.application.target_biology.get_protein_target_biology import (
 from ._core import _get_use_case
 
 __all__ = [
-    "CreateEssentialityDep",
-    "DeleteEssentialityDep",
+    "CreateTargetBiologyRecordDep",
+    "DeleteTargetBiologyRecordDep",
     "GetGeneTargetBiologyDep",
     "GetProteinTargetBiologyDep",
-    "UpdateEssentialityDep",
+    "UpdateTargetBiologyRecordDep",
 ]
 
 GetGeneTargetBiologyDep = Annotated[
@@ -32,6 +32,12 @@ GetGeneTargetBiologyDep = Annotated[
 GetProteinTargetBiologyDep = Annotated[
     GetProteinTargetBiology, Depends(_get_use_case(GetProteinTargetBiology))
 ]
-CreateEssentialityDep = Annotated[CreateEssentiality, Depends(_get_use_case(CreateEssentiality))]
-UpdateEssentialityDep = Annotated[UpdateEssentiality, Depends(_get_use_case(UpdateEssentiality))]
-DeleteEssentialityDep = Annotated[DeleteEssentiality, Depends(_get_use_case(DeleteEssentiality))]
+CreateTargetBiologyRecordDep = Annotated[
+    CreateTargetBiologyRecord, Depends(_get_use_case(CreateTargetBiologyRecord))
+]
+UpdateTargetBiologyRecordDep = Annotated[
+    UpdateTargetBiologyRecord, Depends(_get_use_case(UpdateTargetBiologyRecord))
+]
+DeleteTargetBiologyRecordDep = Annotated[
+    DeleteTargetBiologyRecord, Depends(_get_use_case(DeleteTargetBiologyRecord))
+]

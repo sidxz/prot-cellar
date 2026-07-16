@@ -1,4 +1,4 @@
-"""Target-biology DI bindings — read-side bundle queries."""
+"""Target-biology DI bindings — read bundles + generic admin CRUD."""
 
 from __future__ import annotations
 
@@ -7,10 +7,11 @@ from typing import Any
 from lagom import Container
 from sqlalchemy.ext.asyncio import async_sessionmaker
 
-from protcellar.application.target_biology.crud_essentiality import (
-    CreateEssentiality,
-    DeleteEssentiality,
-    UpdateEssentiality,
+from protcellar.application.target_biology.crud import (
+    CreateTargetBiologyRecord,
+    DeleteTargetBiologyRecord,
+    RecordKind,
+    UpdateTargetBiologyRecord,
 )
 from protcellar.application.target_biology.get_gene_target_biology import GetGeneTargetBiology
 from protcellar.application.target_biology.get_protein_target_biology import (
@@ -44,6 +45,19 @@ from protcellar.infrastructure.persistence.sqlalchemy.target_biology.vulnerabili
 from protcellar.infrastructure.persistence.unit_of_work import AsyncUnitOfWork
 
 
+def _all_repos(uow: AsyncUnitOfWork) -> dict[RecordKind, Any]:
+    return {
+        RecordKind.ESSENTIALITY: SQLAlchemyEssentialityRepository(uow),
+        RecordKind.VULNERABILITY: SQLAlchemyVulnerabilityRepository(uow),
+        RecordKind.HYPOMORPH: SQLAlchemyHypomorphRepository(uow),
+        RecordKind.CRISPRI_STRAIN: SQLAlchemyCrispriStrainRepository(uow),
+        RecordKind.RESISTANCE_MUTATION: SQLAlchemyResistanceMutationRepository(uow),
+        RecordKind.PROTEIN_PRODUCTION: SQLAlchemyProteinProductionRepository(uow),
+        RecordKind.PROTEIN_ACTIVITY_ASSAY: SQLAlchemyProteinActivityAssayRepository(uow),
+        RecordKind.UNPUBLISHED_STRUCTURE: SQLAlchemyUnpublishedStructureRepository(uow),
+    }
+
+
 def register_target_biology(container: Container) -> None:
     def _gene_bundle(c: Container) -> Any:
         uow = AsyncUnitOfWork(c[async_sessionmaker])
@@ -65,21 +79,20 @@ def register_target_biology(container: Container) -> None:
             SQLAlchemyUnpublishedStructureRepository(uow),
         )
 
+    def _create(c: Container) -> Any:
+        uow = AsyncUnitOfWork(c[async_sessionmaker])
+        return CreateTargetBiologyRecord(uow, _all_repos(uow), c[EventDispatcher])
+
+    def _update(c: Container) -> Any:
+        uow = AsyncUnitOfWork(c[async_sessionmaker])
+        return UpdateTargetBiologyRecord(uow, _all_repos(uow), c[EventDispatcher])
+
+    def _delete(c: Container) -> Any:
+        uow = AsyncUnitOfWork(c[async_sessionmaker])
+        return DeleteTargetBiologyRecord(uow, _all_repos(uow))
+
     container.define(GetGeneTargetBiology, _gene_bundle)
     container.define(GetProteinTargetBiology, _protein_bundle)
-
-    def _create_essentiality(c: Container) -> Any:
-        uow = AsyncUnitOfWork(c[async_sessionmaker])
-        return CreateEssentiality(uow, SQLAlchemyEssentialityRepository(uow), c[EventDispatcher])
-
-    def _update_essentiality(c: Container) -> Any:
-        uow = AsyncUnitOfWork(c[async_sessionmaker])
-        return UpdateEssentiality(uow, SQLAlchemyEssentialityRepository(uow), c[EventDispatcher])
-
-    def _delete_essentiality(c: Container) -> Any:
-        uow = AsyncUnitOfWork(c[async_sessionmaker])
-        return DeleteEssentiality(uow, SQLAlchemyEssentialityRepository(uow))
-
-    container.define(CreateEssentiality, _create_essentiality)
-    container.define(UpdateEssentiality, _update_essentiality)
-    container.define(DeleteEssentiality, _delete_essentiality)
+    container.define(CreateTargetBiologyRecord, _create)
+    container.define(UpdateTargetBiologyRecord, _update)
+    container.define(DeleteTargetBiologyRecord, _delete)

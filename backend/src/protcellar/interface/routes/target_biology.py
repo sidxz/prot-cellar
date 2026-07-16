@@ -9,11 +9,7 @@ from typing import Any
 from fastapi import APIRouter
 from pydantic import BaseModel
 
-from protcellar.application.target_biology.crud_essentiality import (
-    CreateEssentialityCommand,
-    DeleteEssentialityCommand,
-    UpdateEssentialityCommand,
-)
+from protcellar.application.target_biology.crud import RecordKind
 from protcellar.application.target_biology.get_gene_target_biology import (
     GetGeneTargetBiologyQuery,
 )
@@ -21,6 +17,7 @@ from protcellar.application.target_biology.get_protein_target_biology import (
     GetProteinTargetBiologyQuery,
 )
 from protcellar.domain.shared.compound_ref import CompoundRef
+from protcellar.domain.shared.global_workspace import GLOBAL_WORKSPACE_ID
 from protcellar.domain.shared.provenance import Citation, Provenance, ProvenanceSourceType
 from protcellar.domain.target_biology.crispri_strain import CrispriStrain
 from protcellar.domain.target_biology.enums import EssentialityClass
@@ -33,11 +30,11 @@ from protcellar.domain.target_biology.unpublished_structure import UnpublishedSt
 from protcellar.domain.target_biology.vulnerability import Vulnerability
 from protcellar.interface.dependencies import (
     AuthDep,
-    CreateEssentialityDep,
-    DeleteEssentialityDep,
+    CreateTargetBiologyRecordDep,
+    DeleteTargetBiologyRecordDep,
     GetGeneTargetBiologyDep,
     GetProteinTargetBiologyDep,
-    UpdateEssentialityDep,
+    UpdateTargetBiologyRecordDep,
 )
 from protcellar.interface.error_handlers import result_to_response
 
@@ -352,6 +349,62 @@ class EssentialityWriteBody(BaseModel):
     provenance: ProvenanceBody
 
 
+class VulnerabilityWriteBody(BaseModel):
+    vulnerability_score: float | None = None
+    condition: str | None = None
+    method: str | None = None
+    confidence: float | None = None
+    provenance: ProvenanceBody
+
+
+class HypomorphWriteBody(BaseModel):
+    growth_defect: bool
+    growth_defect_severity: str | None = None
+    condition: str | None = None
+    method: str | None = None
+    provenance: ProvenanceBody
+
+
+class CrispriStrainWriteBody(BaseModel):
+    name: str
+    provenance: ProvenanceBody
+
+
+class ResistanceMutationWriteBody(BaseModel):
+    mutation: str
+    mic_shift: float | None = None
+    parent_strain: str | None = None
+    protein_coordinate: str | None = None
+    method: str | None = None
+    provenance: ProvenanceBody
+
+
+class ProteinProductionWriteBody(BaseModel):
+    status: str
+    expression_host: str | None = None
+    purity: float | None = None
+    condition: str | None = None
+    method: str | None = None
+    provenance: ProvenanceBody
+
+
+class ProteinActivityAssayWriteBody(BaseModel):
+    activity_measured: str
+    readout: str | None = None
+    throughput: str | None = None
+    condition: str | None = None
+    method: str | None = None
+    provenance: ProvenanceBody
+
+
+class UnpublishedStructureWriteBody(BaseModel):
+    method: str | None = None
+    resolution: float | None = None
+    is_published: bool = False
+    is_experimental: bool = True
+    provenance: ProvenanceBody
+
+
 # --- Endpoints --------------------------------------------------------------
 
 
@@ -397,7 +450,9 @@ async def get_protein_target_biology(
     )
 
 
-# --- Essentiality write endpoints (admin-only) ------------------------------
+# --- Write endpoints (admin-only) -------------------------------------------
+# Create is nested under the owning gene/protein; update is by record id; a
+# single generic delete covers every record kind.
 
 
 @router.post(
@@ -409,9 +464,10 @@ async def create_essentiality(
     gene_id: uuid.UUID,
     body: EssentialityWriteBody,
     auth: AuthDep,
-    use_case: CreateEssentialityDep,
+    use_case: CreateTargetBiologyRecordDep,
 ) -> EssentialityResponse:
-    command = CreateEssentialityCommand(
+    record = Essentiality.create(
+        workspace_id=GLOBAL_WORKSPACE_ID,
         gene_id=gene_id,
         classification=body.classification,
         provenance=body.provenance.to_domain(),
@@ -419,35 +475,356 @@ async def create_essentiality(
         method=body.method,
         confidence=body.confidence,
     )
-    record = result_to_response(await use_case(command, auth=auth))
-    return EssentialityResponse.from_domain(record)
+    result = result_to_response(await use_case(RecordKind.ESSENTIALITY, record, auth=auth))
+    return EssentialityResponse.from_domain(result)
 
 
-@router.patch(
-    "/target-biology/essentiality/{record_id}", response_model=EssentialityResponse
-)
+@router.patch("/target-biology/essentiality/{record_id}", response_model=EssentialityResponse)
 async def update_essentiality(
     record_id: uuid.UUID,
     body: EssentialityWriteBody,
     auth: AuthDep,
-    use_case: UpdateEssentialityDep,
+    use_case: UpdateTargetBiologyRecordDep,
 ) -> EssentialityResponse:
-    command = UpdateEssentialityCommand(
-        id=record_id,
-        classification=body.classification,
+    updates = {
+        "classification": body.classification,
+        "provenance": body.provenance.to_domain(),
+        "condition": body.condition,
+        "method": body.method,
+        "confidence": body.confidence,
+    }
+    result = result_to_response(
+        await use_case(RecordKind.ESSENTIALITY, record_id, updates, auth=auth)
+    )
+    return EssentialityResponse.from_domain(result)
+
+
+@router.post(
+    "/genes/{gene_id}/target-biology/vulnerability",
+    response_model=VulnerabilityResponse,
+    status_code=201,
+)
+async def create_vulnerability(
+    gene_id: uuid.UUID,
+    body: VulnerabilityWriteBody,
+    auth: AuthDep,
+    use_case: CreateTargetBiologyRecordDep,
+) -> VulnerabilityResponse:
+    record = Vulnerability.create(
+        workspace_id=GLOBAL_WORKSPACE_ID,
+        gene_id=gene_id,
         provenance=body.provenance.to_domain(),
+        vulnerability_score=body.vulnerability_score,
         condition=body.condition,
         method=body.method,
         confidence=body.confidence,
     )
-    record = result_to_response(await use_case(command, auth=auth))
-    return EssentialityResponse.from_domain(record)
+    result = result_to_response(await use_case(RecordKind.VULNERABILITY, record, auth=auth))
+    return VulnerabilityResponse.from_domain(result)
 
 
-@router.delete("/target-biology/essentiality/{record_id}", status_code=204)
-async def delete_essentiality(
+@router.patch("/target-biology/vulnerability/{record_id}", response_model=VulnerabilityResponse)
+async def update_vulnerability(
+    record_id: uuid.UUID,
+    body: VulnerabilityWriteBody,
+    auth: AuthDep,
+    use_case: UpdateTargetBiologyRecordDep,
+) -> VulnerabilityResponse:
+    updates = {
+        "provenance": body.provenance.to_domain(),
+        "vulnerability_score": body.vulnerability_score,
+        "condition": body.condition,
+        "method": body.method,
+        "confidence": body.confidence,
+    }
+    result = result_to_response(
+        await use_case(RecordKind.VULNERABILITY, record_id, updates, auth=auth)
+    )
+    return VulnerabilityResponse.from_domain(result)
+
+
+@router.post(
+    "/genes/{gene_id}/target-biology/hypomorph",
+    response_model=HypomorphResponse,
+    status_code=201,
+)
+async def create_hypomorph(
+    gene_id: uuid.UUID,
+    body: HypomorphWriteBody,
+    auth: AuthDep,
+    use_case: CreateTargetBiologyRecordDep,
+) -> HypomorphResponse:
+    record = Hypomorph.create(
+        workspace_id=GLOBAL_WORKSPACE_ID,
+        gene_id=gene_id,
+        growth_defect=body.growth_defect,
+        provenance=body.provenance.to_domain(),
+        growth_defect_severity=body.growth_defect_severity,
+        condition=body.condition,
+        method=body.method,
+    )
+    result = result_to_response(await use_case(RecordKind.HYPOMORPH, record, auth=auth))
+    return HypomorphResponse.from_domain(result)
+
+
+@router.patch("/target-biology/hypomorph/{record_id}", response_model=HypomorphResponse)
+async def update_hypomorph(
+    record_id: uuid.UUID,
+    body: HypomorphWriteBody,
+    auth: AuthDep,
+    use_case: UpdateTargetBiologyRecordDep,
+) -> HypomorphResponse:
+    updates = {
+        "growth_defect": body.growth_defect,
+        "growth_defect_severity": body.growth_defect_severity,
+        "provenance": body.provenance.to_domain(),
+        "condition": body.condition,
+        "method": body.method,
+    }
+    result = result_to_response(
+        await use_case(RecordKind.HYPOMORPH, record_id, updates, auth=auth)
+    )
+    return HypomorphResponse.from_domain(result)
+
+
+@router.post(
+    "/genes/{gene_id}/target-biology/crispri_strain",
+    response_model=CrispriStrainResponse,
+    status_code=201,
+)
+async def create_crispri_strain(
+    gene_id: uuid.UUID,
+    body: CrispriStrainWriteBody,
+    auth: AuthDep,
+    use_case: CreateTargetBiologyRecordDep,
+) -> CrispriStrainResponse:
+    record = CrispriStrain.create(
+        workspace_id=GLOBAL_WORKSPACE_ID,
+        name=body.name,
+        target_gene_id=gene_id,
+        provenance=body.provenance.to_domain(),
+    )
+    result = result_to_response(await use_case(RecordKind.CRISPRI_STRAIN, record, auth=auth))
+    return CrispriStrainResponse.from_domain(result)
+
+
+@router.patch("/target-biology/crispri_strain/{record_id}", response_model=CrispriStrainResponse)
+async def update_crispri_strain(
+    record_id: uuid.UUID,
+    body: CrispriStrainWriteBody,
+    auth: AuthDep,
+    use_case: UpdateTargetBiologyRecordDep,
+) -> CrispriStrainResponse:
+    updates = {"name": body.name, "provenance": body.provenance.to_domain()}
+    result = result_to_response(
+        await use_case(RecordKind.CRISPRI_STRAIN, record_id, updates, auth=auth)
+    )
+    return CrispriStrainResponse.from_domain(result)
+
+
+@router.post(
+    "/genes/{gene_id}/target-biology/resistance_mutation",
+    response_model=ResistanceMutationResponse,
+    status_code=201,
+)
+async def create_resistance_mutation(
+    gene_id: uuid.UUID,
+    body: ResistanceMutationWriteBody,
+    auth: AuthDep,
+    use_case: CreateTargetBiologyRecordDep,
+) -> ResistanceMutationResponse:
+    record = ResistanceMutation.create(
+        workspace_id=GLOBAL_WORKSPACE_ID,
+        gene_id=gene_id,
+        mutation=body.mutation,
+        provenance=body.provenance.to_domain(),
+        mic_shift=body.mic_shift,
+        parent_strain=body.parent_strain,
+        protein_coordinate=body.protein_coordinate,
+        method=body.method,
+    )
+    result = result_to_response(await use_case(RecordKind.RESISTANCE_MUTATION, record, auth=auth))
+    return ResistanceMutationResponse.from_domain(result)
+
+
+@router.patch(
+    "/target-biology/resistance_mutation/{record_id}",
+    response_model=ResistanceMutationResponse,
+)
+async def update_resistance_mutation(
+    record_id: uuid.UUID,
+    body: ResistanceMutationWriteBody,
+    auth: AuthDep,
+    use_case: UpdateTargetBiologyRecordDep,
+) -> ResistanceMutationResponse:
+    updates = {
+        "mutation": body.mutation,
+        "provenance": body.provenance.to_domain(),
+        "mic_shift": body.mic_shift,
+        "parent_strain": body.parent_strain,
+        "protein_coordinate": body.protein_coordinate,
+        "method": body.method,
+    }
+    result = result_to_response(
+        await use_case(RecordKind.RESISTANCE_MUTATION, record_id, updates, auth=auth)
+    )
+    return ResistanceMutationResponse.from_domain(result)
+
+
+@router.post(
+    "/proteins/{protein_id}/target-biology/protein_production",
+    response_model=ProteinProductionResponse,
+    status_code=201,
+)
+async def create_protein_production(
+    protein_id: uuid.UUID,
+    body: ProteinProductionWriteBody,
+    auth: AuthDep,
+    use_case: CreateTargetBiologyRecordDep,
+) -> ProteinProductionResponse:
+    record = ProteinProduction.create(
+        workspace_id=GLOBAL_WORKSPACE_ID,
+        protein_id=protein_id,
+        status=body.status,
+        provenance=body.provenance.to_domain(),
+        expression_host=body.expression_host,
+        purity=body.purity,
+        condition=body.condition,
+        method=body.method,
+    )
+    result = result_to_response(await use_case(RecordKind.PROTEIN_PRODUCTION, record, auth=auth))
+    return ProteinProductionResponse.from_domain(result)
+
+
+@router.patch(
+    "/target-biology/protein_production/{record_id}",
+    response_model=ProteinProductionResponse,
+)
+async def update_protein_production(
+    record_id: uuid.UUID,
+    body: ProteinProductionWriteBody,
+    auth: AuthDep,
+    use_case: UpdateTargetBiologyRecordDep,
+) -> ProteinProductionResponse:
+    updates = {
+        "status": body.status,
+        "provenance": body.provenance.to_domain(),
+        "expression_host": body.expression_host,
+        "purity": body.purity,
+        "condition": body.condition,
+        "method": body.method,
+    }
+    result = result_to_response(
+        await use_case(RecordKind.PROTEIN_PRODUCTION, record_id, updates, auth=auth)
+    )
+    return ProteinProductionResponse.from_domain(result)
+
+
+@router.post(
+    "/proteins/{protein_id}/target-biology/protein_activity_assay",
+    response_model=ProteinActivityAssayResponse,
+    status_code=201,
+)
+async def create_protein_activity_assay(
+    protein_id: uuid.UUID,
+    body: ProteinActivityAssayWriteBody,
+    auth: AuthDep,
+    use_case: CreateTargetBiologyRecordDep,
+) -> ProteinActivityAssayResponse:
+    record = ProteinActivityAssay.create(
+        workspace_id=GLOBAL_WORKSPACE_ID,
+        protein_id=protein_id,
+        activity_measured=body.activity_measured,
+        provenance=body.provenance.to_domain(),
+        readout=body.readout,
+        throughput=body.throughput,
+        condition=body.condition,
+        method=body.method,
+    )
+    result = result_to_response(
+        await use_case(RecordKind.PROTEIN_ACTIVITY_ASSAY, record, auth=auth)
+    )
+    return ProteinActivityAssayResponse.from_domain(result)
+
+
+@router.patch(
+    "/target-biology/protein_activity_assay/{record_id}",
+    response_model=ProteinActivityAssayResponse,
+)
+async def update_protein_activity_assay(
+    record_id: uuid.UUID,
+    body: ProteinActivityAssayWriteBody,
+    auth: AuthDep,
+    use_case: UpdateTargetBiologyRecordDep,
+) -> ProteinActivityAssayResponse:
+    updates = {
+        "activity_measured": body.activity_measured,
+        "provenance": body.provenance.to_domain(),
+        "readout": body.readout,
+        "throughput": body.throughput,
+        "condition": body.condition,
+        "method": body.method,
+    }
+    result = result_to_response(
+        await use_case(RecordKind.PROTEIN_ACTIVITY_ASSAY, record_id, updates, auth=auth)
+    )
+    return ProteinActivityAssayResponse.from_domain(result)
+
+
+@router.post(
+    "/proteins/{protein_id}/target-biology/unpublished_structure",
+    response_model=UnpublishedStructureResponse,
+    status_code=201,
+)
+async def create_unpublished_structure(
+    protein_id: uuid.UUID,
+    body: UnpublishedStructureWriteBody,
+    auth: AuthDep,
+    use_case: CreateTargetBiologyRecordDep,
+) -> UnpublishedStructureResponse:
+    record = UnpublishedStructure.create(
+        workspace_id=GLOBAL_WORKSPACE_ID,
+        protein_id=protein_id,
+        provenance=body.provenance.to_domain(),
+        method=body.method,
+        resolution=body.resolution,
+        is_published=body.is_published,
+        is_experimental=body.is_experimental,
+    )
+    result = result_to_response(
+        await use_case(RecordKind.UNPUBLISHED_STRUCTURE, record, auth=auth)
+    )
+    return UnpublishedStructureResponse.from_domain(result)
+
+
+@router.patch(
+    "/target-biology/unpublished_structure/{record_id}",
+    response_model=UnpublishedStructureResponse,
+)
+async def update_unpublished_structure(
+    record_id: uuid.UUID,
+    body: UnpublishedStructureWriteBody,
+    auth: AuthDep,
+    use_case: UpdateTargetBiologyRecordDep,
+) -> UnpublishedStructureResponse:
+    updates = {
+        "provenance": body.provenance.to_domain(),
+        "method": body.method,
+        "resolution": body.resolution,
+        "is_published": body.is_published,
+        "is_experimental": body.is_experimental,
+    }
+    result = result_to_response(
+        await use_case(RecordKind.UNPUBLISHED_STRUCTURE, record_id, updates, auth=auth)
+    )
+    return UnpublishedStructureResponse.from_domain(result)
+
+
+@router.delete("/target-biology/{kind}/{record_id}", status_code=204)
+async def delete_target_biology_record(
+    kind: RecordKind,
     record_id: uuid.UUID,
     auth: AuthDep,
-    use_case: DeleteEssentialityDep,
+    use_case: DeleteTargetBiologyRecordDep,
 ) -> None:
-    result_to_response(await use_case(DeleteEssentialityCommand(id=record_id), auth=auth))
+    result_to_response(await use_case(kind, record_id, auth=auth))

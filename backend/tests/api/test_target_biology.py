@@ -196,3 +196,68 @@ async def test_essentiality_writes_require_admin(editor_client: AsyncClient) -> 
         f"/api/v1/genes/{gene_id}/target-biology/essentiality", json=_ESS_BODY
     )
     assert r.status_code == 403
+
+
+# --- Other record kinds through the generic CRUD path -----------------------
+
+_INTERNAL_PROV = {"source_type": "internal", "citations": []}
+
+
+@pytest.mark.asyncio
+async def test_create_delete_vulnerability_gene_side(client: AsyncClient) -> None:
+    gene_id = uuid.uuid4()
+    created = await client.post(
+        f"/api/v1/genes/{gene_id}/target-biology/vulnerability",
+        json={"vulnerability_score": 0.86, "method": "CRISPRi-VI", "provenance": _INTERNAL_PROV},
+    )
+    assert created.status_code == 201
+    rec = created.json()
+    assert rec["vulnerability_score"] == 0.86
+    record_id = rec["id"]
+
+    bundle = (await client.get(f"/api/v1/genes/{gene_id}/target-biology")).json()
+    assert [v["id"] for v in bundle["vulnerability"]] == [record_id]
+
+    # Generic delete route, keyed by record kind.
+    deleted = await client.delete(f"/api/v1/target-biology/vulnerability/{record_id}")
+    assert deleted.status_code == 204
+    bundle2 = (await client.get(f"/api/v1/genes/{gene_id}/target-biology")).json()
+    assert bundle2["vulnerability"] == []
+
+
+@pytest.mark.asyncio
+async def test_create_protein_production_protein_side(client: AsyncClient) -> None:
+    protein_id = uuid.uuid4()
+    created = await client.post(
+        f"/api/v1/proteins/{protein_id}/target-biology/protein_production",
+        json={
+            "status": "purified",
+            "expression_host": "E. coli BL21",
+            "provenance": _INTERNAL_PROV,
+        },
+    )
+    assert created.status_code == 201
+    assert created.json()["status"] == "purified"
+
+    bundle = (await client.get(f"/api/v1/proteins/{protein_id}/target-biology")).json()
+    assert bundle["protein_production"][0]["expression_host"] == "E. coli BL21"
+
+
+@pytest.mark.asyncio
+async def test_hypomorph_severity_requires_growth_defect(client: AsyncClient) -> None:
+    # Domain invariant surfaces as a 4xx through the generic create path.
+    r = await client.post(
+        f"/api/v1/genes/{uuid.uuid4()}/target-biology/hypomorph",
+        json={
+            "growth_defect": False,
+            "growth_defect_severity": "strong",
+            "provenance": _INTERNAL_PROV,
+        },
+    )
+    assert r.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_delete_unknown_kind_is_422(client: AsyncClient) -> None:
+    r = await client.delete(f"/api/v1/target-biology/not_a_kind/{uuid.uuid4()}")
+    assert r.status_code == 422

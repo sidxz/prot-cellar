@@ -2362,14 +2362,766 @@
             }
           }
         }
-      },
+      }
+    },
+    "/api/v1/genes/{gene_id}/target-biology/vulnerability": {
+      "post": {
+        "tags": [
+          "target-biology"
+        ],
+        "summary": "Create Vulnerability",
+        "operationId": "create_vulnerability_api_v1_genes__gene_id__target_biology_vulnerability_post",
+        "parameters": [
+          {
+            "name": "gene_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Gene Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VulnerabilityWriteBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VulnerabilityResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/target-biology/vulnerability/{record_id}": {
+      "patch": {
+        "tags": [
+          "target-biology"
+        ],
+        "summary": "Update Vulnerability",
+        "operationId": "update_vulnerability_api_v1_target_biology_vulnerability__record_id__patch",
+        "parameters": [
+          {
+            "name": "record_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Record Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VulnerabilityWriteBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VulnerabilityResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/genes/{gene_id}/target-biology/hypomorph": {
+      "post": {
+        "tags": [
+          "target-biology"
+        ],
+        "summary": "Create Hypomorph",
+        "operationId": "create_hypomorph_api_v1_genes__gene_id__target_biology_hypomorph_post",
+        "parameters": [
+          {
+            "name": "gene_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Gene Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HypomorphWriteBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HypomorphResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/target-biology/hypomorph/{record_id}": {
+      "patch": {
+        "tags": [
+          "target-biology"
+        ],
+        "summary": "Update Hypomorph",
+        "operationId": "update_hypomorph_api_v1_target_biology_hypomorph__record_id__patch",
+        "parameters": [
+          {
+            "name": "record_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Record Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HypomorphWriteBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HypomorphResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/genes/{gene_id}/target-biology/crispri_strain": {
+      "post": {
+        "tags": [
+          "target-biology"
+        ],
+        "summary": "Create Crispri Strain",
+        "operationId": "create_crispri_strain_api_v1_genes__gene_id__target_biology_crispri_strain_post",
+        "parameters": [
+          {
+            "name": "gene_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Gene Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CrispriStrainWriteBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CrispriStrainResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/target-biology/crispri_strain/{record_id}": {
+      "patch": {
+        "tags": [
+          "target-biology"
+        ],
+        "summary": "Update Crispri Strain",
+        "operationId": "update_crispri_strain_api_v1_target_biology_crispri_strain__record_id__patch",
+        "parameters": [
+          {
+            "name": "record_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Record Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CrispriStrainWriteBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CrispriStrainResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/genes/{gene_id}/target-biology/resistance_mutation": {
+      "post": {
+        "tags": [
+          "target-biology"
+        ],
+        "summary": "Create Resistance Mutation",
+        "operationId": "create_resistance_mutation_api_v1_genes__gene_id__target_biology_resistance_mutation_post",
+        "parameters": [
+          {
+            "name": "gene_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Gene Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResistanceMutationWriteBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResistanceMutationResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/target-biology/resistance_mutation/{record_id}": {
+      "patch": {
+        "tags": [
+          "target-biology"
+        ],
+        "summary": "Update Resistance Mutation",
+        "operationId": "update_resistance_mutation_api_v1_target_biology_resistance_mutation__record_id__patch",
+        "parameters": [
+          {
+            "name": "record_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Record Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResistanceMutationWriteBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResistanceMutationResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/proteins/{protein_id}/target-biology/protein_production": {
+      "post": {
+        "tags": [
+          "target-biology"
+        ],
+        "summary": "Create Protein Production",
+        "operationId": "create_protein_production_api_v1_proteins__protein_id__target_biology_protein_production_post",
+        "parameters": [
+          {
+            "name": "protein_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Protein Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProteinProductionWriteBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProteinProductionResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/target-biology/protein_production/{record_id}": {
+      "patch": {
+        "tags": [
+          "target-biology"
+        ],
+        "summary": "Update Protein Production",
+        "operationId": "update_protein_production_api_v1_target_biology_protein_production__record_id__patch",
+        "parameters": [
+          {
+            "name": "record_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Record Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProteinProductionWriteBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProteinProductionResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/proteins/{protein_id}/target-biology/protein_activity_assay": {
+      "post": {
+        "tags": [
+          "target-biology"
+        ],
+        "summary": "Create Protein Activity Assay",
+        "operationId": "create_protein_activity_assay_api_v1_proteins__protein_id__target_biology_protein_activity_assay_post",
+        "parameters": [
+          {
+            "name": "protein_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Protein Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProteinActivityAssayWriteBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProteinActivityAssayResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/target-biology/protein_activity_assay/{record_id}": {
+      "patch": {
+        "tags": [
+          "target-biology"
+        ],
+        "summary": "Update Protein Activity Assay",
+        "operationId": "update_protein_activity_assay_api_v1_target_biology_protein_activity_assay__record_id__patch",
+        "parameters": [
+          {
+            "name": "record_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Record Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProteinActivityAssayWriteBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProteinActivityAssayResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/proteins/{protein_id}/target-biology/unpublished_structure": {
+      "post": {
+        "tags": [
+          "target-biology"
+        ],
+        "summary": "Create Unpublished Structure",
+        "operationId": "create_unpublished_structure_api_v1_proteins__protein_id__target_biology_unpublished_structure_post",
+        "parameters": [
+          {
+            "name": "protein_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Protein Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UnpublishedStructureWriteBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnpublishedStructureResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/target-biology/unpublished_structure/{record_id}": {
+      "patch": {
+        "tags": [
+          "target-biology"
+        ],
+        "summary": "Update Unpublished Structure",
+        "operationId": "update_unpublished_structure_api_v1_target_biology_unpublished_structure__record_id__patch",
+        "parameters": [
+          {
+            "name": "record_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Record Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UnpublishedStructureWriteBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnpublishedStructureResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/target-biology/{kind}/{record_id}": {
       "delete": {
         "tags": [
           "target-biology"
         ],
-        "summary": "Delete Essentiality",
-        "operationId": "delete_essentiality_api_v1_target_biology_essentiality__record_id__delete",
+        "summary": "Delete Target Biology Record",
+        "operationId": "delete_target_biology_record_api_v1_target_biology__kind___record_id__delete",
         "parameters": [
+          {
+            "name": "kind",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/RecordKind"
+            }
+          },
           {
             "name": "record_id",
             "in": "path",
@@ -3678,6 +4430,23 @@
         ],
         "title": "CrispriStrainResponse"
       },
+      "CrispriStrainWriteBody": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "provenance": {
+            "$ref": "#/components/schemas/ProvenanceBody"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "provenance"
+        ],
+        "title": "CrispriStrainWriteBody"
+      },
       "CrossReferenceBody": {
         "properties": {
           "database": {
@@ -4817,6 +5586,56 @@
         ],
         "title": "HypomorphResponse"
       },
+      "HypomorphWriteBody": {
+        "properties": {
+          "growth_defect": {
+            "type": "boolean",
+            "title": "Growth Defect"
+          },
+          "growth_defect_severity": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Growth Defect Severity"
+          },
+          "condition": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Condition"
+          },
+          "method": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Method"
+          },
+          "provenance": {
+            "$ref": "#/components/schemas/ProvenanceBody"
+          }
+        },
+        "type": "object",
+        "required": [
+          "growth_defect",
+          "provenance"
+        ],
+        "title": "HypomorphWriteBody"
+      },
       "ImportRunResponse": {
         "properties": {
           "id": {
@@ -5835,6 +6654,67 @@
         ],
         "title": "ProteinActivityAssayResponse"
       },
+      "ProteinActivityAssayWriteBody": {
+        "properties": {
+          "activity_measured": {
+            "type": "string",
+            "title": "Activity Measured"
+          },
+          "readout": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Readout"
+          },
+          "throughput": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Throughput"
+          },
+          "condition": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Condition"
+          },
+          "method": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Method"
+          },
+          "provenance": {
+            "$ref": "#/components/schemas/ProvenanceBody"
+          }
+        },
+        "type": "object",
+        "required": [
+          "activity_measured",
+          "provenance"
+        ],
+        "title": "ProteinActivityAssayWriteBody"
+      },
       "ProteinChemSummary": {
         "properties": {
           "has_chembl": {
@@ -6128,6 +7008,67 @@
           "extensions"
         ],
         "title": "ProteinProductionResponse"
+      },
+      "ProteinProductionWriteBody": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "expression_host": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expression Host"
+          },
+          "purity": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Purity"
+          },
+          "condition": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Condition"
+          },
+          "method": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Method"
+          },
+          "provenance": {
+            "$ref": "#/components/schemas/ProvenanceBody"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status",
+          "provenance"
+        ],
+        "title": "ProteinProductionWriteBody"
       },
       "ProteinResponse": {
         "properties": {
@@ -6807,6 +7748,20 @@
         ],
         "title": "ProvenanceSourceType"
       },
+      "RecordKind": {
+        "type": "string",
+        "enum": [
+          "essentiality",
+          "vulnerability",
+          "hypomorph",
+          "crispri_strain",
+          "resistance_mutation",
+          "protein_production",
+          "protein_activity_assay",
+          "unpublished_structure"
+        ],
+        "title": "RecordKind"
+      },
       "ResistanceMutationResponse": {
         "properties": {
           "id": {
@@ -6895,6 +7850,67 @@
           "extensions"
         ],
         "title": "ResistanceMutationResponse"
+      },
+      "ResistanceMutationWriteBody": {
+        "properties": {
+          "mutation": {
+            "type": "string",
+            "title": "Mutation"
+          },
+          "mic_shift": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mic Shift"
+          },
+          "parent_strain": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parent Strain"
+          },
+          "protein_coordinate": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Protein Coordinate"
+          },
+          "method": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Method"
+          },
+          "provenance": {
+            "$ref": "#/components/schemas/ProvenanceBody"
+          }
+        },
+        "type": "object",
+        "required": [
+          "mutation",
+          "provenance"
+        ],
+        "title": "ResistanceMutationWriteBody"
       },
       "StartImportBody": {
         "properties": {
@@ -7218,6 +8234,50 @@
           "extensions"
         ],
         "title": "UnpublishedStructureResponse"
+      },
+      "UnpublishedStructureWriteBody": {
+        "properties": {
+          "method": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Method"
+          },
+          "resolution": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resolution"
+          },
+          "is_published": {
+            "type": "boolean",
+            "title": "Is Published",
+            "default": false
+          },
+          "is_experimental": {
+            "type": "boolean",
+            "title": "Is Experimental",
+            "default": true
+          },
+          "provenance": {
+            "$ref": "#/components/schemas/ProvenanceBody"
+          }
+        },
+        "type": "object",
+        "required": [
+          "provenance"
+        ],
+        "title": "UnpublishedStructureWriteBody"
       },
       "UpdateGeneBody": {
         "properties": {
@@ -7988,6 +9048,62 @@
           "extensions"
         ],
         "title": "VulnerabilityResponse"
+      },
+      "VulnerabilityWriteBody": {
+        "properties": {
+          "vulnerability_score": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vulnerability Score"
+          },
+          "condition": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Condition"
+          },
+          "method": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Method"
+          },
+          "confidence": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Confidence"
+          },
+          "provenance": {
+            "$ref": "#/components/schemas/ProvenanceBody"
+          }
+        },
+        "type": "object",
+        "required": [
+          "provenance"
+        ],
+        "title": "VulnerabilityWriteBody"
       },
       "protcellar__interface__routes__organisms__BulkRecordBody": {
         "properties": {
