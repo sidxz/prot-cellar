@@ -8,7 +8,10 @@ from typing import Protocol, runtime_checkable
 from protcellar.domain.target_biology.crispri_strain import CrispriStrain
 from protcellar.domain.target_biology.essentiality import Essentiality
 from protcellar.domain.target_biology.hypomorph import Hypomorph
+from protcellar.domain.target_biology.protein_activity_assay import ProteinActivityAssay
+from protcellar.domain.target_biology.protein_production import ProteinProduction
 from protcellar.domain.target_biology.resistance_mutation import ResistanceMutation
+from protcellar.domain.target_biology.unpublished_structure import UnpublishedStructure
 from protcellar.domain.target_biology.vulnerability import Vulnerability
 
 
@@ -75,3 +78,42 @@ class ResistanceMutationRepository(Protocol):
     ) -> list[ResistanceMutation]: ...
 
     async def save(self, aggregate: ResistanceMutation) -> None: ...
+
+
+@runtime_checkable
+class ProteinProductionRepository(Protocol):
+    async def find_by_id_in_workspace(
+        self, workspace_id: uuid.UUID, id: uuid.UUID
+    ) -> ProteinProduction | None: ...
+
+    async def find_by_protein(
+        self, workspace_id: uuid.UUID, protein_id: uuid.UUID
+    ) -> list[ProteinProduction]: ...
+
+    async def save(self, aggregate: ProteinProduction) -> None: ...
+
+
+@runtime_checkable
+class ProteinActivityAssayRepository(Protocol):
+    async def find_by_id_in_workspace(
+        self, workspace_id: uuid.UUID, id: uuid.UUID
+    ) -> ProteinActivityAssay | None: ...
+
+    async def find_by_protein(
+        self, workspace_id: uuid.UUID, protein_id: uuid.UUID
+    ) -> list[ProteinActivityAssay]: ...
+
+    async def save(self, aggregate: ProteinActivityAssay) -> None: ...
+
+
+@runtime_checkable
+class UnpublishedStructureRepository(Protocol):
+    async def find_by_id_in_workspace(
+        self, workspace_id: uuid.UUID, id: uuid.UUID
+    ) -> UnpublishedStructure | None: ...
+
+    async def find_by_protein(
+        self, workspace_id: uuid.UUID, protein_id: uuid.UUID
+    ) -> list[UnpublishedStructure]: ...
+
+    async def save(self, aggregate: UnpublishedStructure) -> None: ...
