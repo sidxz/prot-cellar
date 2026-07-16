@@ -7,6 +7,7 @@ from typing import Protocol, runtime_checkable
 
 from protcellar.domain.target_biology.crispri_strain import CrispriStrain
 from protcellar.domain.target_biology.essentiality import Essentiality
+from protcellar.domain.target_biology.vulnerability import Vulnerability
 
 
 @runtime_checkable
@@ -33,3 +34,16 @@ class CrispriStrainRepository(Protocol):
     ) -> list[CrispriStrain]: ...
 
     async def save(self, aggregate: CrispriStrain) -> None: ...
+
+
+@runtime_checkable
+class VulnerabilityRepository(Protocol):
+    async def find_by_id_in_workspace(
+        self, workspace_id: uuid.UUID, id: uuid.UUID
+    ) -> Vulnerability | None: ...
+
+    async def find_by_gene(
+        self, workspace_id: uuid.UUID, gene_id: uuid.UUID
+    ) -> list[Vulnerability]: ...
+
+    async def save(self, aggregate: Vulnerability) -> None: ...

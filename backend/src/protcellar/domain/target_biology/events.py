@@ -28,3 +28,14 @@ class CrispriStrainCreated(DomainEvent):
 @dataclass(frozen=True, kw_only=True)
 class CrispriStrainUpdated(DomainEvent):
     workspace_id: uuid.UUID
+
+
+@dataclass(frozen=True, kw_only=True)
+class VulnerabilityCreated(DomainEvent):
+    workspace_id: uuid.UUID
+    gene_id: uuid.UUID
+
+
+@dataclass(frozen=True, kw_only=True)
+class VulnerabilityUpdated(DomainEvent):
+    workspace_id: uuid.UUID
