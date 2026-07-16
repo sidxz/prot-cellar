@@ -1,10 +1,12 @@
-"""Combine parsed GFF + essentiality into ``GeneEnrichmentRecord``s.
+"""Combine parsed GFF into ``GeneEnrichmentRecord``s.
 
 Pure mapper (no I/O): for each :class:`GffGeneRecord` it emits one
-:class:`GeneEnrichmentRecord` carrying the genomic location, a CONTEXT
-``functional_category`` annotation (when the GFF has one) and a VULNERABILITY
-``essentiality`` annotation (when the locus appears in the DeJesus call map).
-All organism/source specifics live here, mirroring ``uniprot_mapper.py``.
+:class:`GeneEnrichmentRecord` carrying the genomic location and a CONTEXT
+``functional_category`` annotation (when the GFF has one).
+
+Essentiality now lives in typed ``essentiality_records`` (see
+``scripts/backfill_essentiality``); the ``essentiality`` map is still accepted
+for backward compatibility but no longer produces an annotation.
 """
 
 from __future__ import annotations
@@ -17,19 +19,15 @@ from protcellar.infrastructure.ingestion.mycobrowser_gff import GffGeneRecord
 
 _DEFAULT_ASSEMBLY = "ASM19595v2"
 _MYCOBROWSER = "Mycobrowser"
-_DEJESUS_DATASET = "DeJesus 2017"
-_DEJESUS_CONDITION = "in vitro 7H9"
-_DEJESUS_EVIDENCE = "PMID:28096490"
 
 
 def build_enrichment_records(
     gff: Sequence[GffGeneRecord],
-    essentiality: Mapping[str, str],
+    essentiality: Mapping[str, str],  # accepted for compat; no longer emitted
     *,
     assembly: str = _DEFAULT_ASSEMBLY,
 ) -> list[GeneEnrichmentRecord]:
-    """Map GFF records (+ essentiality calls) into enrichment records."""
-    calls = {locus.upper(): value for locus, value in essentiality.items()}
+    """Map GFF records into enrichment records (location + functional category)."""
     records: list[GeneEnrichmentRecord] = []
     for feature in gff:
         annotations: list[GeneAnnotation] = []
@@ -40,18 +38,6 @@ def build_enrichment_records(
                     key="functional_category",
                     value=feature.functional_category,
                     dataset=_MYCOBROWSER,
-                )
-            )
-        call = calls.get(feature.locus_tag.upper())
-        if call:
-            annotations.append(
-                GeneAnnotation(
-                    axis=GeneAnnotationAxis.VULNERABILITY,
-                    key="essentiality",
-                    value=call,
-                    dataset=_DEJESUS_DATASET,
-                    condition=_DEJESUS_CONDITION,
-                    evidence=_DEJESUS_EVIDENCE,
                 )
             )
         records.append(

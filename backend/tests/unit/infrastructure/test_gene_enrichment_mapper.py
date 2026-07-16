@@ -1,4 +1,9 @@
-"""Unit tests for the pure enrichment mapper (GFF + essentiality -> records)."""
+"""Unit tests for the pure enrichment mapper (GFF -> records).
+
+Essentiality is no longer emitted as an annotation (it lives in typed
+essentiality_records; see scripts/backfill_essentiality); the essentiality map
+is still accepted for backward compatibility but produces no annotation.
+"""
 
 from __future__ import annotations
 
@@ -27,11 +32,10 @@ def _gff(
     )
 
 
-def test_emits_location_context_and_vulnerability_annotations() -> None:
+def test_emits_location_and_context_but_not_essentiality() -> None:
     gff = [_gff("Rv0667", functional_category="Information pathways", gene_name="rpoB")]
-    essentiality = {"Rv0667": "essential"}
-
-    records = build_enrichment_records(gff, essentiality)
+    # An essentiality map is still accepted, but must not produce an annotation.
+    records = build_enrichment_records(gff, {"Rv0667": "essential"})
     assert len(records) == 1
     rec = records[0]
     assert isinstance(rec, GeneEnrichmentRecord)
@@ -45,34 +49,21 @@ def test_emits_location_context_and_vulnerability_annotations() -> None:
     assert rec.assembly == "ASM19595v2"
 
     by_key = {a.key: a for a in rec.annotations}
-
     ctx = by_key["functional_category"]
     assert ctx.axis is GeneAnnotationAxis.CONTEXT
     assert ctx.value == "Information pathways"
     assert ctx.dataset == "Mycobrowser"
 
-    vul = by_key["essentiality"]
-    assert vul.axis is GeneAnnotationAxis.VULNERABILITY
-    assert vul.value == "essential"
-    assert vul.dataset == "DeJesus 2017"
-    assert vul.condition == "in vitro 7H9"
-    assert vul.evidence == "PMID:28096490"
+    # No essentiality / vulnerability annotation anymore.
+    assert "essentiality" not in by_key
+    assert GeneAnnotationAxis.VULNERABILITY not in {a.axis for a in rec.annotations}
 
 
 def test_omits_context_annotation_when_no_functional_category() -> None:
     records = build_enrichment_records([_gff("Rv0667")], {"Rv0667": "essential"})
     keys = {a.key for a in records[0].annotations}
     assert "functional_category" not in keys
-    assert "essentiality" in keys
-
-
-def test_omits_vulnerability_annotation_when_locus_absent_from_essentiality() -> None:
-    records = build_enrichment_records(
-        [_gff("Rv0667", functional_category="Information pathways")], essentiality={}
-    )
-    keys = {a.key for a in records[0].annotations}
     assert "essentiality" not in keys
-    assert "functional_category" in keys
 
 
 def test_location_only_record_when_no_annotations_apply() -> None:
@@ -85,10 +76,3 @@ def test_location_only_record_when_no_annotations_apply() -> None:
 def test_assembly_override_is_applied() -> None:
     records = build_enrichment_records([_gff("Rv0667")], {}, assembly="CustomASM")
     assert records[0].assembly == "CustomASM"
-
-
-def test_essentiality_lookup_is_case_insensitive_on_locus() -> None:
-    # GFF locus 'Rv0667' should match an essentiality key cased differently.
-    records = build_enrichment_records([_gff("Rv0667")], {"rv0667": "growth-defect"})
-    vul = next(a for a in records[0].annotations if a.key == "essentiality")
-    assert vul.value == "growth-defect"
