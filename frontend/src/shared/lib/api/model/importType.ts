@@ -13,4 +13,5 @@ export const ImportType = {
   proteome: 'proteome',
   gene_enrichment: 'gene_enrichment',
   go_ontology: 'go_ontology',
+  plugin: 'plugin',
 } as const;

@@ -18,6 +18,7 @@ export const IMPORT_TYPE_LABELS: Record<ImportType, string> = {
   [ImportType.proteome]: "Proteome",
   [ImportType.gene_enrichment]: "Gene enrichment",
   [ImportType.go_ontology]: "GO ontology",
+  [ImportType.plugin]: "Plugin",
 };
 
 /** Badge variant per run status (badge variants: default/secondary/destructive/outline/success/warning/ghost/link). */

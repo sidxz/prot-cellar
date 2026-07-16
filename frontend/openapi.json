@@ -2189,6 +2189,83 @@
         }
       }
     },
+    "/api/v1/plugins": {
+      "get": {
+        "tags": [
+          "plugins"
+        ],
+        "summary": "List Plugins",
+        "operationId": "list_plugins_api_v1_plugins_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/PluginManifestResponse"
+                  },
+                  "type": "array",
+                  "title": "Response List Plugins Api V1 Plugins Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/plugins/{plugin_id}/runs": {
+      "post": {
+        "tags": [
+          "plugins"
+        ],
+        "summary": "Start Plugin Run",
+        "operationId": "start_plugin_run_api_v1_plugins__plugin_id__runs_post",
+        "parameters": [
+          {
+            "name": "plugin_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Plugin Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StartPluginRunBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportRunResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/genes/{gene_id}/target-biology": {
       "get": {
         "tags": [
@@ -5813,7 +5890,8 @@
         "enum": [
           "proteome",
           "gene_enrichment",
-          "go_ontology"
+          "go_ontology",
+          "plugin"
         ],
         "title": "ImportType"
       },
@@ -6627,6 +6705,119 @@
           "items"
         ],
         "title": "PaginatedResponse[TargetResponse]"
+      },
+      "ParamFieldResponse": {
+        "properties": {
+          "key": {
+            "type": "string",
+            "title": "Key"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "type": {
+            "type": "string",
+            "title": "Type"
+          },
+          "required": {
+            "type": "boolean",
+            "title": "Required"
+          },
+          "default": {
+            "anyOf": [
+              {},
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Default"
+          },
+          "options": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Options",
+            "default": []
+          },
+          "help": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Help"
+          }
+        },
+        "type": "object",
+        "required": [
+          "key",
+          "label",
+          "type",
+          "required"
+        ],
+        "title": "ParamFieldResponse"
+      },
+      "PluginManifestResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "version": {
+            "type": "string",
+            "title": "Version"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "description": {
+            "type": "string",
+            "title": "Description"
+          },
+          "target_records": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Target Records"
+          },
+          "default_generation_method": {
+            "type": "string",
+            "title": "Default Generation Method"
+          },
+          "params": {
+            "items": {
+              "$ref": "#/components/schemas/ParamFieldResponse"
+            },
+            "type": "array",
+            "title": "Params"
+          },
+          "requires_secrets": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Requires Secrets"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "version",
+          "name",
+          "description",
+          "target_records",
+          "default_generation_method",
+          "params",
+          "requires_secrets"
+        ],
+        "title": "PluginManifestResponse"
       },
       "ProteinActivityAssayResponse": {
         "properties": {
@@ -7986,6 +8177,23 @@
           "import_type"
         ],
         "title": "StartImportBody"
+      },
+      "StartPluginRunBody": {
+        "properties": {
+          "params": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Params",
+            "default": {}
+          },
+          "dry_run": {
+            "type": "boolean",
+            "title": "Dry Run",
+            "default": false
+          }
+        },
+        "type": "object",
+        "title": "StartPluginRunBody"
       },
       "StrainResponse": {
         "properties": {

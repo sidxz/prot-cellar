@@ -162,3 +162,6 @@ class WorkerSettings:
     redis_settings = redis_settings_from_env()
     on_startup = _on_startup
     on_shutdown = _on_shutdown
+    # ponytail: explicit 30-min ceiling (arq default is unset). Climb to Temporal
+    # only when a plugin needs durable multi-hour runs (spec §7).
+    job_timeout = 1800
