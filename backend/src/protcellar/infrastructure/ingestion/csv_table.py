@@ -42,3 +42,8 @@ class CsvTable:
         if idx is None or idx >= len(row):
             return None
         return row[idx].strip() or None
+
+    @staticmethod
+    def as_bool(value: str | None) -> bool:
+        """Parse a truthy cell; empty/unrecognised -> False."""
+        return (value or "").strip().lower() in {"true", "1", "yes", "y", "t"}
