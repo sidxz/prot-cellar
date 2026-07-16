@@ -39,6 +39,23 @@ describe("ImportDetailPage", () => {
     expect(screen.getByText(/gff fetch failed/i)).toBeInTheDocument();
   });
 
+  it("shows a compact counts strip for plugin run summaries", () => {
+    useImportRunMock.mockReturnValue({
+      data: {
+        ...base,
+        status: "succeeded",
+        summary: { created: 3, updated: 1, skipped: 0, failed: 0, total: 4 },
+      },
+      isLoading: false,
+      isError: false,
+    });
+    render(<ImportDetailPage importRunId="r1" />);
+    expect(screen.getByText("created: 3")).toBeInTheDocument();
+    expect(screen.getByText("updated: 1")).toBeInTheDocument();
+    expect(screen.getByText("skipped: 0")).toBeInTheDocument();
+    expect(screen.getByText("failed: 0")).toBeInTheDocument();
+  });
+
   it("shows a working indicator while active with no total", () => {
     useImportRunMock.mockReturnValue({
       data: { ...base, status: "running" },

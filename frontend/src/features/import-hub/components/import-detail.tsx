@@ -73,6 +73,19 @@ export function ImportDetailPage({ importRunId }: { importRunId: string }) {
         </div>
       )}
 
+      {/* Compact counts strip (plugin runs) */}
+      {["created", "updated", "skipped", "failed"].some(
+        (k) => k in ((data.summary as Record<string, unknown>) ?? {}),
+      ) ? (
+        <div className="flex flex-wrap gap-2 text-sm">
+          {(["created", "updated", "skipped", "failed"] as const).map((k) => (
+            <span key={k} className="rounded bg-muted px-2 py-0.5">
+              {k}: {asNumber((data.summary as Record<string, unknown>)?.[k])}
+            </span>
+          ))}
+        </div>
+      ) : null}
+
       {/* Summary */}
       {summaryEntries.length > 0 && (
         <div className="flex flex-col gap-2">
