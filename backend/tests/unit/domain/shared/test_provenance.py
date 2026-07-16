@@ -6,6 +6,7 @@ import pytest
 from protcellar.domain.shared.errors import ValidationError
 from protcellar.domain.shared.provenance import (
     Citation,
+    GenerationMethod,
     Provenance,
     ProvenanceSourceType,
 )
@@ -37,3 +38,16 @@ def test_provenance_defaults_are_empty() -> None:
     p = Provenance(source_type=ProvenanceSourceType.INTERNAL)
     assert p.citations == ()
     assert p.contributor_organization_id is None
+
+
+def test_generation_method_defaults_to_manual() -> None:
+    p = Provenance(source_type=ProvenanceSourceType.PUBLISHED)
+    assert p.generation_method is GenerationMethod.MANUAL
+
+
+def test_generation_method_is_settable() -> None:
+    p = Provenance(
+        source_type=ProvenanceSourceType.PUBLISHED,
+        generation_method=GenerationMethod.AI_EXTRACTED,
+    )
+    assert p.generation_method is GenerationMethod.AI_EXTRACTED
