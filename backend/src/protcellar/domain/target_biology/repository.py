@@ -7,6 +7,8 @@ from typing import Protocol, runtime_checkable
 
 from protcellar.domain.target_biology.crispri_strain import CrispriStrain
 from protcellar.domain.target_biology.essentiality import Essentiality
+from protcellar.domain.target_biology.hypomorph import Hypomorph
+from protcellar.domain.target_biology.resistance_mutation import ResistanceMutation
 from protcellar.domain.target_biology.vulnerability import Vulnerability
 
 
@@ -47,3 +49,29 @@ class VulnerabilityRepository(Protocol):
     ) -> list[Vulnerability]: ...
 
     async def save(self, aggregate: Vulnerability) -> None: ...
+
+
+@runtime_checkable
+class HypomorphRepository(Protocol):
+    async def find_by_id_in_workspace(
+        self, workspace_id: uuid.UUID, id: uuid.UUID
+    ) -> Hypomorph | None: ...
+
+    async def find_by_gene(
+        self, workspace_id: uuid.UUID, gene_id: uuid.UUID
+    ) -> list[Hypomorph]: ...
+
+    async def save(self, aggregate: Hypomorph) -> None: ...
+
+
+@runtime_checkable
+class ResistanceMutationRepository(Protocol):
+    async def find_by_id_in_workspace(
+        self, workspace_id: uuid.UUID, id: uuid.UUID
+    ) -> ResistanceMutation | None: ...
+
+    async def find_by_gene(
+        self, workspace_id: uuid.UUID, gene_id: uuid.UUID
+    ) -> list[ResistanceMutation]: ...
+
+    async def save(self, aggregate: ResistanceMutation) -> None: ...
