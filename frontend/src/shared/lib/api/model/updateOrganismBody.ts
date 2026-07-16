@@ -8,6 +8,7 @@ import type { UpdateOrganismBodyScientificName } from './updateOrganismBodyScien
 import type { UpdateOrganismBodyRank } from './updateOrganismBodyRank';
 import type { UpdateOrganismBodyParentId } from './updateOrganismBodyParentId';
 import type { UpdateOrganismBodyDivision } from './updateOrganismBodyDivision';
+import type { UpdateOrganismBodyReferenceStrainId } from './updateOrganismBodyReferenceStrainId';
 import type { UpdateOrganismBodySourceVersion } from './updateOrganismBodySourceVersion';
 
 export interface UpdateOrganismBody {
@@ -15,5 +16,6 @@ export interface UpdateOrganismBody {
   rank?: UpdateOrganismBodyRank;
   parent_id?: UpdateOrganismBodyParentId;
   division?: UpdateOrganismBodyDivision;
+  reference_strain_id?: UpdateOrganismBodyReferenceStrainId;
   source_version?: UpdateOrganismBodySourceVersion;
 }

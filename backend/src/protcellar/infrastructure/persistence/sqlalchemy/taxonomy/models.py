@@ -14,6 +14,7 @@ from sqlalchemy import (
     Integer,
     String,
     UniqueConstraint,
+    Uuid,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -38,6 +39,9 @@ class OrganismModel(Base, EntityModelMixin, WorkspaceIdMixin, VersionMixin):
     rank: Mapped[str] = mapped_column(String(32), nullable=False, index=True)
     scientific_name: Mapped[str] = mapped_column(String(512), nullable=False, index=True)
     division: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    # Designated reference/preferred strain for this species (bare id, no FK to
+    # avoid an organisms<->strains cycle; strains already reference organisms).
+    reference_strain_id: Mapped[uuid.UUID | None] = mapped_column(Uuid, nullable=True, index=True)
     is_merged: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     merged_into_id: Mapped[uuid.UUID | None] = mapped_column(
         ForeignKey("organisms.id"), nullable=True

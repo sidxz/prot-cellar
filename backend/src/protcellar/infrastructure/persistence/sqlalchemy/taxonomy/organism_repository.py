@@ -29,6 +29,7 @@ class SQLAlchemyOrganismRepository(
             rank=model.rank,
             scientific_name=model.scientific_name,
             division=model.division,
+            reference_strain_id=model.reference_strain_id,
             is_merged=model.is_merged,
             merged_into_id=model.merged_into_id,
             is_deleted=model.is_deleted,
@@ -63,6 +64,7 @@ class SQLAlchemyOrganismRepository(
             rank=aggregate.rank,
             scientific_name=aggregate.scientific_name,
             division=aggregate.division,
+            reference_strain_id=aggregate.reference_strain_id,
             is_merged=aggregate.is_merged,
             merged_into_id=aggregate.merged_into_id,
             is_deleted=aggregate.is_deleted,
@@ -83,6 +85,7 @@ class SQLAlchemyOrganismRepository(
         model.rank = aggregate.rank
         model.scientific_name = aggregate.scientific_name
         model.division = aggregate.division
+        model.reference_strain_id = aggregate.reference_strain_id
         model.is_merged = aggregate.is_merged
         model.merged_into_id = aggregate.merged_into_id
         model.is_deleted = aggregate.is_deleted

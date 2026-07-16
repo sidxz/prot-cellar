@@ -6147,6 +6147,18 @@
             ],
             "title": "Division"
           },
+          "reference_strain_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reference Strain Id"
+          },
           "is_merged": {
             "type": "boolean",
             "title": "Is Merged"
@@ -8488,6 +8500,18 @@
               }
             ],
             "title": "Division"
+          },
+          "reference_strain_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reference Strain Id"
           },
           "source_version": {
             "anyOf": [

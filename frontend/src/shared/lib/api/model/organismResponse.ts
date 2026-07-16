@@ -8,6 +8,7 @@ import type { OrganismResponseNcbiTaxId } from './organismResponseNcbiTaxId';
 import type { OrganismResponseNcbiUrl } from './organismResponseNcbiUrl';
 import type { OrganismResponseParentId } from './organismResponseParentId';
 import type { OrganismResponseDivision } from './organismResponseDivision';
+import type { OrganismResponseReferenceStrainId } from './organismResponseReferenceStrainId';
 import type { OrganismResponseMergedIntoId } from './organismResponseMergedIntoId';
 import type { OrganismSource } from './organismSource';
 import type { OrganismResponseSourceRelease } from './organismResponseSourceRelease';
@@ -21,6 +22,7 @@ export interface OrganismResponse {
   rank: string;
   scientific_name: string;
   division?: OrganismResponseDivision;
+  reference_strain_id?: OrganismResponseReferenceStrainId;
   is_merged: boolean;
   merged_into_id?: OrganismResponseMergedIntoId;
   is_deleted: boolean;

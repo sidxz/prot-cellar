@@ -26,6 +26,7 @@ class UpdateOrganismCommand(Command):
     rank: str | None = None
     parent_id: uuid.UUID | None | object = UNSET
     division: str | None | object = UNSET
+    reference_strain_id: uuid.UUID | None | object = UNSET
     source_version: str | None | object = UNSET
 
 
@@ -60,6 +61,8 @@ class UpdateOrganism:
                 fields["parent_id"] = input.parent_id
             if input.division is not UNSET:
                 fields["division"] = input.division
+            if input.reference_strain_id is not UNSET:
+                fields["reference_strain_id"] = input.reference_strain_id
             if input.source_version is not UNSET:
                 fields["source_version"] = input.source_version
 

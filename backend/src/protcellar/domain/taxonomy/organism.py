@@ -35,6 +35,7 @@ class Organism(AggregateRoot):
         rank: str,
         scientific_name: str,
         division: str | None = None,
+        reference_strain_id: uuid.UUID | None = None,
         is_merged: bool = False,
         merged_into_id: uuid.UUID | None = None,
         is_deleted: bool = False,
@@ -61,6 +62,7 @@ class Organism(AggregateRoot):
         self.rank = rank.strip()
         self.scientific_name = scientific_name.strip()
         self.division = division
+        self.reference_strain_id = reference_strain_id
         self.is_merged = is_merged
         self.merged_into_id = merged_into_id
         self.is_deleted = is_deleted
@@ -137,6 +139,8 @@ class Organism(AggregateRoot):
             self.parent_id = fields["parent_id"]
         if "division" in fields:
             self.division = fields["division"]
+        if "reference_strain_id" in fields:
+            self.reference_strain_id = fields["reference_strain_id"]
         if "source_version" in fields:
             self.source_version = fields["source_version"]
         self._touch()

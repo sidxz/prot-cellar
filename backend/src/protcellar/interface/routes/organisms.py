@@ -50,6 +50,7 @@ class OrganismResponse(BaseModel):
     rank: str
     scientific_name: str
     division: str | None = None
+    reference_strain_id: uuid.UUID | None = None
     is_merged: bool
     merged_into_id: uuid.UUID | None = None
     is_deleted: bool
@@ -73,6 +74,7 @@ class OrganismResponse(BaseModel):
             rank=org.rank,
             scientific_name=org.scientific_name,
             division=org.division,
+            reference_strain_id=org.reference_strain_id,
             is_merged=org.is_merged,
             merged_into_id=org.merged_into_id,
             is_deleted=org.is_deleted,
@@ -105,6 +107,7 @@ class UpdateOrganismBody(BaseModel):
     rank: str | None = None
     parent_id: uuid.UUID | None = None
     division: str | None = None
+    reference_strain_id: uuid.UUID | None = None
     source_version: str | None = None
 
     model_config = {"extra": "forbid"}
@@ -186,6 +189,9 @@ async def update_organism(
         rank=body.rank if "rank" in provided else None,
         parent_id=body.parent_id if "parent_id" in provided else UNSET,
         division=body.division if "division" in provided else UNSET,
+        reference_strain_id=(
+            body.reference_strain_id if "reference_strain_id" in provided else UNSET
+        ),
         source_version=body.source_version if "source_version" in provided else UNSET,
     )
     org = result_to_response(await use_case(command, auth=auth))
