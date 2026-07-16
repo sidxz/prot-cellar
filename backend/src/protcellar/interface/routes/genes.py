@@ -258,6 +258,7 @@ async def list_genes(
     use_case: ListGenesDep,
     name: str | None = None,
     organism_id: uuid.UUID | None = None,
+    strain_id: uuid.UUID | None = None,
     cursor: str | None = None,
     limit: int | None = None,
 ) -> PaginatedResponse[GeneResponse]:
@@ -266,6 +267,7 @@ async def list_genes(
         limit=clamp_limit(limit),
         name=name,
         organism_id=organism_id,
+        strain_id=strain_id,
     )
     page = result_to_response(await use_case(query, auth=auth))
     return PaginatedResponse(

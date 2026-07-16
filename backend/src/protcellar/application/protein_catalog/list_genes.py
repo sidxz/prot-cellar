@@ -22,6 +22,7 @@ class ListGenesQuery(Query):
     limit: int | None = None
     name: str | None = None
     organism_id: uuid.UUID | None = None
+    strain_id: uuid.UUID | None = None
 
 
 class ListGenes:
@@ -36,7 +37,9 @@ class ListGenes:
         async with self._uow:
             if input.name is not None:
                 # Name search — no cursor pagination
-                genes = await self._repo.find_by_name(input.name, input.organism_id)
+                genes = await self._repo.find_by_name(
+                    input.name, input.organism_id, input.strain_id
+                )
                 return Success(PageResult(items=genes, next_cursor=None))
 
             # Paginated listing
@@ -46,6 +49,7 @@ class ListGenes:
                 cursor_id=input.cursor_id,
                 limit=fetch_limit,
                 organism_id=input.organism_id,
+                strain_id=input.strain_id,
             )
 
             next_cursor: str | None = None

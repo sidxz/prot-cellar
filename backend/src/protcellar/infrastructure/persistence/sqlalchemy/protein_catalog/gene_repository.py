@@ -104,10 +104,17 @@ class SQLAlchemyGeneRepository(SQLAlchemyRepository[Gene, GeneModel], GeneReposi
         stmt = select(GeneModel).where(GeneModel.id.in_(list(ids)))
         return [self._to_domain_tracked(m) for m in (await self._session.execute(stmt)).scalars()]
 
-    async def find_by_name(self, name: str, organism_id: uuid.UUID | None = None) -> list[Gene]:
+    async def find_by_name(
+        self,
+        name: str,
+        organism_id: uuid.UUID | None = None,
+        strain_id: uuid.UUID | None = None,
+    ) -> list[Gene]:
         stmt = select(GeneModel).where(GeneModel.primary_name.ilike(f"%{name}%"))
         if organism_id is not None:
             stmt = stmt.where(GeneModel.organism_id == organism_id)
+        if strain_id is not None:
+            stmt = stmt.where(GeneModel.strain_id == strain_id)
         stmt = stmt.order_by(GeneModel.primary_name).limit(50)
         return [self._to_domain_tracked(m) for m in (await self._session.execute(stmt)).scalars()]
 
@@ -189,10 +196,13 @@ class SQLAlchemyGeneRepository(SQLAlchemyRepository[Gene, GeneModel], GeneReposi
         cursor_id: uuid.UUID | None = None,
         limit: int | None = None,
         organism_id: uuid.UUID | None = None,
+        strain_id: uuid.UUID | None = None,
     ) -> list[Gene]:
         stmt = select(GeneModel).order_by(GeneModel.id)
         if organism_id is not None:
             stmt = stmt.where(GeneModel.organism_id == organism_id)
+        if strain_id is not None:
+            stmt = stmt.where(GeneModel.strain_id == strain_id)
         if cursor_id is not None:
             stmt = stmt.where(GeneModel.id > cursor_id)
         if limit is not None:

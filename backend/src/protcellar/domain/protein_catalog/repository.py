@@ -19,7 +19,10 @@ class GeneRepository(Protocol):
     async def find_by_ids(self, ids: Sequence[uuid.UUID]) -> list[Gene]: ...
 
     async def find_by_name(
-        self, name: str, organism_id: uuid.UUID | None = None
+        self,
+        name: str,
+        organism_id: uuid.UUID | None = None,
+        strain_id: uuid.UUID | None = None,
     ) -> list[Gene]: ...
 
     async def find_by_ncbi_gene_id(self, ncbi_gene_id: str) -> Gene | None: ...
@@ -30,6 +33,7 @@ class GeneRepository(Protocol):
         cursor_id: uuid.UUID | None = None,
         limit: int | None = None,
         organism_id: uuid.UUID | None = None,
+        strain_id: uuid.UUID | None = None,
     ) -> list[Gene]: ...
 
     async def find_by_source_record_id(

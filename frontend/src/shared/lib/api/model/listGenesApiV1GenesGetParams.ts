@@ -8,6 +8,7 @@
 export type ListGenesApiV1GenesGetParams = {
 name?: string | null;
 organism_id?: string | null;
+strain_id?: string | null;
 cursor?: string | null;
 limit?: number | null;
 };
