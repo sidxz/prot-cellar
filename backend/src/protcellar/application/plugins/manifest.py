@@ -12,6 +12,10 @@ class ParamType(StrEnum):
     ENUM = "enum"
     ORGANISM = "organism"  # renders the organism combobox on the FE
     FILE_UPLOAD = "file_upload"  # reuses POST /api/v1/imports/uploads -> upload_ref
+    # ponytail: the FE uploads every file_upload field through the essentiality
+    # endpoint (runs essentiality_upload_to_tsv). Fine while DeJesus is the only
+    # file plugin; make the upload endpoint/hook per-record-type before a 2nd
+    # file-based plugin, or its file gets normalized as an essentiality table.
     BOOL = "bool"
 
 
