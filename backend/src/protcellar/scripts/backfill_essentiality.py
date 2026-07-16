@@ -1,9 +1,11 @@
-"""One-off: migrate essentiality GeneAnnotations into typed Essentiality records.
+"""One-off: seed typed Essentiality records from existing essentiality GeneAnnotations.
 
 For each gene carrying a VULNERABILITY/essentiality annotation, create an
-``Essentiality`` record and strip the annotation (single source of truth).
-Idempotent — a gene that already has an essentiality record is skipped, and a
-re-run finds no annotations left to migrate.
+``Essentiality`` record. This is **additive** — the annotation is intentionally
+KEPT, because it is still the live read source (e.g. the gene-neighborhood view)
+until a future slice wires typed-essentiality ingestion and repoints consumers to
+``essentiality_records``. Idempotent — a gene that already has an essentiality
+record is skipped. Commits per page so a failure loses at most one page.
 
 Usage::
 
@@ -75,13 +77,15 @@ def build_essentiality(gene_id: uuid.UUID, a: GeneAnnotation) -> Essentiality:
 
 
 async def backfill(
+    uow: AsyncUnitOfWork,
     gene_repo: SQLAlchemyGeneRepository,
     essentiality_repo: SQLAlchemyEssentialityRepository,
 ) -> int:
-    """Create Essentiality records + strip annotations. Returns records created.
+    """Create Essentiality records from existing annotations. Returns records created.
 
-    Pages through every gene by id cursor. ponytail: one transaction; fine for a
-    one-off CLI (commit happens once in the caller).
+    Additive — annotations are NOT stripped (they remain the live source). Pages
+    through every gene by id cursor and commits each page, so a failure loses at
+    most one page of progress and the transaction stays bounded.
     """
     created = 0
     cursor: uuid.UUID | None = None
@@ -95,14 +99,11 @@ async def backfill(
             if not ess:
                 continue
             if await essentiality_repo.find_by_gene(GLOBAL_WORKSPACE_ID, gene.id):
-                continue  # idempotent — already migrated
+                continue  # idempotent — already seeded
             for annotation in ess:
                 await essentiality_repo.save(build_essentiality(gene.id, annotation))
                 created += 1
-            gene.update(
-                annotations=[a for a in gene.annotations if not is_essentiality_annotation(a)]
-            )
-            await gene_repo.save(gene)
+        await uow.commit()
     return created
 
 
@@ -114,9 +115,8 @@ async def _main() -> None:
     try:
         async with uow:
             n = await backfill(
-                SQLAlchemyGeneRepository(uow), SQLAlchemyEssentialityRepository(uow)
+                uow, SQLAlchemyGeneRepository(uow), SQLAlchemyEssentialityRepository(uow)
             )
-            await uow.commit()
         print(f"essentiality records created: {n}")
     finally:
         await engine.dispose()

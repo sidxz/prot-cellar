@@ -182,10 +182,7 @@ async def test_runner_wires_fetch_parse_map_enrich() -> None:
 
 
 @pytest.mark.asyncio
-async def test_runner_does_not_write_essentiality_annotations() -> None:
-    # Essentiality now lives in typed essentiality_records (see
-    # scripts/backfill_essentiality). The loader is still accepted, but the
-    # enrichment path must not write any VULNERABILITY annotation.
+async def test_runner_includes_essentiality_when_loader_supplied() -> None:
     gff_url = "https://mycobrowser.example/h37rv.gff"
     client = _FakeGffClient({gff_url: _GFF})
     bulk = _CapturingBulkEnrich()
@@ -201,5 +198,15 @@ async def test_runner_does_not_write_essentiality_annotations() -> None:
     )
     await runner.run(uuid.uuid4(), auth=FakeAuth(role="admin"))
 
-    for record in bulk.records:
-        assert all(a.axis != GeneAnnotationAxis.VULNERABILITY for a in record.annotations)
+    by_locus = {r.locus_key: r for r in bulk.records}
+    rpob_vuln = [
+        a for a in by_locus["Rv0667"].annotations if a.axis == GeneAnnotationAxis.VULNERABILITY
+    ]
+    assert [a.value for a in rpob_vuln] == ["essential"]
+    assert rpob_vuln[0].dataset == "DeJesus 2017"
+    katg_vuln = [
+        a.value
+        for a in by_locus["Rv1908c"].annotations
+        if a.axis == GeneAnnotationAxis.VULNERABILITY
+    ]
+    assert katg_vuln == ["non-essential"]
