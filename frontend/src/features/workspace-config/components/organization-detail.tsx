@@ -9,6 +9,7 @@ import { Button } from "@/shared/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/card";
 import { Skeleton } from "@/shared/components/ui/skeleton";
 
+import { useBreadcrumbOverride } from "@/shared/lib/stores/breadcrumb-store";
 import { useOrganization } from "../hooks/use-organizations";
 import { ORG_TYPE_LABELS } from "../types";
 import { OrganizationFormDialog } from "./organization-form-dialog";
@@ -54,6 +55,7 @@ export interface OrganizationDetailPageProps {
 
 export function OrganizationDetailPage({ organizationId }: OrganizationDetailPageProps) {
   const { data: org, isLoading, isError } = useOrganization(organizationId);
+  useBreadcrumbOverride(organizationId, org?.name ?? "");
   const [editOpen, setEditOpen] = useState(false);
 
   // ── Loading ──────────────────────────────────────────────────────────────

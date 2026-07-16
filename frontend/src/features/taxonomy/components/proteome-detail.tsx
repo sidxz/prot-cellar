@@ -4,6 +4,7 @@ import { OrganismRef } from "@/shared/components/common/organism-ref";
 import { Badge } from "@/shared/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/card";
 import { Skeleton } from "@/shared/components/ui/skeleton";
+import { useBreadcrumbOverride } from "@/shared/lib/stores/breadcrumb-store";
 import { Database, ExternalLink } from "lucide-react";
 import Link from "next/link";
 import { useProteome } from "../hooks/use-proteomes";
@@ -55,6 +56,7 @@ export interface ProteomeDetailPageProps {
 
 export function ProteomeDetailPage({ proteomeId }: ProteomeDetailPageProps) {
   const { data: proteome, isLoading, isError } = useProteome(proteomeId);
+  useBreadcrumbOverride(proteomeId, proteome?.uniprot_proteome_id ?? "");
 
   // ── Loading ──────────────────────────────────────────────────────────────
   if (isLoading) {

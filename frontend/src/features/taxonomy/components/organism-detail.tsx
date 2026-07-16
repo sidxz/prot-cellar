@@ -2,6 +2,7 @@
 
 import { Badge } from "@/shared/components/ui/badge";
 import { Skeleton } from "@/shared/components/ui/skeleton";
+import { useBreadcrumbOverride } from "@/shared/lib/stores/breadcrumb-store";
 import { ExternalLink, Leaf } from "lucide-react";
 import Link from "next/link";
 import { useOrganism } from "../hooks/use-organisms";
@@ -49,6 +50,7 @@ export interface OrganismDetailPageProps {
 
 export function OrganismDetailPage({ organismId }: OrganismDetailPageProps) {
   const { data: organism, isLoading, isError } = useOrganism(organismId);
+  useBreadcrumbOverride(organismId, organism?.scientific_name ?? "");
 
   // ── Loading ──────────────────────────────────────────────────────────────
   if (isLoading) {

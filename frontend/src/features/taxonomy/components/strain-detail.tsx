@@ -9,6 +9,7 @@ import { Button } from "@/shared/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/card";
 import { Skeleton } from "@/shared/components/ui/skeleton";
 
+import { useBreadcrumbOverride } from "@/shared/lib/stores/breadcrumb-store";
 import { useStrain } from "../hooks/use-strains";
 import { StrainFormDialog } from "./strain-form-dialog";
 
@@ -58,6 +59,7 @@ export interface StrainDetailPageProps {
 
 export function StrainDetailPage({ strainId }: StrainDetailPageProps) {
   const { data: strain, isLoading, isError } = useStrain(strainId);
+  useBreadcrumbOverride(strainId, strain?.name ?? "");
   const [editOpen, setEditOpen] = useState(false);
 
   // ── Loading ──────────────────────────────────────────────────────────────

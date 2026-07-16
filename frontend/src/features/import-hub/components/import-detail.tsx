@@ -2,6 +2,7 @@
 
 import { Badge } from "@/shared/components/ui/badge";
 
+import { useBreadcrumbOverride } from "@/shared/lib/stores/breadcrumb-store";
 import { useImportRun } from "../hooks/use-imports";
 import { IMPORT_TYPE_LABELS, STATUS_VARIANTS } from "../types";
 
@@ -11,6 +12,7 @@ function asNumber(v: unknown): number {
 
 export function ImportDetailPage({ importRunId }: { importRunId: string }) {
   const { data, isLoading, isError } = useImportRun(importRunId);
+  useBreadcrumbOverride(importRunId, data?.target_key ?? "");
 
   if (isLoading) return <p className="text-sm text-muted-foreground">Loading…</p>;
   if (isError || !data) {

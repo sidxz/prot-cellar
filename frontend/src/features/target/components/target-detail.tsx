@@ -11,6 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui
 import { Skeleton } from "@/shared/components/ui/skeleton";
 import { CrossReferenceLinks } from "@/shared/components/xrefs/cross-reference-links";
 
+import { useBreadcrumbOverride } from "@/shared/lib/stores/breadcrumb-store";
 import { useTarget } from "../hooks/use-targets";
 import { RELATIONSHIP_LABELS, TARGET_TYPE_LABELS } from "../types";
 import type { Target } from "../types";
@@ -179,6 +180,7 @@ export interface TargetDetailPageProps {
 
 export function TargetDetailPage({ targetId }: TargetDetailPageProps) {
   const { data: target, isLoading, isError } = useTarget(targetId);
+  useBreadcrumbOverride(targetId, target?.pref_name ?? "");
   const [editOpen, setEditOpen] = useState(false);
 
   // ── Loading ──────────────────────────────────────────────────────────────
