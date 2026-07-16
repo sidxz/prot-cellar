@@ -1,5 +1,6 @@
 "use client";
 
+import type { Badge } from "@/shared/components/ui/badge";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
 import {
@@ -12,11 +13,29 @@ import {
 import type { ProvenanceBody } from "@/shared/lib/api/model";
 import { ProvenanceSourceType } from "@/shared/lib/api/model";
 import { Check, Loader2, Pencil, Plus, Trash2, X } from "lucide-react";
+import type { ComponentProps } from "react";
 import { useState } from "react";
 import { toast } from "sonner";
 
 export const humanize = (s: string) => s.replace(/_/g, " ");
 export const SOURCE_OPTIONS = Object.values(ProvenanceSourceType);
+
+type BadgeVariant = NonNullable<ComponentProps<typeof Badge>["variant"]>;
+
+/** Map how-a-value-was-produced → badge color. AI = blue; imported/computed =
+ * neutral; manual (and anything unknown) = foreground outline. */
+export function generationMethodBadgeVariant(method: string | null | undefined): BadgeVariant {
+  switch (method) {
+    case "ai_extracted":
+    case "ai_predicted":
+      return "info";
+    case "imported":
+    case "computed":
+      return "secondary";
+    default:
+      return "outline";
+  }
+}
 
 /** Coerce a text-input string to a nullable number / nullable trimmed string for a write body. */
 export const numOrNull = (s: string): number | null => (s.trim() ? Number(s) : null);

@@ -3,7 +3,11 @@ import { describe, expect, it, vi } from "vitest";
 
 vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
 
-import { type Column, EditableRecordTable } from "./editable-record-table";
+import {
+  type Column,
+  EditableRecordTable,
+  generationMethodBadgeVariant,
+} from "./editable-record-table";
 
 interface Rec {
   id: string;
@@ -108,5 +112,24 @@ describe("EditableRecordTable", () => {
     const { onDelete } = setup([rec]);
     fireEvent.click(screen.getByRole("button", { name: /delete/i }));
     expect(onDelete).toHaveBeenCalledWith("r1");
+  });
+});
+
+describe("generationMethodBadgeVariant", () => {
+  it("colors AI methods blue (info)", () => {
+    expect(generationMethodBadgeVariant("ai_extracted")).toBe("info");
+    expect(generationMethodBadgeVariant("ai_predicted")).toBe("info");
+  });
+
+  it("colors imported/computed neutral (secondary)", () => {
+    expect(generationMethodBadgeVariant("imported")).toBe("secondary");
+    expect(generationMethodBadgeVariant("computed")).toBe("secondary");
+  });
+
+  it("colors manual / unknown / null as outline", () => {
+    expect(generationMethodBadgeVariant("manual")).toBe("outline");
+    expect(generationMethodBadgeVariant("nonsense")).toBe("outline");
+    expect(generationMethodBadgeVariant(undefined)).toBe("outline");
+    expect(generationMethodBadgeVariant(null)).toBe("outline");
   });
 });
