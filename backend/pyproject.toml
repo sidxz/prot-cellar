@@ -87,6 +87,7 @@ modules = [
     "protcellar.domain.taxonomy",
     "protcellar.domain.protein_catalog",
     "protcellar.domain.target",
+    "protcellar.domain.target_biology",
     "protcellar.domain.workspace_config",
     "protcellar.domain.audit_compliance",
 ]
