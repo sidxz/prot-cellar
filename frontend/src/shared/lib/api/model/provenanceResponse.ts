@@ -4,6 +4,7 @@
  * prot-cellar
  * OpenAPI spec version: 0.1.0
  */
+import type { GenerationMethod } from './generationMethod';
 import type { ProvenanceCitationResponse } from './provenanceCitationResponse';
 import type { ProvenanceResponseContributorResearcher } from './provenanceResponseContributorResearcher';
 import type { ProvenanceResponseContributorOrganizationId } from './provenanceResponseContributorOrganizationId';
@@ -12,6 +13,7 @@ import type { ProvenanceResponseNote } from './provenanceResponseNote';
 
 export interface ProvenanceResponse {
   source_type: string;
+  generation_method: GenerationMethod;
   citations: ProvenanceCitationResponse[];
   contributor_researcher?: ProvenanceResponseContributorResearcher;
   contributor_organization_id?: ProvenanceResponseContributorOrganizationId;

@@ -101,7 +101,7 @@ logs: ## Tail backend + frontend + worker dev logs
 
 generate-api: ## Refresh the OpenAPI snapshot from the backend + regenerate the TS client
 	$(BACKEND) && $(BE_ENV) && uv run python -c \
-		"import json,sys; from protcellar.interface.app import app; sys.stdout.write(json.dumps(app.openapi()))" \
+		"import json,sys; from protcellar.interface.app import app; sys.stdout.write(json.dumps(app.openapi(), indent=2))" \
 		> ../frontend/openapi.json
 	$(FRONTEND) && pnpm generate:api
 

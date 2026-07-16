@@ -183,6 +183,7 @@ export * from './geneResponseNcbiGeneUrl';
 export * from './geneResponseStrainId';
 export * from './geneSummaryResponse';
 export * from './geneTargetBiologyResponse';
+export * from './generationMethod';
 export * from './getGeneNeighborhoodApiV1GenesGeneIdNeighborhoodGetParams';
 export * from './getProteinApiV1ProteinsAccessionGetParams';
 export * from './hTTPValidationError';

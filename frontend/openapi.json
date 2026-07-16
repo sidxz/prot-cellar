@@ -5522,6 +5522,18 @@
         ],
         "title": "GeneTargetBiologyResponse"
       },
+      "GenerationMethod": {
+        "type": "string",
+        "enum": [
+          "manual",
+          "imported",
+          "ai_extracted",
+          "ai_predicted",
+          "computed"
+        ],
+        "title": "GenerationMethod",
+        "description": "How a provenance-stamped value was produced \u2014 orthogonal to source_type.\n\nsource_type answers *publication status* (published/preprint/\u2026); this answers\n*how the value came to be*. An AI can extract a value from a published paper,\nso both axes must coexist."
+      },
       "HTTPValidationError": {
         "properties": {
           "detail": {
@@ -7717,6 +7729,9 @@
             "type": "string",
             "title": "Source Type"
           },
+          "generation_method": {
+            "$ref": "#/components/schemas/GenerationMethod"
+          },
           "citations": {
             "items": {
               "$ref": "#/components/schemas/ProvenanceCitationResponse"
@@ -7774,6 +7789,7 @@
         "type": "object",
         "required": [
           "source_type",
+          "generation_method",
           "citations"
         ],
         "title": "ProvenanceResponse"

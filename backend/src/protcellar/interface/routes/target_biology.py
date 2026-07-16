@@ -18,7 +18,12 @@ from protcellar.application.target_biology.get_protein_target_biology import (
 )
 from protcellar.domain.shared.compound_ref import CompoundRef
 from protcellar.domain.shared.global_workspace import GLOBAL_WORKSPACE_ID
-from protcellar.domain.shared.provenance import Citation, Provenance, ProvenanceSourceType
+from protcellar.domain.shared.provenance import (
+    Citation,
+    GenerationMethod,
+    Provenance,
+    ProvenanceSourceType,
+)
 from protcellar.domain.target_biology.crispri_strain import CrispriStrain
 from protcellar.domain.target_biology.enums import EssentialityClass
 from protcellar.domain.target_biology.essentiality import Essentiality
@@ -53,6 +58,7 @@ class ProvenanceCitationResponse(BaseModel):
 
 class ProvenanceResponse(BaseModel):
     source_type: str
+    generation_method: GenerationMethod
     citations: list[ProvenanceCitationResponse]
     contributor_researcher: str | None = None
     contributor_organization_id: uuid.UUID | None = None
@@ -63,6 +69,7 @@ class ProvenanceResponse(BaseModel):
     def from_domain(cls, p: Provenance) -> ProvenanceResponse:
         return cls(
             source_type=p.source_type.value,
+            generation_method=p.generation_method,
             citations=[
                 ProvenanceCitationResponse(pmid=c.pmid, doi=c.doi, url=c.url, label=c.label)
                 for c in p.citations
@@ -314,6 +321,8 @@ class ProvenanceCitationBody(BaseModel):
     label: str | None = None
 
 
+# NOTE: no `generation_method` here — an edit submitted through the form must
+# re-attribute the row to a human (to_domain() defaults it to MANUAL). See Plan A.
 class ProvenanceBody(BaseModel):
     source_type: ProvenanceSourceType
     citations: list[ProvenanceCitationBody] = []
