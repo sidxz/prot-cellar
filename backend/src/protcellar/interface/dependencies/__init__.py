@@ -37,6 +37,10 @@ from protcellar.interface.dependencies._target import (
     ListTargetsDep,
     UpdateTargetDep,
 )
+from protcellar.interface.dependencies._target_biology import (
+    GetGeneTargetBiologyDep,
+    GetProteinTargetBiologyDep,
+)
 from protcellar.interface.dependencies._taxonomy import (
     BulkUpsertOrganismsDep,
     CreateOrganismDep,
@@ -74,10 +78,12 @@ __all__ = [
     "EventDispatcherDep",
     "GetGeneDep",
     "GetGeneNeighborhoodDep",
+    "GetGeneTargetBiologyDep",
     "GetImportRunDep",
     "GetOrganismDep",
     "GetOrganizationDep",
     "GetProteinDep",
+    "GetProteinTargetBiologyDep",
     "GetProteomeDep",
     "GetStrainDep",
     "GetTargetDep",
