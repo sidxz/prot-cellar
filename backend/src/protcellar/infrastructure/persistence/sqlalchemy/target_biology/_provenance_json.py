@@ -9,12 +9,18 @@ from __future__ import annotations
 import uuid
 from datetime import date
 
-from protcellar.domain.shared.provenance import Citation, Provenance, ProvenanceSourceType
+from protcellar.domain.shared.provenance import (
+    Citation,
+    GenerationMethod,
+    Provenance,
+    ProvenanceSourceType,
+)
 
 
 def provenance_to_json(p: Provenance) -> dict[str, object]:
     return {
         "source_type": p.source_type.value,
+        "generation_method": p.generation_method.value,
         "citations": [
             {"pmid": c.pmid, "doi": c.doi, "url": c.url, "label": c.label} for c in p.citations
         ],
@@ -35,6 +41,9 @@ def provenance_from_json(data: dict[str, object] | None) -> Provenance | None:
     citations_raw: list[dict[str, object]] = data.get("citations") or []  # type: ignore[assignment]
     return Provenance(
         source_type=ProvenanceSourceType(str(data["source_type"])),
+        generation_method=GenerationMethod(
+            str(data.get("generation_method", GenerationMethod.MANUAL.value))
+        ),
         citations=tuple(
             Citation(
                 pmid=_opt(c.get("pmid")),
