@@ -1,0 +1,46 @@
+"""Shared support for target-biology bulk-import commands.
+
+``ItemResult`` is the per-row outcome (mirrors the protein_catalog bulk commands).
+``build_locus_index`` resolves a gene from an external locus/name key exactly the
+way ``BulkEnrichGenes`` does (primary_name / synonyms / source_record_id suffix,
+upper-cased) — reused by every gene-side importer.
+"""
+
+from __future__ import annotations
+
+from collections.abc import Sequence
+from dataclasses import dataclass
+
+from protcellar.domain.protein_catalog.gene import Gene
+from protcellar.domain.protein_catalog.protein import Protein
+
+
+@dataclass(frozen=True, kw_only=True)
+class ItemResult:
+    index: int
+    status: str  # "created" | "updated" | "skipped" | "failed"
+    id: str | None = None
+    error: str | None = None
+
+
+def build_locus_index(genes: Sequence[Gene]) -> dict[str, Gene]:
+    """Index genes by primary_name / synonyms / source_record_id suffix (upper-cased)."""
+    index: dict[str, Gene] = {}
+    for gene in genes:
+        keys = [gene.primary_name, *gene.synonyms]
+        if gene.source_record_id:
+            keys.append(gene.source_record_id.split(":")[-1])
+        for key in keys:
+            if key:
+                index.setdefault(key.upper(), gene)
+    return index
+
+
+def build_accession_index(proteins: Sequence[Protein]) -> dict[str, Protein]:
+    """Index proteins by primary + secondary accessions (upper-cased)."""
+    index: dict[str, Protein] = {}
+    for protein in proteins:
+        for key in (protein.primary_accession, *protein.secondary_accessions):
+            if key:
+                index.setdefault(key.upper(), protein)
+    return index
