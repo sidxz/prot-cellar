@@ -12,6 +12,7 @@ import protcellar.infrastructure.persistence.sqlalchemy.audit_compliance.models
 import protcellar.infrastructure.persistence.sqlalchemy.imports.models
 import protcellar.infrastructure.persistence.sqlalchemy.protein_catalog.models
 import protcellar.infrastructure.persistence.sqlalchemy.target.models
+import protcellar.infrastructure.persistence.sqlalchemy.target_biology.models
 import protcellar.infrastructure.persistence.sqlalchemy.taxonomy.models
 import protcellar.infrastructure.persistence.sqlalchemy.workspace_config.models  # noqa: F401
 from protcellar.infrastructure.persistence.sqlalchemy.base import Base  # noqa: F401
