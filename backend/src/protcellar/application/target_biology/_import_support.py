@@ -12,7 +12,6 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 
 from protcellar.domain.protein_catalog.gene import Gene
-from protcellar.domain.protein_catalog.protein import Protein
 from protcellar.domain.shared.provenance import Citation, Provenance, ProvenanceSourceType
 
 
@@ -33,7 +32,11 @@ def provenance_from(source_type: str, pmid: str | None, dataset: str | None) -> 
 
 
 def build_locus_index(genes: Sequence[Gene]) -> dict[str, Gene]:
-    """Index genes by primary_name / synonyms / source_record_id suffix (upper-cased)."""
+    """Index genes by primary_name / synonyms / source_record_id suffix (upper-cased).
+
+    Protein-side importers resolve per-accession via ``find_by_accession`` instead —
+    proteins are too numerous (100k+) to index in memory.
+    """
     index: dict[str, Gene] = {}
     for gene in genes:
         keys = [gene.primary_name, *gene.synonyms]
@@ -42,14 +45,4 @@ def build_locus_index(genes: Sequence[Gene]) -> dict[str, Gene]:
         for key in keys:
             if key:
                 index.setdefault(key.upper(), gene)
-    return index
-
-
-def build_accession_index(proteins: Sequence[Protein]) -> dict[str, Protein]:
-    """Index proteins by primary + secondary accessions (upper-cased)."""
-    index: dict[str, Protein] = {}
-    for protein in proteins:
-        for key in (protein.primary_accession, *protein.secondary_accessions):
-            if key:
-                index.setdefault(key.upper(), protein)
     return index
