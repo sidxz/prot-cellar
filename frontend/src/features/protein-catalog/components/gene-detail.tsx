@@ -4,8 +4,8 @@ import { OrganismRef } from "@/shared/components/common/organism-ref";
 import { Badge } from "@/shared/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/card";
 import { Skeleton } from "@/shared/components/ui/skeleton";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/shared/components/ui/tabs";
 import { CrossReferenceLinks } from "@/shared/components/xrefs/cross-reference-links";
+import { useBreadcrumbOverride } from "@/shared/lib/stores/breadcrumb-store";
 import { Dna, ExternalLink } from "lucide-react";
 import Link from "next/link";
 import { useGene } from "../hooks/use-genes";
@@ -222,6 +222,8 @@ export interface GeneDetailPageProps {
 
 export function GeneDetailPage({ geneId }: GeneDetailPageProps) {
   const { data, isLoading, isError } = useGene(geneId);
+  // Show the gene name (not its UUID) in the breadcrumb once loaded.
+  useBreadcrumbOverride(geneId, data?.primary_name ?? "");
 
   // ── Loading ──────────────────────────────────────────────────────────────
   if (isLoading) {
@@ -260,41 +262,35 @@ export function GeneDetailPage({ geneId }: GeneDetailPageProps) {
         </div>
       </header>
 
-      <Tabs defaultValue="overview" className="flex flex-col gap-6">
-        <TabsList>
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="target-biology">Target Biology</TabsTrigger>
-        </TabsList>
+      {/* Single scroll (no tabs): the gene overview is light, and the typed
+          target-biology records are the primary triage content, so they lead
+          rather than hide behind a tab. (The protein page, which is dense,
+          keeps its tabs.) */}
+      <GeneMetadataCard gene={data} />
+      <GenomicContextSection gene={data} />
+      <AxisAnnotationsSection gene={data} axis="vulnerability" title={AXIS_TITLES.vulnerability} />
 
-        {/* ── Overview ── */}
-        <TabsContent value="overview" className="flex flex-col gap-8">
-          <GeneMetadataCard gene={data} />
-          <GenomicContextSection gene={data} />
-          <AxisAnnotationsSection
-            gene={data}
-            axis="vulnerability"
-            title={AXIS_TITLES.vulnerability}
-          />
-          <LinkedProteinsSection geneId={data.id} />
-          {data.cross_references && data.cross_references.length > 0 && (
-            <section aria-labelledby="xrefs-heading">
-              <h2 id="xrefs-heading" className="text-base font-semibold mb-3 text-foreground">
-                Cross-References
-              </h2>
-              <Card>
-                <CardContent className="pt-4">
-                  <CrossReferenceLinks items={data.cross_references} />
-                </CardContent>
-              </Card>
-            </section>
-          )}
-        </TabsContent>
+      <section aria-labelledby="target-biology-heading" className="flex flex-col gap-4">
+        <h2 id="target-biology-heading" className="text-base font-semibold text-foreground">
+          Target Biology
+        </h2>
+        <GeneTargetBiologyTab geneId={data.id} />
+      </section>
 
-        {/* ── Target Biology (typed records; Essentiality is editable) ── */}
-        <TabsContent value="target-biology">
-          <GeneTargetBiologyTab geneId={data.id} />
-        </TabsContent>
-      </Tabs>
+      <LinkedProteinsSection geneId={data.id} />
+
+      {data.cross_references && data.cross_references.length > 0 && (
+        <section aria-labelledby="xrefs-heading">
+          <h2 id="xrefs-heading" className="text-base font-semibold mb-3 text-foreground">
+            Cross-References
+          </h2>
+          <Card>
+            <CardContent className="pt-4">
+              <CrossReferenceLinks items={data.cross_references} />
+            </CardContent>
+          </Card>
+        </section>
+      )}
     </div>
   );
 }

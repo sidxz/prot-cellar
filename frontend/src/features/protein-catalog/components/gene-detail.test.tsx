@@ -83,8 +83,10 @@ vi.mock("../hooks/use-genes", () => ({
   })),
 }));
 
-vi.mock("../hooks/use-target-biology", () => ({
-  useGeneTargetBiology: vi.fn(() => ({ data: undefined })),
+// Target-biology tables render inline now; stub the group so this test stays
+// focused on the gene detail chrome (the tables have their own tests).
+vi.mock("./sections/gene-target-biology-tab", () => ({
+  GeneTargetBiologyTab: () => null,
 }));
 
 import { GeneDetailPage } from "./gene-detail";
