@@ -11,6 +11,7 @@ export function useGenes(filters: GeneListFilters = {}, cursor?: string) {
   return useListGenesApiV1GenesGet({
     name: filters.name ?? undefined,
     organism_id: filters.organismId ?? undefined,
+    strain_id: filters.strainId ?? undefined,
     cursor: cursor ?? undefined,
   });
 }

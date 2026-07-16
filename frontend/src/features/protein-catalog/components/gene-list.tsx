@@ -1,5 +1,6 @@
 "use client";
 
+import { useOrganisms } from "@/features/taxonomy/hooks/use-organisms";
 import { DataGrid } from "@/shared/components/data-grid/data-grid";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
@@ -10,6 +11,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useGenes } from "../hooks/use-genes";
 import type { GeneListFilters } from "../types";
 import { geneColumnDefs } from "./gene-columns";
+import { ProteinTaxonFilters } from "./protein-taxon-filters";
 
 // ---------------------------------------------------------------------------
 // LocalStorage helpers
@@ -57,8 +59,7 @@ export function GeneListPage() {
 
   const [filters, setFilters] = useState<GeneListFilters>(initialFilters);
   const [nameInput, setNameInput] = useState<string>(initialFilters.name ?? "");
-  // Plan 3: replace with organism picker; free-text organism ID for now
-  const [organismInput, setOrganismInput] = useState<string>(initialFilters.organismId ?? "");
+  const { data: orgData } = useOrganisms();
 
   // Persist filters to localStorage on change
   useEffect(() => {
@@ -76,15 +77,21 @@ export function GeneListPage() {
     }, 300);
   }, []);
 
-  // ── Debounced organism filter ─────────────────────────────────────────────
-  const orgDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // ── Organism + strain filter ───────────────────────────────────────────────
+  // Picking an organism defaults the strain to that organism's reference strain
+  // (the designated/preferred one), so multi-strain species aren't a wall of
+  // ortholog duplicates by default. The strain select can override it.
+  const handleOrganismChange = useCallback(
+    (organismId: string | undefined) => {
+      const referenceStrain =
+        orgData?.items.find((o) => o.id === organismId)?.reference_strain_id ?? undefined;
+      setFilters((prev) => ({ ...prev, organismId, strainId: referenceStrain }));
+    },
+    [orgData],
+  );
 
-  const handleOrganismChange = useCallback((raw: string) => {
-    setOrganismInput(raw);
-    if (orgDebounceRef.current) clearTimeout(orgDebounceRef.current);
-    orgDebounceRef.current = setTimeout(() => {
-      setFilters((prev) => ({ ...prev, organismId: raw.trim() || undefined }));
-    }, 300);
+  const handleStrainChange = useCallback((strainId: string | undefined) => {
+    setFilters((prev) => ({ ...prev, strainId }));
   }, []);
 
   // ── Cursor pagination ────────────────────────────────────────────────────
@@ -163,19 +170,13 @@ export function GeneListPage() {
           />
         </div>
 
-        {/* Organism filter — free-text ID for now; Plan 3 adds organism picker */}
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="gene-organism" className="text-xs text-muted-foreground">
-            Organism ID
-          </Label>
-          <Input
-            id="gene-organism"
-            placeholder="e.g. 9606"
-            value={organismInput}
-            onChange={(e) => handleOrganismChange(e.target.value)}
-            className="h-8 w-36"
-          />
-        </div>
+        {/* Organism + strain (strain defaults to the organism's reference strain) */}
+        <ProteinTaxonFilters
+          organismId={filters.organismId}
+          strainId={filters.strainId}
+          onOrganismChange={handleOrganismChange}
+          onStrainChange={handleStrainChange}
+        />
       </div>
 
       {/* Data grid */}

@@ -64,4 +64,5 @@ export interface ProteinListFilters {
 export interface GeneListFilters {
   name?: string;
   organismId?: string;
+  strainId?: string;
 }

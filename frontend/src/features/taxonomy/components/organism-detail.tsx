@@ -8,6 +8,7 @@ import Link from "next/link";
 import { useOrganism } from "../hooks/use-organisms";
 import { NAME_CLASS_LABELS, ORGANISM_SOURCE_LABELS } from "../types";
 import { OrganismLineage } from "./organism-lineage";
+import { OrganismReferenceStrain } from "./organism-reference-strain";
 
 // ---------------------------------------------------------------------------
 // Sub-components
@@ -177,6 +178,12 @@ export function OrganismDetailPage({ organismId }: OrganismDetailPageProps) {
             </MetadataRow>
           )}
           {organism.division && <MetadataRow label="Division">{organism.division}</MetadataRow>}
+          <MetadataRow label="Reference strain">
+            <OrganismReferenceStrain
+              organismId={organism.id}
+              referenceStrainId={organism.reference_strain_id}
+            />
+          </MetadataRow>
           {organism.source_release && (
             <MetadataRow label="Source release">{organism.source_release}</MetadataRow>
           )}

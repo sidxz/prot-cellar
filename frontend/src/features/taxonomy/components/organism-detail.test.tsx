@@ -28,6 +28,12 @@ vi.mock("../hooks/use-organisms", () => ({
   useOrganismLineage: () => ({ data: [], isLoading: false, isError: false }),
 }));
 
+// The reference-strain selector fetches strains + mutates; stub it so this test
+// stays focused on the organism detail chrome (it has its own concerns).
+vi.mock("./organism-reference-strain", () => ({
+  OrganismReferenceStrain: () => null,
+}));
+
 import { OrganismDetailPage } from "./organism-detail";
 
 describe("OrganismDetailPage", () => {
