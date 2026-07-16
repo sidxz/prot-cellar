@@ -13,6 +13,7 @@ from dataclasses import dataclass
 
 from protcellar.domain.protein_catalog.gene import Gene
 from protcellar.domain.protein_catalog.protein import Protein
+from protcellar.domain.shared.provenance import Citation, Provenance, ProvenanceSourceType
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -21,6 +22,14 @@ class ItemResult:
     status: str  # "created" | "updated" | "skipped" | "failed"
     id: str | None = None
     error: str | None = None
+
+
+def provenance_from(source_type: str, pmid: str | None, dataset: str | None) -> Provenance:
+    """Build the shared Provenance envelope from a source type + optional citation."""
+    citations: tuple[Citation, ...] = ()
+    if pmid or dataset:
+        citations = (Citation(pmid=pmid, label=dataset),)
+    return Provenance(source_type=ProvenanceSourceType(source_type), citations=citations)
 
 
 def build_locus_index(genes: Sequence[Gene]) -> dict[str, Gene]:
