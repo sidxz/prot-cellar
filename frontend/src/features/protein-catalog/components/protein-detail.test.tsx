@@ -27,6 +27,10 @@ vi.mock("@/shared/lib/api/strains/strains", () => ({
   }),
 }));
 
+vi.mock("../hooks/use-target-biology", () => ({
+  useProteinTargetBiology: vi.fn(() => ({ data: undefined })),
+}));
+
 // ── Happy-path mock (primary fetch succeeds) ──────────────────────────────
 vi.mock("../hooks/use-proteins", () => ({
   useProtein: vi.fn(() => ({

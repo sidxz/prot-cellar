@@ -24,6 +24,7 @@ import { IsoformsSection } from "./sections/isoforms-section";
 import { KeywordsSection } from "./sections/keywords-section";
 import { StructureViewerCard } from "./sections/structure-viewer-card";
 import { SubcellularLocationCard } from "./sections/subcellular-location-card";
+import { ProteinTargetBiologySection } from "./sections/target-biology-section";
 
 // ---------------------------------------------------------------------------
 // Sub-components
@@ -304,6 +305,7 @@ export function ProteinDetailPage({ accession }: ProteinDetailPageProps) {
           <FunctionSection protein={protein} />
           <FeaturesSection protein={protein} />
           <StructureViewerCard protein={protein} />
+          <ProteinTargetBiologySection proteinId={protein.id} />
           <GoGraphCard protein={protein} />
           <section aria-labelledby="seq-heading">
             <h2 id="seq-heading" className="text-base font-semibold mb-3 text-foreground">

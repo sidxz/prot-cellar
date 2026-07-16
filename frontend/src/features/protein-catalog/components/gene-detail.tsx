@@ -11,6 +11,7 @@ import { useGene } from "../hooks/use-genes";
 import { useProteins } from "../hooks/use-proteins";
 import { AXIS_TITLES, AxisAnnotationsSection } from "./sections/axis-annotations-section";
 import { GenomicContextSection } from "./sections/genomic-context-section";
+import { GeneTargetBiologySection } from "./sections/target-biology-section";
 
 // ---------------------------------------------------------------------------
 // Sub-components
@@ -266,6 +267,9 @@ export function GeneDetailPage({ geneId }: GeneDetailPageProps) {
 
       {/* ── Vulnerability (essentiality) — other axes wire in when data lands ── */}
       <AxisAnnotationsSection gene={data} axis="vulnerability" title={AXIS_TITLES.vulnerability} />
+
+      {/* ── Typed target-biology records (essentiality, vulnerability, hypomorph, CRISPRi, resistance) ── */}
+      <GeneTargetBiologySection geneId={data.id} />
 
       {/* ── Linked proteins (the "Encodes" bridge) ── */}
       <LinkedProteinsSection geneId={data.id} />

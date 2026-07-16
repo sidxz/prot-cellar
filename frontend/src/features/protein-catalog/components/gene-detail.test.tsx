@@ -83,6 +83,10 @@ vi.mock("../hooks/use-genes", () => ({
   })),
 }));
 
+vi.mock("../hooks/use-target-biology", () => ({
+  useGeneTargetBiology: vi.fn(() => ({ data: undefined })),
+}));
+
 import { GeneDetailPage } from "./gene-detail";
 
 describe("GeneDetailPage", () => {
