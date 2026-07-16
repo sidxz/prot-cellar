@@ -5,6 +5,7 @@ import { QueryProvider } from "@/shared/providers/query-provider";
 import { ThemeProvider } from "@/shared/providers/theme-provider";
 import type { Metadata } from "next";
 import { IBM_Plex_Mono, IBM_Plex_Sans, Inter } from "next/font/google";
+import localFont from "next/font/local";
 import { Toaster } from "sonner";
 import "./globals.css";
 
@@ -26,8 +27,17 @@ const inter = Inter({
   display: "swap",
 });
 
+// Brand wordmark font (shared across our apps, same file as docu-store);
+// full 300–900 axis
+const overusedGrotesk = localFont({
+  src: "./fonts/OverusedGrotesk-VF.woff2",
+  variable: "--font-overused-grotesk",
+  weight: "300 900",
+  display: "swap",
+});
+
 export const metadata: Metadata = {
-  title: "prot-cellar",
+  title: "ProtCellar",
   description: "Protein & target management platform",
 };
 
@@ -47,7 +57,7 @@ export default function RootLayout({
         />
       </head>
       <body
-        className={`${plexSans.variable} ${plexMono.variable} ${inter.variable} font-sans antialiased`}
+        className={`${plexSans.variable} ${plexMono.variable} ${inter.variable} ${overusedGrotesk.variable} font-sans antialiased`}
       >
         <ThemeProvider>
           <FontFamilyProvider>
