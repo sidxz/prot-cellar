@@ -27,6 +27,8 @@ class EssentialityRepository(Protocol):
 
     async def save(self, aggregate: Essentiality) -> None: ...
 
+    async def delete(self, workspace_id: uuid.UUID, id: uuid.UUID) -> None: ...
+
 
 @runtime_checkable
 class CrispriStrainRepository(Protocol):

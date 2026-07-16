@@ -2257,6 +2257,146 @@
           }
         }
       }
+    },
+    "/api/v1/genes/{gene_id}/target-biology/essentiality": {
+      "post": {
+        "tags": [
+          "target-biology"
+        ],
+        "summary": "Create Essentiality",
+        "operationId": "create_essentiality_api_v1_genes__gene_id__target_biology_essentiality_post",
+        "parameters": [
+          {
+            "name": "gene_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Gene Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EssentialityWriteBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EssentialityResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/target-biology/essentiality/{record_id}": {
+      "patch": {
+        "tags": [
+          "target-biology"
+        ],
+        "summary": "Update Essentiality",
+        "operationId": "update_essentiality_api_v1_target_biology_essentiality__record_id__patch",
+        "parameters": [
+          {
+            "name": "record_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Record Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EssentialityWriteBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EssentialityResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "target-biology"
+        ],
+        "summary": "Delete Essentiality",
+        "operationId": "delete_essentiality_api_v1_target_biology_essentiality__record_id__delete",
+        "parameters": [
+          {
+            "name": "record_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Record Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -3615,6 +3755,17 @@
         ],
         "title": "CrossReferenceResponse"
       },
+      "EssentialityClass": {
+        "type": "string",
+        "enum": [
+          "essential",
+          "growth_defect",
+          "non_essential",
+          "growth_advantage",
+          "uncertain"
+        ],
+        "title": "EssentialityClass"
+      },
       "EssentialityResponse": {
         "properties": {
           "id": {
@@ -3682,6 +3833,55 @@
           "extensions"
         ],
         "title": "EssentialityResponse"
+      },
+      "EssentialityWriteBody": {
+        "properties": {
+          "classification": {
+            "$ref": "#/components/schemas/EssentialityClass"
+          },
+          "condition": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Condition"
+          },
+          "method": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Method"
+          },
+          "confidence": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Confidence"
+          },
+          "provenance": {
+            "$ref": "#/components/schemas/ProvenanceBody"
+          }
+        },
+        "type": "object",
+        "required": [
+          "classification",
+          "provenance"
+        ],
+        "title": "EssentialityWriteBody"
       },
       "FeatureBody": {
         "properties": {
@@ -6375,6 +6575,110 @@
         ],
         "title": "ProteomeType"
       },
+      "ProvenanceBody": {
+        "properties": {
+          "source_type": {
+            "$ref": "#/components/schemas/ProvenanceSourceType"
+          },
+          "citations": {
+            "items": {
+              "$ref": "#/components/schemas/ProvenanceCitationBody"
+            },
+            "type": "array",
+            "title": "Citations",
+            "default": []
+          },
+          "contributor_researcher": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Contributor Researcher"
+          },
+          "observed_on": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Observed On"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          }
+        },
+        "type": "object",
+        "required": [
+          "source_type"
+        ],
+        "title": "ProvenanceBody"
+      },
+      "ProvenanceCitationBody": {
+        "properties": {
+          "pmid": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pmid"
+          },
+          "doi": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Doi"
+          },
+          "url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Url"
+          },
+          "label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Label"
+          }
+        },
+        "type": "object",
+        "title": "ProvenanceCitationBody"
+      },
       "ProvenanceCitationResponse": {
         "properties": {
           "pmid": {
@@ -6491,6 +6795,17 @@
           "citations"
         ],
         "title": "ProvenanceResponse"
+      },
+      "ProvenanceSourceType": {
+        "type": "string",
+        "enum": [
+          "published",
+          "preprint",
+          "private_comm",
+          "internal",
+          "patent"
+        ],
+        "title": "ProvenanceSourceType"
       },
       "ResistanceMutationResponse": {
         "properties": {

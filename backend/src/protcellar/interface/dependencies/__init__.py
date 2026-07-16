@@ -38,8 +38,11 @@ from protcellar.interface.dependencies._target import (
     UpdateTargetDep,
 )
 from protcellar.interface.dependencies._target_biology import (
+    CreateEssentialityDep,
+    DeleteEssentialityDep,
     GetGeneTargetBiologyDep,
     GetProteinTargetBiologyDep,
+    UpdateEssentialityDep,
 )
 from protcellar.interface.dependencies._taxonomy import (
     BulkUpsertOrganismsDep,
@@ -68,6 +71,7 @@ __all__ = [
     "BulkUpsertGenesDep",
     "BulkUpsertOrganismsDep",
     "BulkUpsertProteinsDep",
+    "CreateEssentialityDep",
     "CreateGeneDep",
     "CreateOrganismDep",
     "CreateOrganizationDep",
@@ -75,6 +79,7 @@ __all__ = [
     "CreateProteomeDep",
     "CreateStrainDep",
     "CreateTargetDep",
+    "DeleteEssentialityDep",
     "EventDispatcherDep",
     "GetGeneDep",
     "GetGeneNeighborhoodDep",
@@ -101,6 +106,7 @@ __all__ = [
     "StartImportDep",
     "StoreUploadDep",
     "UoWDep",
+    "UpdateEssentialityDep",
     "UpdateGeneDep",
     "UpdateOrganismDep",
     "UpdateOrganizationDep",

@@ -9,6 +9,11 @@ from typing import Any
 from fastapi import APIRouter
 from pydantic import BaseModel
 
+from protcellar.application.target_biology.crud_essentiality import (
+    CreateEssentialityCommand,
+    DeleteEssentialityCommand,
+    UpdateEssentialityCommand,
+)
 from protcellar.application.target_biology.get_gene_target_biology import (
     GetGeneTargetBiologyQuery,
 )
@@ -16,8 +21,9 @@ from protcellar.application.target_biology.get_protein_target_biology import (
     GetProteinTargetBiologyQuery,
 )
 from protcellar.domain.shared.compound_ref import CompoundRef
-from protcellar.domain.shared.provenance import Provenance
+from protcellar.domain.shared.provenance import Citation, Provenance, ProvenanceSourceType
 from protcellar.domain.target_biology.crispri_strain import CrispriStrain
+from protcellar.domain.target_biology.enums import EssentialityClass
 from protcellar.domain.target_biology.essentiality import Essentiality
 from protcellar.domain.target_biology.hypomorph import Hypomorph
 from protcellar.domain.target_biology.protein_activity_assay import ProteinActivityAssay
@@ -27,8 +33,11 @@ from protcellar.domain.target_biology.unpublished_structure import UnpublishedSt
 from protcellar.domain.target_biology.vulnerability import Vulnerability
 from protcellar.interface.dependencies import (
     AuthDep,
+    CreateEssentialityDep,
+    DeleteEssentialityDep,
     GetGeneTargetBiologyDep,
     GetProteinTargetBiologyDep,
+    UpdateEssentialityDep,
 )
 from protcellar.interface.error_handlers import result_to_response
 
@@ -298,6 +307,51 @@ class ProteinTargetBiologyResponse(BaseModel):
     unpublished_structure: list[UnpublishedStructureResponse]
 
 
+# --- Inbound write bodies ---------------------------------------------------
+
+
+class ProvenanceCitationBody(BaseModel):
+    pmid: str | None = None
+    doi: str | None = None
+    url: str | None = None
+    label: str | None = None
+
+
+class ProvenanceBody(BaseModel):
+    source_type: ProvenanceSourceType
+    citations: list[ProvenanceCitationBody] = []
+    contributor_researcher: str | None = None
+    observed_on: date | None = None
+    note: str | None = None
+
+    def to_domain(self) -> Provenance:
+        cites = tuple(
+            Citation(
+                pmid=c.pmid or None,
+                doi=c.doi or None,
+                url=c.url or None,
+                label=c.label or None,
+            )
+            for c in self.citations
+            if any((c.pmid, c.doi, c.url, c.label))
+        )
+        return Provenance(
+            source_type=self.source_type,
+            citations=cites,
+            contributor_researcher=self.contributor_researcher or None,
+            observed_on=self.observed_on,
+            note=self.note or None,
+        )
+
+
+class EssentialityWriteBody(BaseModel):
+    classification: EssentialityClass
+    condition: str | None = None
+    method: str | None = None
+    confidence: float | None = None
+    provenance: ProvenanceBody
+
+
 # --- Endpoints --------------------------------------------------------------
 
 
@@ -341,3 +395,59 @@ async def get_protein_target_biology(
             UnpublishedStructureResponse.from_domain(x) for x in bundle.unpublished_structure
         ],
     )
+
+
+# --- Essentiality write endpoints (admin-only) ------------------------------
+
+
+@router.post(
+    "/genes/{gene_id}/target-biology/essentiality",
+    response_model=EssentialityResponse,
+    status_code=201,
+)
+async def create_essentiality(
+    gene_id: uuid.UUID,
+    body: EssentialityWriteBody,
+    auth: AuthDep,
+    use_case: CreateEssentialityDep,
+) -> EssentialityResponse:
+    command = CreateEssentialityCommand(
+        gene_id=gene_id,
+        classification=body.classification,
+        provenance=body.provenance.to_domain(),
+        condition=body.condition,
+        method=body.method,
+        confidence=body.confidence,
+    )
+    record = result_to_response(await use_case(command, auth=auth))
+    return EssentialityResponse.from_domain(record)
+
+
+@router.patch(
+    "/target-biology/essentiality/{record_id}", response_model=EssentialityResponse
+)
+async def update_essentiality(
+    record_id: uuid.UUID,
+    body: EssentialityWriteBody,
+    auth: AuthDep,
+    use_case: UpdateEssentialityDep,
+) -> EssentialityResponse:
+    command = UpdateEssentialityCommand(
+        id=record_id,
+        classification=body.classification,
+        provenance=body.provenance.to_domain(),
+        condition=body.condition,
+        method=body.method,
+        confidence=body.confidence,
+    )
+    record = result_to_response(await use_case(command, auth=auth))
+    return EssentialityResponse.from_domain(record)
+
+
+@router.delete("/target-biology/essentiality/{record_id}", status_code=204)
+async def delete_essentiality(
+    record_id: uuid.UUID,
+    auth: AuthDep,
+    use_case: DeleteEssentialityDep,
+) -> None:
+    result_to_response(await use_case(DeleteEssentialityCommand(id=record_id), auth=auth))

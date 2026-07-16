@@ -163,6 +163,18 @@ class SQLAlchemyRepository[T: AggregateRoot, ModelType: Base](ABC):
             existing.version = loaded_version + 1  # type: ignore[attr-defined]
             aggregate.version = loaded_version + 1
 
+    async def delete(self, workspace_id: uuid.UUID, id: uuid.UUID) -> None:
+        """Delete with workspace filter in the SQL WHERE clause.
+
+        Cross-tenant deletes are physically impossible — the DELETE statement
+        itself ANDs the workspace_id, so no row outside the workspace is touched.
+        """
+        stmt = sa_delete(self.model_class).where(
+            self.model_class.id == id,  # type: ignore[attr-defined]
+            self.model_class.workspace_id == workspace_id,  # type: ignore[attr-defined]
+        )
+        await self._session.execute(stmt)
+
 
 class EntityRepository[T: Entity, ModelType: Base](ABC):
     """Base repository for plain (non-aggregate) domain Entity types.

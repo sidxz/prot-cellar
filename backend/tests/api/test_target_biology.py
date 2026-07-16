@@ -131,3 +131,68 @@ async def test_empty_bundle_for_unknown_gene(client: AsyncClient) -> None:
         "crispri_strain": [],
         "resistance_mutation": [],
     }
+
+
+# --- Essentiality CRUD ------------------------------------------------------
+
+_ESS_BODY = {
+    "classification": "essential",
+    "condition": "in vitro 7H9",
+    "method": "TnSeq",
+    "confidence": 0.98,
+    "provenance": {"source_type": "published", "citations": [{"pmid": "28096490"}]},
+}
+
+
+@pytest.mark.asyncio
+async def test_create_update_delete_essentiality(client: AsyncClient) -> None:
+    gene_id = uuid.uuid4()
+
+    created = await client.post(
+        f"/api/v1/genes/{gene_id}/target-biology/essentiality", json=_ESS_BODY
+    )
+    assert created.status_code == 201
+    rec = created.json()
+    assert rec["classification"] == "essential"
+    assert rec["gene_id"] == str(gene_id)
+    assert rec["provenance"]["citations"][0]["pmid"] == "28096490"
+    record_id = rec["id"]
+
+    # It shows up in the gene's bundle.
+    bundle = (await client.get(f"/api/v1/genes/{gene_id}/target-biology")).json()
+    assert [e["id"] for e in bundle["essentiality"]] == [record_id]
+
+    # Update: change classification + method, drop the citation.
+    updated = await client.patch(
+        f"/api/v1/target-biology/essentiality/{record_id}",
+        json={
+            "classification": "non_essential",
+            "method": "CRISPRi",
+            "provenance": {"source_type": "internal", "citations": []},
+        },
+    )
+    assert updated.status_code == 200
+    assert updated.json()["classification"] == "non_essential"
+    assert updated.json()["method"] == "CRISPRi"
+    assert updated.json()["provenance"]["citations"] == []
+
+    # Delete → gone from the bundle.
+    deleted = await client.delete(f"/api/v1/target-biology/essentiality/{record_id}")
+    assert deleted.status_code == 204
+    bundle2 = (await client.get(f"/api/v1/genes/{gene_id}/target-biology")).json()
+    assert bundle2["essentiality"] == []
+
+
+@pytest.mark.asyncio
+async def test_update_missing_essentiality_404(client: AsyncClient) -> None:
+    r = await client.patch(f"/api/v1/target-biology/essentiality/{uuid.uuid4()}", json=_ESS_BODY)
+    assert r.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_essentiality_writes_require_admin(editor_client: AsyncClient) -> None:
+    gene_id = uuid.uuid4()
+    r = await editor_client.post(
+        f"/api/v1/genes/{gene_id}/target-biology/essentiality", json=_ESS_BODY
+    )
+    assert r.status_code == 403
