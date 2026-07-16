@@ -8,6 +8,7 @@ import {
   LayoutDashboard,
   Microscope,
   Network,
+  Plug,
   ScrollText,
   Upload,
 } from "lucide-react";
@@ -48,6 +49,7 @@ export const navigation: { home: NavItem; groups: NavGroup[] } = {
       items: [
         { title: "Organizations", href: "/admin/organizations", icon: Building2 },
         { title: "Imports", href: "/admin/imports", icon: Upload },
+        { title: "Plugins", href: "/admin/plugins", icon: Plug },
         { title: "Audit", href: "/admin/audit", icon: ScrollText },
       ],
     },
