@@ -33,11 +33,15 @@ def upgrade() -> None:
         ["reference_strain_id"],
         unique=False,
     )
-    # A species with exactly one strain uses that strain as its reference.
+    # A species with exactly one strain uses that strain as its reference — but
+    # only if that strain actually has strain-scoped genes. Otherwise the gene
+    # dashboard would default its strain filter to a strain with zero genes.
+    # (Runs after the gene strain_id backfill, so genes.strain_id is populated.)
     op.execute(
         "UPDATE organisms o SET reference_strain_id = s.id FROM strains s "
         "WHERE s.species_organism_id = o.id "
-        "AND (SELECT count(*) FROM strains s2 WHERE s2.species_organism_id = o.id) = 1"
+        "AND (SELECT count(*) FROM strains s2 WHERE s2.species_organism_id = o.id) = 1 "
+        "AND EXISTS (SELECT 1 FROM genes g WHERE g.strain_id = s.id)"
     )
 
 

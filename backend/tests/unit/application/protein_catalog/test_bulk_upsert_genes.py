@@ -89,6 +89,39 @@ async def test_creates_then_skips_then_updates() -> None:
 
 
 @pytest.mark.asyncio
+async def test_update_without_strain_preserves_existing_strain() -> None:
+    # A strain-scoped gene must keep its strain when a later upsert (e.g. the
+    # /genes/bulk route) omits strain_id — the update must not null it out.
+    repo = _FakeGeneRepo()
+    uc = _uc(repo)
+    auth = FakeAuth(role="admin")
+    strain = uuid.uuid4()
+
+    strain_rec = GeneImportRecord(
+        primary_name="katG",
+        organism_id=uuid.uuid4(),
+        source="uniprot",
+        source_release="2026_02",
+        source_record_id="83332:Rv1908c",
+        source_record_checksum="c1",
+        strain_id=strain,
+    )
+    (await uc(BulkUpsertGenesCommand(records=(strain_rec,)), auth=auth)).unwrap()
+    assert repo.by_srid[("uniprot", "83332:Rv1908c")].strain_id == strain
+
+    # Re-upsert with a changed checksum but NO strain_id (default None on _rec).
+    r = (
+        await uc(
+            BulkUpsertGenesCommand(records=(_rec(checksum="c2", primary="katG2"),)), auth=auth
+        )
+    ).unwrap()
+    assert [x.status for x in r] == ["updated"]
+    gene = repo.by_srid[("uniprot", "83332:Rv1908c")]
+    assert gene.primary_name == "katG2"
+    assert gene.strain_id == strain  # preserved, not nulled
+
+
+@pytest.mark.asyncio
 async def test_dry_run_persists_nothing() -> None:
     repo = _FakeGeneRepo()
     r = (

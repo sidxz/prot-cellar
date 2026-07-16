@@ -14,6 +14,7 @@ export function useOrganisms(filters: OrganismListFilters = {}, cursor?: string)
   return useListOrganismsApiV1OrganismsGet({
     name: filters.name ?? undefined,
     rank: filters.rank ?? undefined,
+    limit: filters.limit ?? undefined,
     cursor: cursor ?? undefined,
   });
 }

@@ -52,9 +52,22 @@ def register_taxonomy(container: Container) -> None:
 
         return _f
 
+    # UpdateOrganism also needs the strain repo (to validate reference_strain_id).
+    def _org_cmd_with_strain(uc_cls: type) -> Any:
+        def _f(c: Container) -> Any:
+            uow = AsyncUnitOfWork(c[async_sessionmaker])
+            return uc_cls(
+                uow,
+                SQLAlchemyOrganismRepository(uow),
+                SQLAlchemyStrainRepository(uow),
+                c[EventDispatcher],
+            )
+
+        return _f
+
     container.define(BulkUpsertOrganisms, _org_cmd(BulkUpsertOrganisms))
     container.define(CreateOrganism, _org_cmd(CreateOrganism))
-    container.define(UpdateOrganism, _org_cmd(UpdateOrganism))
+    container.define(UpdateOrganism, _org_cmd_with_strain(UpdateOrganism))
     container.define(GetOrganism, _org_query(GetOrganism))
     container.define(ListOrganisms, _org_query(ListOrganisms))
     container.define(ResolveTaxId, _org_query(ResolveTaxId))

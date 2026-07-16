@@ -5,6 +5,7 @@ from __future__ import annotations
 import uuid
 from dataclasses import dataclass
 from datetime import UTC, datetime
+from typing import Any
 
 from returns.result import Result, Success
 
@@ -63,14 +64,19 @@ class BulkUpsertGenes:
                                 ItemResult(index=i, status="skipped", id=str(existing.id))
                             )
                             continue
-                        existing.update(
-                            primary_name=rec.primary_name,
-                            strain_id=rec.strain_id,
-                            synonyms=list(rec.synonyms),
-                            ncbi_gene_id=rec.ncbi_gene_id,
-                            ensembl_gene_id=rec.ensembl_gene_id,
-                            cross_references=list(rec.cross_references),
-                        )
+                        # A record without a strain (e.g. the /genes/bulk route,
+                        # which doesn't expose strain_id) must NOT wipe a strain the
+                        # proteome import already resolved — only set when provided.
+                        update_fields: dict[str, Any] = {
+                            "primary_name": rec.primary_name,
+                            "synonyms": list(rec.synonyms),
+                            "ncbi_gene_id": rec.ncbi_gene_id,
+                            "ensembl_gene_id": rec.ensembl_gene_id,
+                            "cross_references": list(rec.cross_references),
+                        }
+                        if rec.strain_id is not None:
+                            update_fields["strain_id"] = rec.strain_id
+                        existing.update(**update_fields)
                         existing.source_record_checksum = rec.source_record_checksum
                         existing.source_release = rec.source_release
                         existing.imported_at = datetime.now(UTC)

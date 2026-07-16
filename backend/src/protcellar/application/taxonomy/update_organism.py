@@ -13,10 +13,10 @@ from protcellar.application.shared.command import Command
 from protcellar.application.shared.event_dispatcher import EventDispatcherProtocol
 from protcellar.application.shared.sentinel import UNSET
 from protcellar.application.shared.unit_of_work import UnitOfWork
-from protcellar.domain.shared.errors import DomainError, NotFoundError
+from protcellar.domain.shared.errors import DomainError, NotFoundError, ValidationError
 from protcellar.domain.shared.global_workspace import GLOBAL_WORKSPACE_ID
 from protcellar.domain.taxonomy.organism import Organism
-from protcellar.domain.taxonomy.repository import OrganismRepository
+from protcellar.domain.taxonomy.repository import OrganismRepository, StrainRepository
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -35,10 +35,12 @@ class UpdateOrganism:
         self,
         uow: UnitOfWork,
         repo: OrganismRepository,
+        strain_repo: StrainRepository,
         dispatcher: EventDispatcherProtocol,
     ) -> None:
         self._uow = uow
         self._repo = repo
+        self._strain_repo = strain_repo
         self._dispatcher = dispatcher
 
     async def __call__(
@@ -50,6 +52,17 @@ class UpdateOrganism:
             org = await self._repo.find_by_id_in_workspace(GLOBAL_WORKSPACE_ID, input.organism_id)
             if org is None:
                 return Failure(NotFoundError("Organism", str(input.organism_id)))
+
+            # A designated reference strain must actually be a strain of THIS
+            # species — the column has no FK, so validate at the boundary. (UNSET
+            # and None both skip this: None is a legitimate "clear the reference".)
+            ref = input.reference_strain_id
+            if isinstance(ref, uuid.UUID):
+                strain = await self._strain_repo.find_visible_by_id(GLOBAL_WORKSPACE_ID, ref)
+                if strain is None or strain.species_organism_id != input.organism_id:
+                    return Failure(
+                        ValidationError("reference_strain_id must be a strain of this organism")
+                    )
 
             # Build kwargs dict — only include fields that were provided
             fields: dict[str, Any] = {}

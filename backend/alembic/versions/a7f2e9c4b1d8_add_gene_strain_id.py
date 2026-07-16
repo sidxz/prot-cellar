@@ -31,9 +31,15 @@ def upgrade() -> None:
     op.create_index(op.f("ix_genes_strain_id"), "genes", ["strain_id"], unique=False)
     op.create_foreign_key("genes_strain_id_fkey", "genes", "strains", ["strain_id"], ["id"])
     # Backfill: a gene inherits the strain already resolved on its protein(s).
+    # A gene normally maps to one strain; if a legacy collapsed row links proteins
+    # from several strains, pick the lowest id deterministically (min) rather than
+    # letting the planner choose an arbitrary joined row.
     op.execute(
-        "UPDATE genes SET strain_id = p.strain_id "
-        "FROM proteins p WHERE p.gene_id = genes.id AND p.strain_id IS NOT NULL"
+        "UPDATE genes SET strain_id = sub.strain_id FROM ("
+        "  SELECT gene_id, min(strain_id::text)::uuid AS strain_id"
+        "  FROM proteins WHERE gene_id IS NOT NULL AND strain_id IS NOT NULL"
+        "  GROUP BY gene_id"
+        ") sub WHERE sub.gene_id = genes.id"
     )
 
 

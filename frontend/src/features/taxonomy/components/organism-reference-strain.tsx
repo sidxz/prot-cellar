@@ -9,12 +9,15 @@ import {
 } from "@/shared/components/ui/select";
 import {
   getGetOrganismApiV1OrganismsOrganismIdGetQueryKey,
+  getListOrganismsApiV1OrganismsGetQueryKey,
   useUpdateOrganismApiV1OrganismsOrganismIdPatch,
 } from "@/shared/lib/api/organisms/organisms";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
 import { useStrains } from "../hooks/use-strains";
+import { scopeStrainsToOrganism } from "../lib/scope-strains";
+import { TAXON_FILTER_PAGE_SIZE } from "../types";
 
 const NONE = "__none__";
 
@@ -31,15 +34,18 @@ export function OrganismReferenceStrain({
   referenceStrainId: string | null | undefined;
 }) {
   const qc = useQueryClient();
-  const { data: strainData } = useStrains();
-  const strains = (strainData?.items ?? []).filter((s) => s.species_organism_id === organismId);
+  const { data: strainData } = useStrains(undefined, TAXON_FILTER_PAGE_SIZE);
+  const strains = scopeStrainsToOrganism(strainData?.items ?? [], organismId);
 
   const update = useUpdateOrganismApiV1OrganismsOrganismIdPatch({
     mutation: {
       onSuccess: () => {
+        // Invalidate the detail query AND the organisms list — the gene dashboard
+        // reads reference_strain_id from the LIST to default its strain filter.
         qc.invalidateQueries({
           queryKey: getGetOrganismApiV1OrganismsOrganismIdGetQueryKey(organismId),
         });
+        qc.invalidateQueries({ queryKey: getListOrganismsApiV1OrganismsGetQueryKey() });
         toast.success("Reference strain updated");
       },
       onError: () => toast.error("Could not update — an admin role is required."),

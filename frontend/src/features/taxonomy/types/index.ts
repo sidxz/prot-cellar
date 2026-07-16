@@ -53,9 +53,16 @@ export const PROTEOME_TYPE_LABELS: Record<ProteomeType, string> = {
 // ─── Filter types ─────────────────────────────────────────────────────────────
 
 /** Filter parameters for listing organisms. */
+// ponytail: taxon filter/picker dropdowns fetch one page and scope client-side.
+// 200 = backend MAX_PAGE_SIZE, so this is correct up to 200 organisms/strains.
+// Upgrade path past that: a backend species_organism_id filter on /strains and a
+// searchable organism combobox (see import-hub/organism-combobox) instead of a Select.
+export const TAXON_FILTER_PAGE_SIZE = 200;
+
 export interface OrganismListFilters {
   name?: string;
   rank?: string;
+  limit?: number;
 }
 
 /** Filter parameters for listing proteomes. */

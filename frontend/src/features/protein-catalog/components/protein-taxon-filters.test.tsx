@@ -1,8 +1,9 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
+import { scopeStrainsToOrganism } from "@/features/taxonomy/lib/scope-strains";
 import type { StrainResponse } from "@/shared/lib/api/model";
-import { ProteinTaxonFilters, scopeStrainsToOrganism } from "./protein-taxon-filters";
+import { ProteinTaxonFilters } from "./protein-taxon-filters";
 
 const strain = (id: string, speciesOrganismId: string, name: string): StrainResponse =>
   ({

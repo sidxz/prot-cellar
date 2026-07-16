@@ -1,6 +1,7 @@
 "use client";
 
 import { useOrganisms } from "@/features/taxonomy/hooks/use-organisms";
+import { TAXON_FILTER_PAGE_SIZE } from "@/features/taxonomy/types";
 import { DataGrid } from "@/shared/components/data-grid/data-grid";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
@@ -17,13 +18,19 @@ import { ProteinTaxonFilters } from "./protein-taxon-filters";
 // LocalStorage helpers
 // ---------------------------------------------------------------------------
 const LS_KEY = "pc-genes-filters";
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 function readFilters(): GeneListFilters {
   if (typeof window === "undefined") return {};
   try {
     const raw = window.localStorage.getItem(LS_KEY);
     if (!raw) return {};
-    return JSON.parse(raw) as GeneListFilters;
+    const f = JSON.parse(raw) as GeneListFilters;
+    // Drop stale non-UUID ids (e.g. a tax id left by the removed free-text
+    // "Organism ID" input) — they'd 422 the list with no visible/clearable cause.
+    if (f.organismId && !UUID_RE.test(f.organismId)) f.organismId = undefined;
+    if (f.strainId && !UUID_RE.test(f.strainId)) f.strainId = undefined;
+    return f;
   } catch {
     return {};
   }
@@ -59,7 +66,7 @@ export function GeneListPage() {
 
   const [filters, setFilters] = useState<GeneListFilters>(initialFilters);
   const [nameInput, setNameInput] = useState<string>(initialFilters.name ?? "");
-  const { data: orgData } = useOrganisms();
+  const { data: orgData } = useOrganisms({ limit: TAXON_FILTER_PAGE_SIZE });
 
   // Persist filters to localStorage on change
   useEffect(() => {

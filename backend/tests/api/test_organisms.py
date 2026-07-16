@@ -30,6 +30,24 @@ async def test_search_by_name(client: AsyncClient) -> None:
 
 
 @pytest.mark.asyncio
+async def test_reference_strain_must_belong_to_organism(client: AsyncClient) -> None:
+    # The column has no FK — the use case validates at the boundary. A strain id
+    # that doesn't exist (nor belongs to this species) must be rejected, not stored.
+    resp = await client.post(
+        "/api/v1/organisms",
+        json={"ncbi_tax_id": 424242, "rank": "species", "scientific_name": "Testus organismus"},
+    )
+    assert resp.status_code == 201
+    organism_id = resp.json()["id"]
+
+    patch_resp = await client.patch(
+        f"/api/v1/organisms/{organism_id}",
+        json={"reference_strain_id": "00000000-0000-0000-0000-000000000001"},
+    )
+    assert patch_resp.status_code == 422
+
+
+@pytest.mark.asyncio
 async def test_update_organism_preserves_names(client: AsyncClient) -> None:
     # Step 1: Create an organism (use a different tax_id to avoid conflict with other tests)
     resp = await client.post(
