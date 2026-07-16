@@ -9,23 +9,33 @@ import {
   CommandList,
 } from "@/shared/components/ui/command";
 import { navigation } from "@/shared/lib/navigation";
+import { useCommandPaletteStore } from "@/shared/lib/stores/command-palette-store";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect } from "react";
 
 interface CommandPaletteProps {
   defaultOpen?: boolean;
 }
 
 export function CommandPalette({ defaultOpen = false }: CommandPaletteProps) {
-  const [open, setOpen] = useState(defaultOpen);
+  const open = useCommandPaletteStore((s) => s.open);
+  const setOpen = useCommandPaletteStore((s) => s.setOpen);
+  const toggle = useCommandPaletteStore((s) => s.toggle);
   const router = useRouter();
 
-  const handleKeyDown = useCallback((e: KeyboardEvent) => {
-    if ((e.metaKey || e.ctrlKey) && e.key === "k") {
-      e.preventDefault();
-      setOpen((prev) => !prev);
-    }
-  }, []);
+  useEffect(() => {
+    if (defaultOpen) setOpen(true);
+  }, [defaultOpen, setOpen]);
+
+  const handleKeyDown = useCallback(
+    (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+        e.preventDefault();
+        toggle();
+      }
+    },
+    [toggle],
+  );
 
   useEffect(() => {
     document.addEventListener("keydown", handleKeyDown);
