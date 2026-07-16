@@ -25,10 +25,13 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from protcellar.application.auth import AuthContext
 from protcellar.application.imports.progress_reporter import ProgressReporter
+from protcellar.application.plugins.context import PluginRunContext
 from protcellar.application.protein_catalog.bulk_enrich_genes import BulkEnrichGenes
 from protcellar.application.protein_catalog.bulk_upsert_genes import BulkUpsertGenes
 from protcellar.application.protein_catalog.bulk_upsert_proteins import BulkUpsertProteins
 from protcellar.application.shared.event_dispatcher import EventDispatcherProtocol
+from protcellar.application.target_biology._import_support import ItemResult
+from protcellar.application.target_biology.bulk_upsert_essentiality import BulkUpsertEssentiality
 from protcellar.domain.imports.enums import ImportType
 from protcellar.infrastructure.ingestion.gene_enrichment_runner import GeneEnrichmentRunner
 from protcellar.infrastructure.ingestion.go_import_runner import GoImportRunner
@@ -46,7 +49,12 @@ from protcellar.infrastructure.persistence.sqlalchemy.protein_catalog.gene_repos
 from protcellar.infrastructure.persistence.sqlalchemy.protein_catalog.protein_repository import (
     SQLAlchemyProteinRepository,
 )
+from protcellar.infrastructure.persistence.sqlalchemy.target_biology.essentiality_repository import (  # noqa: E501
+    SQLAlchemyEssentialityRepository,
+)
 from protcellar.infrastructure.persistence.unit_of_work import AsyncUnitOfWork
+from protcellar.infrastructure.plugins.in_tree_sink import InTreeSink
+from protcellar.infrastructure.plugins.registry import get_plugin
 
 _UNIPROT_BASE_URL = "https://rest.uniprot.org"
 
@@ -66,6 +74,9 @@ class ImportRuntime:
     params: dict[str, Any]
     auth: AuthContext
     load_upload: Callable[[uuid.UUID], Awaitable[bytes]]
+    # ponytail: defaulted so legacy adapters/tests need no change; the worker
+    # always injects the real ImportRun id for plugin lineage.
+    run_id: uuid.UUID = dataclasses.field(default_factory=uuid.uuid4)
 
 
 # ---------------------------------------------------------------------------
@@ -198,6 +209,54 @@ class GoOntologyAdapter:
         return dataclasses.asdict(summary)
 
 
+def _summarize(results: list[ItemResult]) -> dict[str, Any]:
+    summary: dict[str, Any] = {"created": 0, "updated": 0, "skipped": 0, "failed": 0}
+    for r in results:
+        if r.status in summary:
+            summary[r.status] += 1
+    summary["total"] = len(results)
+    return summary
+
+
+class PluginDispatchAdapter:
+    """ImportType.PLUGIN -> resolve rt.params['plugin_id'] from the registry, wire the
+    in-tree sink, run the plugin, and summarize. The worker's IMPORT_ADAPTERS lookup
+    dispatches here with no plugin-specific branching in worker.py."""
+
+    import_type = ImportType.PLUGIN
+
+    async def run(self, rt: ImportRuntime) -> dict[str, Any]:
+        params = rt.params
+        plugin = get_plugin(str(params["plugin_id"]))
+        manifest = plugin.manifest()
+        organism_id = uuid.UUID(str(params["organism_id"])) if params.get("organism_id") else None
+        dry_run = bool(params.get("dry_run", False))
+
+        uow = AsyncUnitOfWork(rt.session_factory)
+        gene_repo = SQLAlchemyGeneRepository(uow)
+        ess_repo = SQLAlchemyEssentialityRepository(uow)
+        essentiality = BulkUpsertEssentiality(uow, gene_repo, ess_repo, rt.dispatcher)
+
+        sink = InTreeSink(
+            essentiality=essentiality,
+            organism_id=organism_id,
+            generation_method=manifest.default_generation_method.value,
+            source_run_id=rt.run_id,
+            dry_run=dry_run,
+            auth=rt.auth,
+        )
+        ctx = PluginRunContext(
+            params=params,
+            organism_id=organism_id,
+            load_upload=rt.load_upload,
+            sink=sink,
+            reporter=rt.reporter,
+            auth=rt.auth,
+        )
+        await plugin.run(ctx)
+        return _summarize(sink.results)
+
+
 # ---------------------------------------------------------------------------
 # Registry — the worker looks up adapters here
 # ---------------------------------------------------------------------------
@@ -206,4 +265,5 @@ IMPORT_ADAPTERS: dict[ImportType, ImportAdapter] = {
     ImportType.PROTEOME: ProteomeAdapter(),
     ImportType.GENE_ENRICHMENT: GeneEnrichmentAdapter(),
     ImportType.GO_ONTOLOGY: GoOntologyAdapter(),
+    ImportType.PLUGIN: PluginDispatchAdapter(),
 }

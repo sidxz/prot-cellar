@@ -50,6 +50,9 @@ def validate_params(import_type: ImportType, raw: dict[str, Any]) -> dict[str, A
     Returns a JSON-serialisable dict (mode="json" model_dump).
     Raises ``protcellar.domain.shared.errors.ValidationError`` on bad input.
     """
+    if import_type is ImportType.PLUGIN:
+        # Already validated against the plugin manifest at the route boundary.
+        return dict(raw)
     model_cls = _PARAM_MODELS[import_type]
     try:
         instance = model_cls(**raw)
@@ -60,6 +63,9 @@ def validate_params(import_type: ImportType, raw: dict[str, Any]) -> dict[str, A
 
 def target_key(import_type: ImportType, params: dict[str, Any]) -> str:
     """Derive the target_key string for an import run from its normalised params."""
+    if import_type is ImportType.PLUGIN:
+        strain = params.get("organism_id") or params.get("tax_id") or "global"
+        return f"{params['plugin_id']}:{strain}:{'dry' if params.get('dry_run') else 'run'}"
     if import_type is ImportType.PROTEOME:
         return str(params["proteome_id"])
     if import_type is ImportType.GENE_ENRICHMENT:
@@ -77,6 +83,9 @@ def needs_upload(import_type: ImportType, params: dict[str, Any]) -> bool:
 
 def upload_ref_of(import_type: ImportType, params: dict[str, Any]) -> uuid.UUID | None:
     """Return the upload UUID for this run, or None."""
+    if import_type is ImportType.PLUGIN:
+        ref = params.get("upload_ref")
+        return uuid.UUID(str(ref)) if ref else None
     if import_type is ImportType.GENE_ENRICHMENT:
         ref = params.get("essentiality_upload_ref")
         if ref is not None:

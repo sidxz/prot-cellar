@@ -97,6 +97,7 @@ async def run_import(ctx: dict[str, Any], import_run_id: str) -> None:
         params=run.params,
         auth=ServiceAuth(),
         load_upload=_load_upload,
+        run_id=run.id,
     )
 
     # --- 5. Run adapter and handle outcome ---

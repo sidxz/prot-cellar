@@ -7,6 +7,7 @@ class ImportType(StrEnum):
     PROTEOME = "proteome"
     GENE_ENRICHMENT = "gene_enrichment"
     GO_ONTOLOGY = "go_ontology"
+    PLUGIN = "plugin"
 
 
 class ImportStatus(StrEnum):
