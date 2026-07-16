@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import csv
 import io
+import uuid
 
 
 class CsvTable:
@@ -47,3 +48,12 @@ class CsvTable:
     def as_bool(value: str | None) -> bool:
         """Parse a truthy cell; empty/unrecognised -> False."""
         return (value or "").strip().lower() in {"true", "1", "yes", "y", "t"}
+
+    @staticmethod
+    def as_uuid(value: str | None) -> uuid.UUID | None:
+        if not value:
+            return None
+        try:
+            return uuid.UUID(value)
+        except ValueError:
+            return None
