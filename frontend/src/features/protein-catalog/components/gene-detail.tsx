@@ -4,14 +4,15 @@ import { OrganismRef } from "@/shared/components/common/organism-ref";
 import { Badge } from "@/shared/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/card";
 import { Skeleton } from "@/shared/components/ui/skeleton";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/shared/components/ui/tabs";
 import { CrossReferenceLinks } from "@/shared/components/xrefs/cross-reference-links";
 import { Dna, ExternalLink } from "lucide-react";
 import Link from "next/link";
 import { useGene } from "../hooks/use-genes";
 import { useProteins } from "../hooks/use-proteins";
 import { AXIS_TITLES, AxisAnnotationsSection } from "./sections/axis-annotations-section";
+import { GeneTargetBiologyTab } from "./sections/gene-target-biology-tab";
 import { GenomicContextSection } from "./sections/genomic-context-section";
-import { GeneTargetBiologySection } from "./sections/target-biology-section";
 
 // ---------------------------------------------------------------------------
 // Sub-components
@@ -259,34 +260,41 @@ export function GeneDetailPage({ geneId }: GeneDetailPageProps) {
         </div>
       </header>
 
-      {/* ── Metadata card ── */}
-      <GeneMetadataCard gene={data} />
+      <Tabs defaultValue="overview" className="flex flex-col gap-6">
+        <TabsList>
+          <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="target-biology">Target Biology</TabsTrigger>
+        </TabsList>
 
-      {/* ── Genomic context (location + neighborhood map) ── */}
-      <GenomicContextSection gene={data} />
+        {/* ── Overview ── */}
+        <TabsContent value="overview" className="flex flex-col gap-8">
+          <GeneMetadataCard gene={data} />
+          <GenomicContextSection gene={data} />
+          <AxisAnnotationsSection
+            gene={data}
+            axis="vulnerability"
+            title={AXIS_TITLES.vulnerability}
+          />
+          <LinkedProteinsSection geneId={data.id} />
+          {data.cross_references && data.cross_references.length > 0 && (
+            <section aria-labelledby="xrefs-heading">
+              <h2 id="xrefs-heading" className="text-base font-semibold mb-3 text-foreground">
+                Cross-References
+              </h2>
+              <Card>
+                <CardContent className="pt-4">
+                  <CrossReferenceLinks items={data.cross_references} />
+                </CardContent>
+              </Card>
+            </section>
+          )}
+        </TabsContent>
 
-      {/* ── Vulnerability (essentiality) — other axes wire in when data lands ── */}
-      <AxisAnnotationsSection gene={data} axis="vulnerability" title={AXIS_TITLES.vulnerability} />
-
-      {/* ── Typed target-biology records (essentiality, vulnerability, hypomorph, CRISPRi, resistance) ── */}
-      <GeneTargetBiologySection geneId={data.id} />
-
-      {/* ── Linked proteins (the "Encodes" bridge) ── */}
-      <LinkedProteinsSection geneId={data.id} />
-
-      {/* ── Cross-references ── */}
-      {data.cross_references && data.cross_references.length > 0 && (
-        <section aria-labelledby="xrefs-heading">
-          <h2 id="xrefs-heading" className="text-base font-semibold mb-3 text-foreground">
-            Cross-References
-          </h2>
-          <Card>
-            <CardContent className="pt-4">
-              <CrossReferenceLinks items={data.cross_references} />
-            </CardContent>
-          </Card>
-        </section>
-      )}
+        {/* ── Target Biology (typed records; Essentiality is editable) ── */}
+        <TabsContent value="target-biology">
+          <GeneTargetBiologyTab geneId={data.id} />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

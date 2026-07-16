@@ -89,32 +89,47 @@ function RecordRow({ record }: { record: TbRecord }) {
   );
 }
 
-/** Shared card wrapper — renders nothing when no group has records. */
-function TargetBiologyCard({ groups }: { groups: TbGroup[] }) {
+/**
+ * Shared card wrapper — renders nothing when no group has records.
+ * `heading` labels the card; pass `null` when the surrounding context (e.g. a
+ * "Target Biology" tab) already provides the label.
+ */
+function TargetBiologyCard({
+  groups,
+  heading = "Target Biology",
+}: {
+  groups: TbGroup[];
+  heading?: string | null;
+}) {
   const populated = groups.filter((g) => g.items.length > 0);
   if (populated.length === 0) return null;
 
+  const card = (
+    <Card>
+      <CardContent className="flex flex-col gap-4 pt-4">
+        {populated.map((group) => (
+          <div key={group.title} className="flex flex-col gap-2">
+            <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              {group.title}
+            </span>
+            <ul className="flex flex-col gap-2.5">
+              {group.items.map((r) => (
+                <RecordRow key={r.id} record={r} />
+              ))}
+            </ul>
+          </div>
+        ))}
+      </CardContent>
+    </Card>
+  );
+
+  if (heading === null) return card;
   return (
     <section aria-labelledby="target-biology-heading">
       <h2 id="target-biology-heading" className="text-base font-semibold mb-3 text-foreground">
-        Target Biology
+        {heading}
       </h2>
-      <Card>
-        <CardContent className="flex flex-col gap-4 pt-4">
-          {populated.map((group) => (
-            <div key={group.title} className="flex flex-col gap-2">
-              <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                {group.title}
-              </span>
-              <ul className="flex flex-col gap-2.5">
-                {group.items.map((r) => (
-                  <RecordRow key={r.id} record={r} />
-                ))}
-              </ul>
-            </div>
-          ))}
-        </CardContent>
-      </Card>
+      {card}
     </section>
   );
 }
@@ -125,7 +140,16 @@ const fmtScore = (n: number | null | undefined): string => (n == null ? "—" : 
 // Gene-side: essentiality, vulnerability, hypomorph, CRISPRi strain, resistance
 // ---------------------------------------------------------------------------
 
-export function GeneTargetBiologySection({ geneId }: { geneId: string }) {
+export function GeneTargetBiologySection({
+  geneId,
+  omit = [],
+  heading,
+}: {
+  geneId: string;
+  /** Group titles to skip (e.g. a record type rendered by its own editable table). */
+  omit?: string[];
+  heading?: string | null;
+}) {
   const { data } = useGeneTargetBiology(geneId);
   if (!data) return null;
 
@@ -225,7 +249,9 @@ export function GeneTargetBiologySection({ geneId }: { geneId: string }) {
     },
   ];
 
-  return <TargetBiologyCard groups={groups} />;
+  return (
+    <TargetBiologyCard groups={groups.filter((g) => !omit.includes(g.title))} heading={heading} />
+  );
 }
 
 // ---------------------------------------------------------------------------

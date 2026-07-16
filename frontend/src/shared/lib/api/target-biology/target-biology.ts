@@ -5,21 +5,27 @@
  * OpenAPI spec version: 0.1.0
  */
 import {
+  useMutation,
   useQuery
 } from '@tanstack/react-query';
 import type {
   DataTag,
   DefinedInitialDataOptions,
   DefinedUseQueryResult,
+  MutationFunction,
   QueryClient,
   QueryFunction,
   QueryKey,
   UndefinedInitialDataOptions,
+  UseMutationOptions,
+  UseMutationResult,
   UseQueryOptions,
   UseQueryResult
 } from '@tanstack/react-query';
 
 import type {
+  EssentialityResponse,
+  EssentialityWriteBody,
   GeneTargetBiologyResponse,
   HTTPValidationError,
   ProteinTargetBiologyResponse
@@ -214,3 +220,194 @@ export function useGetProteinTargetBiologyApiV1ProteinsProteinIdTargetBiologyGet
 
 
 
+/**
+ * @summary Create Essentiality
+ */
+export const createEssentialityApiV1GenesGeneIdTargetBiologyEssentialityPost = (
+    geneId: string,
+    essentialityWriteBody: EssentialityWriteBody,
+ signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<EssentialityResponse>(
+      {url: `/api/v1/genes/${geneId}/target-biology/essentiality`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: essentialityWriteBody, signal
+    },
+      );
+    }
+  
+
+
+export const getCreateEssentialityApiV1GenesGeneIdTargetBiologyEssentialityPostMutationOptions = <TError = HTTPValidationError,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createEssentialityApiV1GenesGeneIdTargetBiologyEssentialityPost>>, TError,{geneId: string;data: EssentialityWriteBody}, TContext>, }
+): UseMutationOptions<Awaited<ReturnType<typeof createEssentialityApiV1GenesGeneIdTargetBiologyEssentialityPost>>, TError,{geneId: string;data: EssentialityWriteBody}, TContext> => {
+
+const mutationKey = ['createEssentialityApiV1GenesGeneIdTargetBiologyEssentialityPost'];
+const {mutation: mutationOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createEssentialityApiV1GenesGeneIdTargetBiologyEssentialityPost>>, {geneId: string;data: EssentialityWriteBody}> = (props) => {
+          const {geneId,data} = props ?? {};
+
+          return  createEssentialityApiV1GenesGeneIdTargetBiologyEssentialityPost(geneId,data,)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateEssentialityApiV1GenesGeneIdTargetBiologyEssentialityPostMutationResult = NonNullable<Awaited<ReturnType<typeof createEssentialityApiV1GenesGeneIdTargetBiologyEssentialityPost>>>
+    export type CreateEssentialityApiV1GenesGeneIdTargetBiologyEssentialityPostMutationBody = EssentialityWriteBody
+    export type CreateEssentialityApiV1GenesGeneIdTargetBiologyEssentialityPostMutationError = HTTPValidationError
+
+    /**
+ * @summary Create Essentiality
+ */
+export const useCreateEssentialityApiV1GenesGeneIdTargetBiologyEssentialityPost = <TError = HTTPValidationError,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createEssentialityApiV1GenesGeneIdTargetBiologyEssentialityPost>>, TError,{geneId: string;data: EssentialityWriteBody}, TContext>, }
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof createEssentialityApiV1GenesGeneIdTargetBiologyEssentialityPost>>,
+        TError,
+        {geneId: string;data: EssentialityWriteBody},
+        TContext
+      > => {
+
+      const mutationOptions = getCreateEssentialityApiV1GenesGeneIdTargetBiologyEssentialityPostMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    /**
+ * @summary Update Essentiality
+ */
+export const updateEssentialityApiV1TargetBiologyEssentialityRecordIdPatch = (
+    recordId: string,
+    essentialityWriteBody: EssentialityWriteBody,
+ ) => {
+      
+      
+      return customInstance<EssentialityResponse>(
+      {url: `/api/v1/target-biology/essentiality/${recordId}`, method: 'PATCH',
+      headers: {'Content-Type': 'application/json', },
+      data: essentialityWriteBody
+    },
+      );
+    }
+  
+
+
+export const getUpdateEssentialityApiV1TargetBiologyEssentialityRecordIdPatchMutationOptions = <TError = HTTPValidationError,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateEssentialityApiV1TargetBiologyEssentialityRecordIdPatch>>, TError,{recordId: string;data: EssentialityWriteBody}, TContext>, }
+): UseMutationOptions<Awaited<ReturnType<typeof updateEssentialityApiV1TargetBiologyEssentialityRecordIdPatch>>, TError,{recordId: string;data: EssentialityWriteBody}, TContext> => {
+
+const mutationKey = ['updateEssentialityApiV1TargetBiologyEssentialityRecordIdPatch'];
+const {mutation: mutationOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateEssentialityApiV1TargetBiologyEssentialityRecordIdPatch>>, {recordId: string;data: EssentialityWriteBody}> = (props) => {
+          const {recordId,data} = props ?? {};
+
+          return  updateEssentialityApiV1TargetBiologyEssentialityRecordIdPatch(recordId,data,)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateEssentialityApiV1TargetBiologyEssentialityRecordIdPatchMutationResult = NonNullable<Awaited<ReturnType<typeof updateEssentialityApiV1TargetBiologyEssentialityRecordIdPatch>>>
+    export type UpdateEssentialityApiV1TargetBiologyEssentialityRecordIdPatchMutationBody = EssentialityWriteBody
+    export type UpdateEssentialityApiV1TargetBiologyEssentialityRecordIdPatchMutationError = HTTPValidationError
+
+    /**
+ * @summary Update Essentiality
+ */
+export const useUpdateEssentialityApiV1TargetBiologyEssentialityRecordIdPatch = <TError = HTTPValidationError,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateEssentialityApiV1TargetBiologyEssentialityRecordIdPatch>>, TError,{recordId: string;data: EssentialityWriteBody}, TContext>, }
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof updateEssentialityApiV1TargetBiologyEssentialityRecordIdPatch>>,
+        TError,
+        {recordId: string;data: EssentialityWriteBody},
+        TContext
+      > => {
+
+      const mutationOptions = getUpdateEssentialityApiV1TargetBiologyEssentialityRecordIdPatchMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    /**
+ * @summary Delete Essentiality
+ */
+export const deleteEssentialityApiV1TargetBiologyEssentialityRecordIdDelete = (
+    recordId: string,
+ ) => {
+      
+      
+      return customInstance<void>(
+      {url: `/api/v1/target-biology/essentiality/${recordId}`, method: 'DELETE'
+    },
+      );
+    }
+  
+
+
+export const getDeleteEssentialityApiV1TargetBiologyEssentialityRecordIdDeleteMutationOptions = <TError = HTTPValidationError,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteEssentialityApiV1TargetBiologyEssentialityRecordIdDelete>>, TError,{recordId: string}, TContext>, }
+): UseMutationOptions<Awaited<ReturnType<typeof deleteEssentialityApiV1TargetBiologyEssentialityRecordIdDelete>>, TError,{recordId: string}, TContext> => {
+
+const mutationKey = ['deleteEssentialityApiV1TargetBiologyEssentialityRecordIdDelete'];
+const {mutation: mutationOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteEssentialityApiV1TargetBiologyEssentialityRecordIdDelete>>, {recordId: string}> = (props) => {
+          const {recordId} = props ?? {};
+
+          return  deleteEssentialityApiV1TargetBiologyEssentialityRecordIdDelete(recordId,)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteEssentialityApiV1TargetBiologyEssentialityRecordIdDeleteMutationResult = NonNullable<Awaited<ReturnType<typeof deleteEssentialityApiV1TargetBiologyEssentialityRecordIdDelete>>>
+    
+    export type DeleteEssentialityApiV1TargetBiologyEssentialityRecordIdDeleteMutationError = HTTPValidationError
+
+    /**
+ * @summary Delete Essentiality
+ */
+export const useDeleteEssentialityApiV1TargetBiologyEssentialityRecordIdDelete = <TError = HTTPValidationError,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteEssentialityApiV1TargetBiologyEssentialityRecordIdDelete>>, TError,{recordId: string}, TContext>, }
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof deleteEssentialityApiV1TargetBiologyEssentialityRecordIdDelete>>,
+        TError,
+        {recordId: string},
+        TContext
+      > => {
+
+      const mutationOptions = getDeleteEssentialityApiV1TargetBiologyEssentialityRecordIdDeleteMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    
