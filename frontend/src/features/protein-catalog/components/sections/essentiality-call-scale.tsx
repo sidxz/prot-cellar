@@ -102,7 +102,7 @@ export function EssentialityCallScale({ records }: { records: EssentialityRespon
             />
           )}
         </div>
-        <div className="flex justify-between font-mono text-[0.625rem] text-muted-foreground">
+        <div className="flex justify-between font-sans text-[0.625rem] text-muted-foreground">
           {FITNESS_AXIS_LABELS.map((l) => (
             <span key={l}>{l}</span>
           ))}
@@ -111,7 +111,7 @@ export function EssentialityCallScale({ records }: { records: EssentialityRespon
 
       {/* Confidence meter + agreement subline. */}
       <div className="flex items-center gap-3">
-        <span className="w-20 shrink-0 font-mono text-[0.625rem] uppercase tracking-wide text-muted-foreground">
+        <span className="w-20 shrink-0 font-sans text-[0.625rem] uppercase tracking-wide text-muted-foreground">
           confidence
         </span>
         <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
@@ -122,12 +122,12 @@ export function EssentialityCallScale({ records }: { records: EssentialityRespon
             />
           )}
         </div>
-        <span className="w-8 shrink-0 text-right font-mono text-xs tabular-nums text-foreground">
+        <span className="w-8 shrink-0 text-right font-sans text-xs tabular-nums text-foreground">
           {consensus.confidence != null ? consensus.confidence.toFixed(2) : "—"}
         </span>
       </div>
 
-      <span className="font-mono text-[0.625rem] text-muted-foreground">{agreementLabel}</span>
+      <span className="font-sans text-[0.625rem] text-muted-foreground">{agreementLabel}</span>
 
       {/* Condition × method strip (only when there's more than one record). */}
       {pivot && (
@@ -135,7 +135,7 @@ export function EssentialityCallScale({ records }: { records: EssentialityRespon
           data-testid="ess-condition-strip"
           className="flex flex-col gap-1 border-t border-border pt-3"
         >
-          <span className="font-mono text-[0.625rem] uppercase tracking-wide text-muted-foreground">
+          <span className="font-sans text-[0.625rem] uppercase tracking-wide text-muted-foreground">
             by condition × method
           </span>
           <div className="overflow-x-auto">
@@ -151,7 +151,7 @@ export function EssentialityCallScale({ records }: { records: EssentialityRespon
                 {pivot.conditions.map((c) => (
                   <span
                     key={c}
-                    className="truncate text-center font-mono text-[0.625rem] text-muted-foreground"
+                    className="truncate text-center font-sans text-[0.625rem] text-muted-foreground"
                     title={c}
                   >
                     {c}
@@ -167,7 +167,7 @@ export function EssentialityCallScale({ records }: { records: EssentialityRespon
                   }}
                 >
                   <span
-                    className="truncate pr-1 text-right font-mono text-[0.625rem] text-muted-foreground"
+                    className="truncate pr-1 text-right font-sans text-[0.625rem] text-muted-foreground"
                     title={m}
                   >
                     {m}

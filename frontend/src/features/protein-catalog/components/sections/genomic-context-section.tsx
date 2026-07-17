@@ -7,6 +7,7 @@ import { MapPin } from "lucide-react";
 import Link from "next/link";
 
 import { useGeneNeighborhood } from "../../hooks/use-genes";
+import { useMeasuredWidth } from "../../hooks/use-measured-width";
 import {
   ESSENTIALITY_STYLE,
   type EssentialityBucket,
@@ -54,14 +55,15 @@ function EssentialityLegend() {
 }
 
 // ---------------------------------------------------------------------------
-// Track geometry
+// Track geometry — fixed px (the SVG renders at the container's real width, 1:1).
 // ---------------------------------------------------------------------------
 
-const TRACK_W = 640;
 const TRACK_H = 60;
 const ARROW_Y = 18;
 const ARROW_H = 22;
 const BASELINE_Y = ARROW_Y + ARROW_H + 2;
+const EDGE_PAD = 6;
+const FONT_GENE = 11;
 
 /** Strand-aware arrow (pentagon) points for a positioned gene. */
 function arrowPoints(g: PositionedGene): string {
@@ -90,13 +92,10 @@ function TrackArrow({ g }: { g: PositionedGene }) {
       {showLabel && (
         <text
           x={g.x + g.w / 2}
-          y={ARROW_Y - 4}
+          y={ARROW_Y - 5}
           textAnchor="middle"
-          fontSize={8}
-          className={cn(
-            "font-mono",
-            g.isCurrent ? "fill-foreground font-semibold" : "fill-muted-foreground",
-          )}
+          fontSize={FONT_GENE}
+          className={g.isCurrent ? "fill-foreground font-semibold" : "fill-muted-foreground"}
         >
           {g.name}
         </text>
@@ -122,10 +121,7 @@ function TrackArrow({ g }: { g: PositionedGene }) {
 
 function NeighborhoodTrack({ gene }: { gene: Gene }) {
   const { data, isLoading, isError } = useGeneNeighborhood(gene.id);
-
-  if (isLoading) {
-    return <Skeleton className="h-16 w-full rounded-md" />;
-  }
+  const [ref, width] = useMeasuredWidth<HTMLElement>();
 
   const genes: TrackGene[] = (data?.neighbors ?? [])
     .filter((n) => n.genomic_start != null && n.genomic_end != null)
@@ -140,35 +136,43 @@ function NeighborhoodTrack({ gene }: { gene: Gene }) {
     }))
     .sort((a, b) => a.start - b.start);
 
+  if (isLoading) {
+    return <Skeleton className="h-16 w-full rounded-md" />;
+  }
   if (isError || genes.length < 2) return null;
 
-  const positioned = layoutNeighbors(genes, TRACK_W);
+  const positioned = layoutNeighbors(genes, Math.max(10, width - EDGE_PAD * 2)).map((g) => ({
+    ...g,
+    x: g.x + EDGE_PAD,
+  }));
 
   return (
     <div className="flex flex-col gap-1.5">
       <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
         Genomic neighborhood
       </span>
-      <figure className="m-0 overflow-x-auto pb-1" aria-label="Genomic neighborhood track">
-        <svg
-          className="font-mono"
-          viewBox={`0 0 ${TRACK_W} ${TRACK_H}`}
-          width="100%"
-          style={{ minWidth: TRACK_W }}
-        >
-          <title>Genomic neighborhood track</title>
-          <line
-            x1={0}
-            y1={BASELINE_Y}
-            x2={TRACK_W}
-            y2={BASELINE_Y}
-            className="stroke-border"
-            strokeWidth={1}
-          />
-          {positioned.map((g) => (
-            <TrackArrow key={g.id} g={g} />
-          ))}
-        </svg>
+      <figure ref={ref} className="m-0 w-full" aria-label="Genomic neighborhood track">
+        {width > 0 && (
+          <svg
+            className="font-sans"
+            viewBox={`0 0 ${width} ${TRACK_H}`}
+            width="100%"
+            height={TRACK_H}
+          >
+            <title>Genomic neighborhood track</title>
+            <line
+              x1={EDGE_PAD}
+              y1={BASELINE_Y}
+              x2={width - EDGE_PAD}
+              y2={BASELINE_Y}
+              className="stroke-border"
+              strokeWidth={1}
+            />
+            {positioned.map((g) => (
+              <TrackArrow key={g.id} g={g} />
+            ))}
+          </svg>
+        )}
       </figure>
       <EssentialityLegend />
     </div>
