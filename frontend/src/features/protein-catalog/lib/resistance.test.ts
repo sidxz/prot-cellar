@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { buildNeedles, distinctCompounds, parseResiduePosition } from "./resistance";
+import {
+  assignLabelRows,
+  buildNeedles,
+  distinctCompounds,
+  parseResiduePosition,
+} from "./resistance";
 
 describe("parseResiduePosition", () => {
   it("extracts the residue number from a mutation / coordinate string", () => {
@@ -38,6 +43,20 @@ describe("buildNeedles", () => {
       compound: "INH",
       label: "S315T",
     });
+  });
+});
+
+describe("assignLabelRows", () => {
+  it("keeps well-spaced labels on row 0", () => {
+    expect(assignLabelRows([0, 100, 200], 40)).toEqual([0, 0, 0]);
+  });
+
+  it("alternates rows for labels closer than the gap", () => {
+    expect(assignLabelRows([0, 10, 20], 40)).toEqual([0, 1, 0]);
+  });
+
+  it("resets to row 0 after a wide-enough gap", () => {
+    expect(assignLabelRows([0, 10, 200, 210], 40)).toEqual([0, 1, 0, 1]);
   });
 });
 

@@ -3,19 +3,28 @@
 import type { ResistanceMutationResponse } from "@/shared/lib/api/model";
 import { cn } from "@/shared/lib/utils";
 
-import { type Needle, buildNeedles, distinctCompounds } from "../../lib/resistance";
+import {
+  type Needle,
+  assignLabelRows,
+  buildNeedles,
+  distinctCompounds,
+} from "../../lib/resistance";
 
 // Static class literals only (Tailwind can't see interpolated names).
 const CHART_FILL = ["fill-chart-1", "fill-chart-2", "fill-chart-3", "fill-chart-4", "fill-chart-5"];
 const CHART_BG = ["bg-chart-1", "bg-chart-2", "bg-chart-3", "bg-chart-4", "bg-chart-5"];
 
-const L_W = 640;
-const L_H = 132;
-const MARGIN = 30;
-const PLOT_W = L_W - MARGIN * 2;
-const BASELINE = 100;
+const L_W = 680;
+const L_H = 148;
+const MARGIN_X = 48;
+const PLOT_W = L_W - MARGIN_X * 2;
+const BASELINE = 116;
+const MIN_HEIGHT = 18; // stem length at MIC ×1
+const MAX_HEIGHT = 80; // stem length at the clamp — leaves headroom for head + label
+const LABEL_ROW_H = 15; // vertical offset for a staggered (row-1) label
+const LABEL_MIN_GAP = 46; // px closer than this → stagger the label to avoid overlap
 
-/** log2(MIC fold-shift), clamped, drives stem height and head radius. */
+/** log2(MIC fold-shift), clamped to [0,10] — drives stem height and head radius. */
 function micMagnitude(micShift: number | null): number {
   return Math.min(10, Math.max(0, Math.log2(Math.max(1, micShift ?? 1))));
 }
@@ -24,15 +33,18 @@ function NeedleMark({
   needle,
   x,
   fill,
+  labelRow,
 }: {
   needle: Needle;
   x: number;
   fill: string;
+  labelRow: number;
 }) {
   const mag = micMagnitude(needle.micShift);
-  const height = 16 + mag * 11;
-  const r = 4 + mag * 0.9;
+  const height = MIN_HEIGHT + (mag / 10) * (MAX_HEIGHT - MIN_HEIGHT);
+  const r = 4 + (mag / 10) * 7;
   const headY = BASELINE - height;
+  const labelY = headY - r - 4 - labelRow * LABEL_ROW_H;
   return (
     <g>
       <title>
@@ -48,14 +60,19 @@ function NeedleMark({
         className="stroke-muted-foreground"
         strokeWidth={1.5}
       />
+      {labelRow > 0 && (
+        <line
+          x1={x}
+          y1={headY - r}
+          x2={x}
+          y2={labelY + 3}
+          className="stroke-muted-foreground"
+          strokeWidth={1}
+          strokeOpacity={0.4}
+        />
+      )}
       <circle cx={x} cy={headY} r={r} className={cn(fill, "stroke-card")} strokeWidth={1.5} />
-      <text
-        x={x}
-        y={headY - r - 3}
-        textAnchor="middle"
-        fontSize={8}
-        className="fill-foreground font-mono"
-      >
+      <text x={x} y={labelY} textAnchor="middle" fontSize={8} className="fill-foreground">
         {needle.label}
       </text>
     </g>
@@ -69,13 +86,15 @@ function NeedleMark({
  * a parseable residue position; the table remains the fallback.
  */
 export function ResistanceLollipop({ records }: { records: ResistanceMutationResponse[] }) {
-  const needles = buildNeedles(records);
+  const needles = [...buildNeedles(records)].sort((a, b) => a.position - b.position);
   if (needles.length < 2) return null;
 
   const compounds = distinctCompounds(needles);
   const maxPos = Math.max(...needles.map((n) => n.position));
   const span = maxPos - 1 || 1;
-  const x = (pos: number) => MARGIN + ((pos - 1) / span) * PLOT_W;
+  const posX = (pos: number) => MARGIN_X + ((pos - 1) / span) * PLOT_W;
+  const xs = needles.map((n) => posX(n.position));
+  const labelRows = assignLabelRows(xs, LABEL_MIN_GAP);
   const colorFor = (compound: string | null) => {
     const i = compound ? compounds.indexOf(compound) : -1;
     return i >= 0 ? CHART_FILL[i % CHART_FILL.length] : "fill-muted-foreground";
@@ -104,23 +123,29 @@ export function ResistanceLollipop({ records }: { records: ResistanceMutationRes
         >
           {/* residue backbone */}
           <line
-            x1={MARGIN}
+            x1={MARGIN_X}
             y1={BASELINE}
-            x2={L_W - MARGIN}
+            x2={L_W - MARGIN_X}
             y2={BASELINE}
             className="stroke-border"
             strokeWidth={2}
           />
-          {needles.map((n) => (
-            <NeedleMark key={n.id} needle={n} x={x(n.position)} fill={colorFor(n.compound)} />
+          {needles.map((n, i) => (
+            <NeedleMark
+              key={n.id}
+              needle={n}
+              x={xs[i]}
+              fill={colorFor(n.compound)}
+              labelRow={labelRows[i]}
+            />
           ))}
-          {/* residue axis endpoints */}
-          <text x={MARGIN} y={BASELINE + 16} fontSize={9} className="fill-muted-foreground">
+          {/* residue axis endpoints (below the baseline, clear of the needles) */}
+          <text x={MARGIN_X} y={BASELINE + 18} fontSize={9} className="fill-muted-foreground">
             1
           </text>
           <text
-            x={L_W - MARGIN}
-            y={BASELINE + 16}
+            x={L_W - MARGIN_X}
+            y={BASELINE + 18}
             textAnchor="end"
             fontSize={9}
             className="fill-muted-foreground"
@@ -129,7 +154,7 @@ export function ResistanceLollipop({ records }: { records: ResistanceMutationRes
           </text>
           <text
             x={L_W / 2}
-            y={BASELINE + 16}
+            y={BASELINE + 18}
             textAnchor="middle"
             fontSize={9}
             className="fill-muted-foreground"

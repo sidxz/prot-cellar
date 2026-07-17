@@ -43,6 +43,23 @@ export function buildNeedles(mutations: MutationLike[]): Needle[] {
   return needles;
 }
 
+/**
+ * Assign each label (given its x, in ascending order) a row (0 or 1): labels
+ * closer than `minGap` to the previous one alternate rows so they don't overlap.
+ */
+export function assignLabelRows(xs: number[], minGap: number): number[] {
+  const rows: number[] = [];
+  let lastX = Number.NEGATIVE_INFINITY;
+  let lastRow = 1;
+  for (const x of xs) {
+    const row = x - lastX < minGap ? 1 - lastRow : 0;
+    rows.push(row);
+    lastX = x;
+    lastRow = row;
+  }
+  return rows;
+}
+
 /** Unique compound names in first-seen order (for the categorical color legend). */
 export function distinctCompounds(needles: Needle[]): string[] {
   const seen: string[] = [];
