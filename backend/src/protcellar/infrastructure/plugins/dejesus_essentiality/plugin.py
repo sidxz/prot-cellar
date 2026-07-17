@@ -41,4 +41,4 @@ class DejesusEssentialityPlugin:
         await ctx.reporter.advance(len(records), len(records))
 
 
-plugin = DejesusEssentialityPlugin()
+PLUGIN = DejesusEssentialityPlugin()

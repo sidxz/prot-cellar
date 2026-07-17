@@ -2,10 +2,8 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 const startMutate = vi.fn().mockResolvedValue({});
-const uploadMutate = vi.fn().mockResolvedValue({ upload_ref: "up-123" });
 vi.mock("../../hooks/use-imports", () => ({
   useStartImport: () => ({ mutateAsync: startMutate, isPending: false }),
-  useUploadEssentiality: () => ({ mutateAsync: uploadMutate, isPending: false }),
 }));
 vi.mock("../organism-combobox", () => ({
   // biome-ignore lint/suspicious/noExplicitAny: test stub
@@ -39,14 +37,5 @@ describe("GeneEnrichmentForm", () => {
       }),
     );
     await waitFor(() => expect(onSuccess).toHaveBeenCalled());
-  });
-
-  it("uploads a file and shows the uploaded marker", async () => {
-    uploadMutate.mockClear();
-    render(<GeneEnrichmentForm onSuccess={() => {}} />);
-    const file = new File(["x"], "ess.tsv", { type: "text/tab-separated-values" });
-    fireEvent.change(screen.getByLabelText(/essentiality file/i), { target: { files: [file] } });
-    await waitFor(() => expect(uploadMutate).toHaveBeenCalledWith({ data: { file } }));
-    expect(await screen.findByText(/uploaded ✓/i)).toBeInTheDocument();
   });
 });

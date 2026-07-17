@@ -397,6 +397,7 @@ export * from './resistanceMutationWriteBodyMethod';
 export * from './resistanceMutationWriteBodyMicShift';
 export * from './resistanceMutationWriteBodyParentStrain';
 export * from './resistanceMutationWriteBodyProteinCoordinate';
+export * from './setEnabledBody';
 export * from './startImportBody';
 export * from './startImportBodyParams';
 export * from './startPluginRunBody';

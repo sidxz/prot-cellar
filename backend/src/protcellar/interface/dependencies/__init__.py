@@ -17,6 +17,10 @@ from protcellar.interface.dependencies._imports import (
     StartImportDep,
     StoreUploadDep,
 )
+from protcellar.interface.dependencies._plugins import (
+    ListEnabledPluginIdsDep,
+    SetPluginEnablementDep,
+)
 from protcellar.interface.dependencies._protein_catalog import (
     BulkUpsertGenesDep,
     BulkUpsertProteinsDep,
@@ -93,6 +97,7 @@ __all__ = [
     "GetStrainDep",
     "GetTargetDep",
     "GetUploadDep",
+    "ListEnabledPluginIdsDep",
     "ListGenesDep",
     "ListImportRunsDep",
     "ListOrganismsDep",
@@ -103,6 +108,7 @@ __all__ = [
     "ListTargetsDep",
     "ResolveProteinIdDep",
     "ResolveTaxIdDep",
+    "SetPluginEnablementDep",
     "StartImportDep",
     "StoreUploadDep",
     "UoWDep",

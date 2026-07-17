@@ -1,52 +1,31 @@
 from __future__ import annotations
 
-import uuid
-from collections.abc import Sequence
+from collections.abc import Awaitable, Callable, Sequence
 
-from protcellar.application.auth import AuthContext
 from protcellar.application.plugins.sink import Sink
 from protcellar.application.target_biology._import_support import ItemResult
-from protcellar.application.target_biology.bulk_upsert_essentiality import (
-    BulkUpsertEssentiality,
-    BulkUpsertEssentialityCommand,
-)
+
+# A record-type upserter: takes the plugin's record list, returns per-item results.
+# The dispatch adapter builds one per record_type it supports, each closing over the
+# wired BulkUpsert<X> command + the run's stamping (generation_method, source_run_id,
+# dry_run). Adding a target record is a one-line entry in that map — the sink and the
+# worker never change.
+Upserter = Callable[[Sequence[object]], Awaitable[list[ItemResult]]]
 
 
 class InTreeSink(Sink):
-    """Routes record_type -> the wired BulkUpsert<X> command, stamping the run's
-    generation_method + source_run_id + dry_run. Accumulates every ItemResult in
+    """Routes record_type -> a wired upserter, accumulating every ItemResult in
     ``results`` so the dispatch adapter can summarize the run."""
 
-    def __init__(
-        self,
-        *,
-        essentiality: BulkUpsertEssentiality,
-        organism_id: uuid.UUID | None,
-        generation_method: str,
-        source_run_id: uuid.UUID,
-        dry_run: bool,
-        auth: AuthContext,
-    ) -> None:
-        self._essentiality = essentiality
-        self._organism_id = organism_id
-        self._generation_method = generation_method
-        self._source_run_id = source_run_id
-        self._dry_run = dry_run
-        self._auth = auth
+    def __init__(self, upserters: dict[str, Upserter]) -> None:
+        self._upserters = upserters
         self.results: list[ItemResult] = []
 
     async def upsert(self, record_type: str, records: Sequence[object]) -> list[ItemResult]:
-        if record_type == "essentiality":
-            if self._organism_id is None:
-                raise ValueError("essentiality upsert requires an organism_id")
-            cmd = BulkUpsertEssentialityCommand(
-                organism_id=self._organism_id,
-                records=tuple(records),  # type: ignore[arg-type]  # elements are EssentialityImportRecord
-                generation_method=self._generation_method,
-                source_run_id=self._source_run_id,
-                dry_run=self._dry_run,
-            )
-            out = (await self._essentiality(cmd, self._auth)).unwrap()
-            self.results.extend(out)
-            return out
-        raise ValueError(f"no sink registered for record_type '{record_type}'")
+        try:
+            upserter = self._upserters[record_type]
+        except KeyError as e:
+            raise ValueError(f"no sink registered for record_type '{record_type}'") from e
+        out = await upserter(records)
+        self.results.extend(out)
+        return out

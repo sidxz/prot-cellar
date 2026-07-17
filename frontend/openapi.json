@@ -2214,6 +2214,52 @@
         }
       }
     },
+    "/api/v1/plugins/{plugin_id}/enabled": {
+      "put": {
+        "tags": [
+          "plugins"
+        ],
+        "summary": "Set Plugin Enabled",
+        "description": "Admin turns a plugin on/off for their workspace.",
+        "operationId": "set_plugin_enabled_api_v1_plugins__plugin_id__enabled_put",
+        "parameters": [
+          {
+            "name": "plugin_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Plugin Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetEnabledBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/plugins/{plugin_id}/runs": {
       "post": {
         "tags": [
@@ -6804,6 +6850,10 @@
             },
             "type": "array",
             "title": "Requires Secrets"
+          },
+          "enabled": {
+            "type": "boolean",
+            "title": "Enabled"
           }
         },
         "type": "object",
@@ -6815,7 +6865,8 @@
           "target_records",
           "default_generation_method",
           "params",
-          "requires_secrets"
+          "requires_secrets",
+          "enabled"
         ],
         "title": "PluginManifestResponse"
       },
@@ -8159,6 +8210,19 @@
           "provenance"
         ],
         "title": "ResistanceMutationWriteBody"
+      },
+      "SetEnabledBody": {
+        "properties": {
+          "enabled": {
+            "type": "boolean",
+            "title": "Enabled"
+          }
+        },
+        "type": "object",
+        "required": [
+          "enabled"
+        ],
+        "title": "SetEnabledBody"
       },
       "StartImportBody": {
         "properties": {

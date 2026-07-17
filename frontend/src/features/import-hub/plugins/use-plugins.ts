@@ -1,7 +1,11 @@
+import { useQueryClient } from "@tanstack/react-query";
+
 import { useGetImportRunApiV1ImportsImportRunIdGet } from "@/shared/lib/api/imports/imports";
 import { ImportStatus } from "@/shared/lib/api/model";
 import {
+  getListPluginsApiV1PluginsGetQueryKey,
   useListPluginsApiV1PluginsGet,
+  useSetPluginEnabledApiV1PluginsPluginIdEnabledPut,
   useStartPluginRunApiV1PluginsPluginIdRunsPost,
 } from "@/shared/lib/api/plugins/plugins";
 import { showSuccess } from "@/shared/lib/toast";
@@ -18,6 +22,18 @@ export function usePluginCatalog() {
 export function useStartPluginRun() {
   return useStartPluginRunApiV1PluginsPluginIdRunsPost({
     mutation: { onSuccess: () => showSuccess("Plugin run started") },
+  });
+}
+
+/** Enable/disable a plugin for the current workspace; refreshes the catalog. */
+export function useSetPluginEnabled() {
+  const qc = useQueryClient();
+  return useSetPluginEnabledApiV1PluginsPluginIdEnabledPut({
+    mutation: {
+      onSuccess: () => {
+        qc.invalidateQueries({ queryKey: getListPluginsApiV1PluginsGetQueryKey() });
+      },
+    },
   });
 }
 

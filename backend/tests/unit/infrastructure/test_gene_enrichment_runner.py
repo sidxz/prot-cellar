@@ -56,10 +56,6 @@ _GFF = "##gff-version 3\n#!genome-build ASM19595v2\n" + "\n".join(
     )
 )
 
-# A tiny DeJesus essentiality table (TSV): rpoB essential, katG non-essential.
-_ESSENTIALITY = "\n".join(("ORF\tFinal Call", "Rv0667\tES", "Rv1908c\tNE"))
-
-
 # --------------------------------------------------------------------------- #
 # MycobrowserClient (httpx.MockTransport — no real network)                    #
 # --------------------------------------------------------------------------- #
@@ -179,34 +175,3 @@ async def test_runner_wires_fetch_parse_map_enrich() -> None:
     # Summary propagates from the use case.
     assert summary.matched == 2
     assert summary.locations_set == 2
-
-
-@pytest.mark.asyncio
-async def test_runner_includes_essentiality_when_loader_supplied() -> None:
-    gff_url = "https://mycobrowser.example/h37rv.gff"
-    client = _FakeGffClient({gff_url: _GFF})
-    bulk = _CapturingBulkEnrich()
-
-    async def _load_essentiality() -> str:
-        return _ESSENTIALITY
-
-    runner = GeneEnrichmentRunner(
-        bulk,  # type: ignore[arg-type]
-        client,  # type: ignore[arg-type]
-        gff_url=gff_url,
-        essentiality_loader=_load_essentiality,
-    )
-    await runner.run(uuid.uuid4(), auth=FakeAuth(role="admin"))
-
-    by_locus = {r.locus_key: r for r in bulk.records}
-    rpob_vuln = [
-        a for a in by_locus["Rv0667"].annotations if a.axis == GeneAnnotationAxis.VULNERABILITY
-    ]
-    assert [a.value for a in rpob_vuln] == ["essential"]
-    assert rpob_vuln[0].dataset == "DeJesus 2017"
-    katg_vuln = [
-        a.value
-        for a in by_locus["Rv1908c"].annotations
-        if a.axis == GeneAnnotationAxis.VULNERABILITY
-    ]
-    assert katg_vuln == ["non-essential"]

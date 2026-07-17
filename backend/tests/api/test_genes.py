@@ -9,8 +9,15 @@ from protcellar.domain.protein_catalog.gene_annotation import (
     GeneAnnotation,
     GeneAnnotationAxis,
 )
+from protcellar.domain.shared.global_workspace import GLOBAL_WORKSPACE_ID
+from protcellar.domain.shared.provenance import Provenance, ProvenanceSourceType
+from protcellar.domain.target_biology.enums import EssentialityClass
+from protcellar.domain.target_biology.essentiality import Essentiality
 from protcellar.infrastructure.persistence.sqlalchemy.protein_catalog.gene_repository import (
     SQLAlchemyGeneRepository,
+)
+from protcellar.infrastructure.persistence.sqlalchemy.target_biology.essentiality_repository import (  # noqa: E501
+    SQLAlchemyEssentialityRepository,
 )
 from protcellar.infrastructure.persistence.unit_of_work import AsyncUnitOfWork
 
@@ -25,6 +32,23 @@ async def _seed_gene(database_url: str, gene: Gene) -> Gene:
         await uow.commit()
     await engine.dispose()
     return gene
+
+
+async def _seed_essentiality(database_url: str, gene_id: uuid.UUID) -> None:
+    """Persist a target-biology Essentiality record for a gene (read-path tests)."""
+    engine = create_async_engine(database_url)
+    factory = async_sessionmaker(engine, expire_on_commit=False)
+    uow = AsyncUnitOfWork(factory)
+    async with uow:
+        rec = Essentiality.create(
+            workspace_id=GLOBAL_WORKSPACE_ID,
+            gene_id=gene_id,
+            classification=EssentialityClass.ESSENTIAL,
+            provenance=Provenance(source_type=ProvenanceSourceType.PUBLISHED),
+        )
+        await SQLAlchemyEssentialityRepository(uow).save(rec)
+        await uow.commit()
+    await engine.dispose()
 
 
 async def _make_organism(
@@ -256,11 +280,6 @@ async def test_gene_neighborhood_returns_ordered_neighbors_with_essentiality(
     organism_id = uuid.UUID(
         await _make_organism(client, ncbi_tax_id=990006, scientific_name="Locus testus zeta")
     )
-    essential = [
-        GeneAnnotation(
-            axis=GeneAnnotationAxis.VULNERABILITY, key="essentiality", value="essential"
-        )
-    ]
     genes = []
     for i, start in enumerate([1000, 2000, 3000, 4000, 5000]):
         g = Gene.create(
@@ -270,10 +289,12 @@ async def test_gene_neighborhood_returns_ordered_neighbors_with_essentiality(
             genomic_start=start,
             genomic_end=start + 500,
             genomic_strand="+",
-            annotations=essential if start == 3000 else [],
         )
         await _seed_gene(database_url, g)
         genes.append(g)
+
+    # Essentiality now lives in target-biology (the plugin's home), not a gene annotation.
+    await _seed_essentiality(database_url, genes[2].id)
 
     center = genes[2]  # start == 3000
     r = await client.get(f"/api/v1/genes/{center.id}/neighborhood", params={"window": 1})

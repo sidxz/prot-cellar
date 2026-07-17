@@ -1,12 +1,13 @@
-import importlib
 import uuid
 
 import pytest
 
 from protcellar.application.imports.progress_reporter import NoopProgressReporter
 from protcellar.application.plugins.context import PluginRunContext
-from protcellar.infrastructure.plugins.dejesus_essentiality import plugin
+from protcellar.infrastructure.plugins.dejesus_essentiality import plugin as plugin_module
 from tests.fakes.fake_auth import FakeAuth
+
+PLUGIN = plugin_module.PLUGIN
 
 
 class _FakeSink:
@@ -23,7 +24,7 @@ async def _load_upload(_ref: uuid.UUID) -> bytes:
 
 
 def test_manifest_shape() -> None:
-    m = plugin.manifest()
+    m = PLUGIN.manifest()
     assert m.id == "dejesus_essentiality"
     assert m.target_records == ("essentiality",)
     assert {p.key for p in m.params} == {"organism_id", "upload", "condition"}
@@ -31,15 +32,8 @@ def test_manifest_shape() -> None:
 
 @pytest.mark.asyncio
 async def test_run_maps_records_with_dejesus_citation(monkeypatch) -> None:
-    # NB: target the submodule object directly, not the dotted string form.
-    # __init__.py re-exports the `plugin` instance under the same name as the
-    # `plugin` submodule, so the package's `.plugin` attribute resolves to the
-    # instance once imported — pytest's string-based monkeypatch.setattr walks
-    # attributes via getattr and would silently patch the instance instead of
-    # the module, then fail with AttributeError looking up parse_dejesus_essentiality.
-    plugin_module = importlib.import_module(
-        "protcellar.infrastructure.plugins.dejesus_essentiality.plugin"
-    )
+    # Patch the parser on the plugin submodule. PLUGIN is the instance and the
+    # module also holds parse_dejesus_essentiality — distinct names, nothing aliased.
     monkeypatch.setattr(
         plugin_module,
         "parse_dejesus_essentiality",
@@ -58,7 +52,7 @@ async def test_run_maps_records_with_dejesus_citation(monkeypatch) -> None:
         reporter=NoopProgressReporter(),
         auth=FakeAuth(role="admin"),
     )
-    await plugin.run(ctx)
+    await PLUGIN.run(ctx)
     record_type, records = sink.upserts[0]
     assert record_type == "essentiality"
     assert {r.locus_key for r in records} == {"Rv0667", "Rv0668"}

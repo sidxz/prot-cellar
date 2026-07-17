@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import uuid
 from collections.abc import Awaitable, Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any
 
 from protcellar.application.auth import AuthContext
@@ -20,3 +20,7 @@ class PluginRunContext:
     sink: Sink
     reporter: ProgressReporter
     auth: AuthContext
+    # Env-sourced by the dispatch adapter from manifest.requires_secrets — never
+    # from params (params persist plaintext on the ImportRun). Empty until a plugin
+    # declares requires_secrets; this is the seam an AI plugin reads its key from.
+    secrets: dict[str, str] = field(default_factory=dict)

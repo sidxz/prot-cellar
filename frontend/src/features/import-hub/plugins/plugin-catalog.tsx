@@ -23,11 +23,21 @@ import {
 import type { PluginManifestResponse } from "@/shared/lib/api/model";
 
 import { PluginRunPanel } from "./plugin-run-panel";
-import { usePluginCatalog } from "./use-plugins";
+import { usePluginCatalog, useSetPluginEnabled } from "./use-plugins";
 
 const humanize = (s: string) => s.replace(/_/g, " ");
 
-function PluginCard({ m, onRun }: { m: PluginManifestResponse; onRun: () => void }) {
+function PluginCard({
+  m,
+  onRun,
+  onToggle,
+  toggling,
+}: {
+  m: PluginManifestResponse;
+  onRun: () => void;
+  onToggle: (enabled: boolean) => void;
+  toggling: boolean;
+}) {
   const method = m.default_generation_method;
   const isAi = method.startsWith("ai_");
   return (
@@ -49,17 +59,55 @@ function PluginCard({ m, onRun }: { m: PluginManifestResponse; onRun: () => void
         ))}
         {m.requires_secrets.length > 0 ? <Badge variant="warning">needs config</Badge> : null}
       </CardContent>
-      <CardFooter className="mt-auto">
-        <Button size="sm" onClick={onRun}>
-          Run
-        </Button>
+      <CardFooter className="mt-auto gap-2">
+        {m.enabled ? (
+          <>
+            <Button size="sm" onClick={onRun}>
+              Run
+            </Button>
+            <Button size="sm" variant="outline" onClick={() => onToggle(false)} disabled={toggling}>
+              Disable
+            </Button>
+          </>
+        ) : (
+          <Button size="sm" variant="outline" onClick={() => onToggle(true)} disabled={toggling}>
+            Enable
+          </Button>
+        )}
       </CardFooter>
     </Card>
   );
 }
 
+function PluginGrid({
+  items,
+  onRun,
+  onToggle,
+  toggling,
+}: {
+  items: PluginManifestResponse[];
+  onRun: (m: PluginManifestResponse) => void;
+  onToggle: (m: PluginManifestResponse, enabled: boolean) => void;
+  toggling: boolean;
+}) {
+  return (
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      {items.map((m) => (
+        <PluginCard
+          key={m.id}
+          m={m}
+          onRun={() => onRun(m)}
+          onToggle={(enabled) => onToggle(m, enabled)}
+          toggling={toggling}
+        />
+      ))}
+    </div>
+  );
+}
+
 export function PluginCatalogPage() {
   const { data, isLoading, isError } = usePluginCatalog();
+  const setEnabled = useSetPluginEnabled();
   const [recordFilter, setRecordFilter] = useState<string>("all");
   const [selected, setSelected] = useState<PluginManifestResponse | null>(null);
 
@@ -74,6 +122,8 @@ export function PluginCatalogPage() {
       (data ?? []).filter((m) => recordFilter === "all" || m.target_records.includes(recordFilter)),
     [data, recordFilter],
   );
+  const enabled = visible.filter((m) => m.enabled);
+  const available = visible.filter((m) => !m.enabled);
 
   if (isLoading) return <p className="text-sm text-muted-foreground">Loading plugins…</p>;
   if (isError) {
@@ -84,13 +134,17 @@ export function PluginCatalogPage() {
     );
   }
 
+  const onToggle = (m: PluginManifestResponse, next: boolean) =>
+    setEnabled.mutate({ pluginId: m.id, data: { enabled: next } });
+
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-8">
       <div className="flex items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Plugins</h1>
           <p className="text-sm text-muted-foreground">
-            Ingestion sources that fill target-biology records. AI-produced values render blue.
+            Ingestion sources that fill target-biology records. Enable a plugin for this workspace
+            to run it. AI-produced values render blue.
           </p>
         </div>
         <Select value={recordFilter} onValueChange={setRecordFilter}>
@@ -108,11 +162,35 @@ export function PluginCatalogPage() {
         </Select>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {visible.map((m) => (
-          <PluginCard key={m.id} m={m} onRun={() => setSelected(m)} />
-        ))}
-      </div>
+      <section className="flex flex-col gap-3">
+        <h2 className="text-sm font-medium text-muted-foreground">Enabled</h2>
+        {enabled.length > 0 ? (
+          <PluginGrid
+            items={enabled}
+            onRun={setSelected}
+            onToggle={onToggle}
+            toggling={setEnabled.isPending}
+          />
+        ) : (
+          <p className="text-sm text-muted-foreground">
+            No plugins enabled for this workspace yet. Enable one below.
+          </p>
+        )}
+      </section>
+
+      <section className="flex flex-col gap-3">
+        <h2 className="text-sm font-medium text-muted-foreground">Available</h2>
+        {available.length > 0 ? (
+          <PluginGrid
+            items={available}
+            onRun={setSelected}
+            onToggle={onToggle}
+            toggling={setEnabled.isPending}
+          />
+        ) : (
+          <p className="text-sm text-muted-foreground">All available plugins are enabled.</p>
+        )}
+      </section>
 
       {selected ? (
         <PluginRunPanel

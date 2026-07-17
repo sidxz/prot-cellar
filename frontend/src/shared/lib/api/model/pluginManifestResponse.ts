@@ -15,4 +15,5 @@ export interface PluginManifestResponse {
   default_generation_method: string;
   params: ParamFieldResponse[];
   requires_secrets: string[];
+  enabled: boolean;
 }

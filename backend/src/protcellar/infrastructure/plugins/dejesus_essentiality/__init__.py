@@ -1,5 +1,6 @@
-"""DeJesus 2017 essentiality plugin — the reference vertical."""
+"""DeJesus 2017 essentiality plugin — the reference vertical.
 
-from protcellar.infrastructure.plugins.dejesus_essentiality.plugin import plugin
-
-__all__ = ["plugin"]
+The registry imports `manifest.MANIFEST` and `plugin.PLUGIN` from the submodules
+directly, so this package intentionally re-exports nothing (keeping `plugin` an
+unambiguous submodule name rather than also an instance attribute).
+"""

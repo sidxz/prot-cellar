@@ -63,13 +63,6 @@ def test_gene_enrichment_params_all_none_raises() -> None:
         validate_params(ImportType.GENE_ENRICHMENT, {})
 
 
-def test_gene_enrichment_params_with_upload_ref() -> None:
-    ref = uuid.uuid4()
-    oid = uuid.uuid4()
-    p = GeneEnrichmentParams(organism_id=oid, essentiality_upload_ref=ref)
-    assert p.essentiality_upload_ref == ref
-
-
 # ---------------------------------------------------------------------------
 # GoOntologyParams
 # ---------------------------------------------------------------------------

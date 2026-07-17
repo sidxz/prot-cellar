@@ -22,8 +22,6 @@ class GeneEnrichmentParams(pydantic.BaseModel):
     tax_id: int | None = None
     organism_id: uuid.UUID | None = None
     gff_url: str | None = None
-    essentiality_url: str | None = None
-    essentiality_upload_ref: uuid.UUID | None = None
     force: bool = False
 
     @pydantic.model_validator(mode="after")
@@ -74,20 +72,9 @@ def target_key(import_type: ImportType, params: dict[str, Any]) -> str:
     return "go"
 
 
-def needs_upload(import_type: ImportType, params: dict[str, Any]) -> bool:
-    """Return True if this import type + params require an upload reference."""
-    if import_type is ImportType.GENE_ENRICHMENT:
-        return bool(params.get("essentiality_upload_ref"))
-    return False
-
-
 def upload_ref_of(import_type: ImportType, params: dict[str, Any]) -> uuid.UUID | None:
     """Return the upload UUID for this run, or None."""
     if import_type is ImportType.PLUGIN:
         ref = params.get("upload_ref")
         return uuid.UUID(str(ref)) if ref else None
-    if import_type is ImportType.GENE_ENRICHMENT:
-        ref = params.get("essentiality_upload_ref")
-        if ref is not None:
-            return uuid.UUID(str(ref))
     return None

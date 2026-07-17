@@ -15,8 +15,9 @@ resolves correctly in tests.
 from __future__ import annotations
 
 import dataclasses
+import os
 import uuid
-from collections.abc import Awaitable, Callable
+from collections.abc import Awaitable, Callable, Sequence
 from dataclasses import dataclass
 from typing import Any, Protocol
 
@@ -31,7 +32,10 @@ from protcellar.application.protein_catalog.bulk_upsert_genes import BulkUpsertG
 from protcellar.application.protein_catalog.bulk_upsert_proteins import BulkUpsertProteins
 from protcellar.application.shared.event_dispatcher import EventDispatcherProtocol
 from protcellar.application.target_biology._import_support import ItemResult
-from protcellar.application.target_biology.bulk_upsert_essentiality import BulkUpsertEssentiality
+from protcellar.application.target_biology.bulk_upsert_essentiality import (
+    BulkUpsertEssentiality,
+    BulkUpsertEssentialityCommand,
+)
 from protcellar.domain.imports.enums import ImportType
 from protcellar.infrastructure.ingestion.gene_enrichment_runner import GeneEnrichmentRunner
 from protcellar.infrastructure.ingestion.go_import_runner import GoImportRunner
@@ -42,7 +46,7 @@ from protcellar.infrastructure.ingestion.mycobrowser_client import (
 )
 from protcellar.infrastructure.ingestion.organism_resolver import resolve_organism_id
 from protcellar.infrastructure.ingestion.uniprot_client import UniProtClient
-from protcellar.infrastructure.ingestion.url_guard import fetch_text_guarded, validate_public_url
+from protcellar.infrastructure.ingestion.url_guard import validate_public_url
 from protcellar.infrastructure.persistence.sqlalchemy.protein_catalog.gene_repository import (
     SQLAlchemyGeneRepository,
 )
@@ -159,24 +163,6 @@ class GeneEnrichmentAdapter:
         # Guard admin-supplied GFF URL against SSRF before any network I/O
         validate_public_url(gff_url)
 
-        # Build essentiality loader
-        essentiality_loader = None
-        if params.get("essentiality_upload_ref"):
-            ref = uuid.UUID(params["essentiality_upload_ref"])
-
-            async def _load_from_upload() -> str:
-                return (await rt.load_upload(ref)).decode()
-
-            essentiality_loader = _load_from_upload
-        elif params.get("essentiality_url"):
-            ess_url: str = params["essentiality_url"]
-
-            async def _load_from_url() -> str:
-                # Manual redirect following validates every hop for SSRF safety
-                return await fetch_text_guarded(ess_url)
-
-            essentiality_loader = _load_from_url
-
         uow2 = AsyncUnitOfWork(rt.session_factory)
         gene_repo = SQLAlchemyGeneRepository(uow2)
         bulk = BulkEnrichGenes(uow2, gene_repo, rt.dispatcher)
@@ -189,7 +175,6 @@ class GeneEnrichmentAdapter:
                 gff_url=gff_url,
                 # Use the SSRF-safe fetch so every redirect hop is validated
                 gff_fetch=client.fetch_text_secure,
-                essentiality_loader=essentiality_loader,
                 reporter=rt.reporter,
             )
             summary = await runner.run(resolved_id, auth=rt.auth)
@@ -231,20 +216,32 @@ class PluginDispatchAdapter:
         manifest = plugin.manifest()
         organism_id = uuid.UUID(str(params["organism_id"])) if params.get("organism_id") else None
         dry_run = bool(params.get("dry_run", False))
+        generation_method = manifest.default_generation_method.value
 
         uow = AsyncUnitOfWork(rt.session_factory)
         gene_repo = SQLAlchemyGeneRepository(uow)
         ess_repo = SQLAlchemyEssentialityRepository(uow)
         essentiality = BulkUpsertEssentiality(uow, gene_repo, ess_repo, rt.dispatcher)
 
-        sink = InTreeSink(
-            essentiality=essentiality,
-            organism_id=organism_id,
-            generation_method=manifest.default_generation_method.value,
-            source_run_id=rt.run_id,
-            dry_run=dry_run,
-            auth=rt.auth,
-        )
+        async def _upsert_essentiality(records: Sequence[object]) -> list[ItemResult]:
+            if organism_id is None:
+                raise ValueError("essentiality upsert requires an organism_id")
+            cmd = BulkUpsertEssentialityCommand(
+                organism_id=organism_id,
+                records=tuple(records),  # type: ignore[arg-type]  # elements are EssentialityImportRecord
+                generation_method=generation_method,
+                source_run_id=rt.run_id,
+                dry_run=dry_run,
+            )
+            return (await essentiality(cmd, rt.auth)).unwrap()
+
+        # record_type -> upserter. Add an entry to support a new target record; the
+        # 7 other BulkUpsert<X> commands already exist in application/target_biology.
+        sink = InTreeSink({"essentiality": _upsert_essentiality})
+
+        # Secrets come from the process env by name, never from persisted params.
+        secrets = {k: os.environ[k] for k in manifest.requires_secrets if k in os.environ}
+
         ctx = PluginRunContext(
             params=params,
             organism_id=organism_id,
@@ -252,6 +249,7 @@ class PluginDispatchAdapter:
             sink=sink,
             reporter=rt.reporter,
             auth=rt.auth,
+            secrets=secrets,
         )
         await plugin.run(ctx)
         return _summarize(sink.results)

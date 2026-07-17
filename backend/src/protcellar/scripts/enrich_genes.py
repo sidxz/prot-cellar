@@ -3,16 +3,12 @@
 Fetches the Mycobrowser *M. tuberculosis* H37Rv GFF, matches each locus tag to
 an already-imported gene (within the resolved organism), and idempotently sets
 the genomic-location fields + merges a CONTEXT ``functional_category``
-annotation. Optionally layers DeJesus 2017 essentiality from a local table.
+annotation. Essentiality is ingested separately as target-biology records via
+the DeJesus plugin (Admin → Plugins), not here.
 
 Usage::
 
-    # Location + functional category (the reliable primary deliverable):
     python -m protcellar.scripts.enrich_genes --tax-id 83332
-
-    # Also include essentiality from a local DeJesus table:
-    python -m protcellar.scripts.enrich_genes --tax-id 83332 \\
-        --essentiality-file path/to/dejesus_2017.tsv
 
 Requires ``DATABASE_URL`` in the environment (or ``.env``). Wires the real
 ``httpx`` client + database around the tested ``GeneEnrichmentRunner``; the
@@ -31,7 +27,6 @@ from __future__ import annotations
 import argparse
 import asyncio
 import uuid
-from pathlib import Path
 
 import httpx
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
@@ -40,10 +35,7 @@ from protcellar.application.protein_catalog.bulk_enrich_genes import (
     BulkEnrichGenes,
     EnrichSummary,
 )
-from protcellar.infrastructure.ingestion.gene_enrichment_runner import (
-    EssentialityLoader,
-    GeneEnrichmentRunner,
-)
+from protcellar.infrastructure.ingestion.gene_enrichment_runner import GeneEnrichmentRunner
 from protcellar.infrastructure.ingestion.mycobrowser_client import (
     MYCOBROWSER_H37RV_GFF_URL,
     MycobrowserClient,
@@ -63,23 +55,11 @@ _DEFAULT_TAX_ID = 83332  # M. tuberculosis H37Rv
 _resolve_organism_id = resolve_organism_id
 
 
-def _essentiality_loader(path: Path | None) -> EssentialityLoader | None:
-    """Build a coroutine that reads the essentiality table, or ``None`` to skip."""
-    if path is None:
-        return None
-
-    async def _load() -> str:
-        return path.read_text(encoding="utf-8")
-
-    return _load
-
-
 async def enrich_genes(
     *,
     tax_id: int = _DEFAULT_TAX_ID,
     organism_id: uuid.UUID | None = None,
     gff_url: str = MYCOBROWSER_H37RV_GFF_URL,
-    essentiality_file: Path | None = None,
 ) -> tuple[uuid.UUID, int, EnrichSummary]:
     """Resolve the organism, run the enrichment, and return the summary."""
     settings = DatabaseSettings()  # type: ignore[call-arg]
@@ -99,12 +79,7 @@ async def enrich_genes(
         bulk = BulkEnrichGenes(uow, gene_repo, _NoopDispatcher())
         async with httpx.AsyncClient() as http:
             client = MycobrowserClient(http)
-            runner = GeneEnrichmentRunner(
-                bulk,
-                client,
-                gff_url=gff_url,
-                essentiality_loader=_essentiality_loader(essentiality_file),
-            )
+            runner = GeneEnrichmentRunner(bulk, client, gff_url=gff_url)
             summary = await runner.run(resolved_id, auth=_ServiceAuth())
         return resolved_id, gene_count, summary
     finally:
@@ -132,19 +107,12 @@ def main() -> None:
         default=MYCOBROWSER_H37RV_GFF_URL,
         help="GFF URL to fetch (default: Mycobrowser H37Rv release 5).",
     )
-    parser.add_argument(
-        "--essentiality-file",
-        type=Path,
-        default=None,
-        help="Optional local DeJesus 2017 essentiality table (TSV/CSV); skipped if absent.",
-    )
     args = parser.parse_args()
     resolved_id, gene_count, summary = asyncio.run(
         enrich_genes(
             tax_id=args.tax_id,
             organism_id=args.organism_id,
             gff_url=args.gff_url,
-            essentiality_file=args.essentiality_file,
         )
     )
     print(

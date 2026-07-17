@@ -36,8 +36,11 @@ export function PluginRunPanel({ manifest, open, onOpenChange }: PluginRunPanelP
   const [previewRunId, setPreviewRunId] = useState<string | null>(null);
 
   const preview = usePluginPreview(previewRunId);
+  const status = preview.data?.status;
   const summary =
-    preview.data?.status === "succeeded" ? (preview.data.summary as Record<string, unknown>) : null;
+    status === "succeeded" ? (preview.data?.summary as Record<string, unknown>) : null;
+  const previewError = status === "failed" ? (preview.data?.error ?? "run failed") : null;
+  const previewing = Boolean(previewRunId) && !summary && !previewError;
 
   async function onPreview() {
     const run = await start.mutateAsync({
@@ -73,8 +76,11 @@ export function PluginRunPanel({ manifest, open, onOpenChange }: PluginRunPanelP
           }}
         />
 
-        {previewRunId && !summary ? (
+        {previewing ? (
           <p className="text-sm text-muted-foreground animate-pulse">Previewing…</p>
+        ) : null}
+        {previewError ? (
+          <p className="text-sm text-destructive">Preview failed: {previewError}</p>
         ) : null}
         {summary ? (
           <p className="text-sm">

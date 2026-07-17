@@ -2,8 +2,9 @@
 
 Loads the anchor gene, requires it to carry a genomic location, fetches its
 ``window`` nearest neighbours on the same accession (the center gene included),
-and projects each to a compact summary with the essentiality call pulled from
-its ``key == "essentiality"`` annotation.
+and projects each to a compact summary. The essentiality call is read from each
+gene's target-biology ``Essentiality`` records (the plugin's home) rather than a
+legacy gene annotation.
 """
 
 from __future__ import annotations
@@ -16,12 +17,10 @@ from returns.result import Failure, Result, Success
 from protcellar.application.auth import AuthContext, require_authenticated
 from protcellar.application.shared.query import Query
 from protcellar.application.shared.unit_of_work import UnitOfWork
-from protcellar.domain.protein_catalog.gene import Gene
 from protcellar.domain.protein_catalog.repository import GeneRepository
 from protcellar.domain.shared.errors import DomainError, NotFoundError
 from protcellar.domain.shared.global_workspace import GLOBAL_WORKSPACE_ID
-
-_ESSENTIALITY_KEY = "essentiality"
+from protcellar.domain.target_biology.repository import EssentialityRepository
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -47,17 +46,13 @@ class GetGeneNeighborhoodQuery(Query):
     window: int = 8
 
 
-def _essentiality(gene: Gene) -> str | None:
-    for ann in gene.annotations:
-        if ann.key == _ESSENTIALITY_KEY:
-            return ann.value
-    return None
-
-
 class GetGeneNeighborhood:
-    def __init__(self, uow: UnitOfWork, repo: GeneRepository) -> None:
+    def __init__(
+        self, uow: UnitOfWork, repo: GeneRepository, ess_repo: EssentialityRepository
+    ) -> None:
         self._uow = uow
         self._repo = repo
+        self._ess_repo = ess_repo
 
     async def __call__(
         self, input: GetGeneNeighborhoodQuery, auth: AuthContext | None = None
@@ -76,20 +71,23 @@ class GetGeneNeighborhood:
                 center_start=gene.genomic_start,
                 window=input.window,
             )
+            summaries: list[GeneNeighborSummary] = []
+            for n in neighbors:
+                # ponytail: one find_by_gene per neighbor (~2*window+1 lookups). Add a
+                # batch find_by_genes to the repo if this view ever gets slow.
+                records = await self._ess_repo.find_by_gene(GLOBAL_WORKSPACE_ID, n.id)
+                summaries.append(
+                    GeneNeighborSummary(
+                        id=n.id,
+                        primary_name=n.primary_name,
+                        genomic_start=n.genomic_start,
+                        genomic_end=n.genomic_end,
+                        genomic_strand=n.genomic_strand,
+                        essentiality=str(records[0].classification) if records else None,
+                    )
+                )
             return Success(
                 GeneNeighborhood(
-                    center_id=gene.id,
-                    accession=gene.genomic_accession,
-                    neighbors=[
-                        GeneNeighborSummary(
-                            id=n.id,
-                            primary_name=n.primary_name,
-                            genomic_start=n.genomic_start,
-                            genomic_end=n.genomic_end,
-                            genomic_strand=n.genomic_strand,
-                            essentiality=_essentiality(n),
-                        )
-                        for n in neighbors
-                    ],
+                    center_id=gene.id, accession=gene.genomic_accession, neighbors=summaries
                 )
             )

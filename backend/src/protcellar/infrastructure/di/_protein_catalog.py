@@ -29,6 +29,9 @@ from protcellar.infrastructure.persistence.sqlalchemy.protein_catalog.gene_repos
 from protcellar.infrastructure.persistence.sqlalchemy.protein_catalog.protein_repository import (
     SQLAlchemyProteinRepository,
 )
+from protcellar.infrastructure.persistence.sqlalchemy.target_biology.essentiality_repository import (  # noqa: E501
+    SQLAlchemyEssentialityRepository,
+)
 from protcellar.infrastructure.persistence.unit_of_work import AsyncUnitOfWork
 
 
@@ -46,6 +49,13 @@ def register_protein_catalog(container: Container) -> None:
             return uc_cls(uow, SQLAlchemyGeneRepository(uow))
 
         return _f
+
+    def _gene_neighborhood(c: Container) -> GetGeneNeighborhood:
+        # Reads essentiality from target-biology, so it also takes the essentiality repo.
+        uow = AsyncUnitOfWork(c[async_sessionmaker])
+        return GetGeneNeighborhood(
+            uow, SQLAlchemyGeneRepository(uow), SQLAlchemyEssentialityRepository(uow)
+        )
 
     def _protein_cmd(uc_cls: type) -> Any:
         def _f(c: Container) -> Any:
@@ -75,7 +85,7 @@ def register_protein_catalog(container: Container) -> None:
     container.define(CreateGene, _gene_cmd(CreateGene))
     container.define(UpdateGene, _gene_cmd(UpdateGene))
     container.define(GetGene, _gene_query(GetGene))
-    container.define(GetGeneNeighborhood, _gene_query(GetGeneNeighborhood))
+    container.define(GetGeneNeighborhood, _gene_neighborhood)
     container.define(ListGenes, _gene_query(ListGenes))
 
     container.define(CreateProtein, _protein_cmd(CreateProtein))

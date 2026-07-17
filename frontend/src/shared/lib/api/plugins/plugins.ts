@@ -27,6 +27,7 @@ import type {
   HTTPValidationError,
   ImportRunResponse,
   PluginManifestResponse,
+  SetEnabledBody,
   StartPluginRunBody
 } from '.././model';
 
@@ -128,6 +129,71 @@ export function useListPluginsApiV1PluginsGet<TData = Awaited<ReturnType<typeof 
 
 
 /**
+ * Admin turns a plugin on/off for their workspace.
+ * @summary Set Plugin Enabled
+ */
+export const setPluginEnabledApiV1PluginsPluginIdEnabledPut = (
+    pluginId: string,
+    setEnabledBody: SetEnabledBody,
+ ) => {
+      
+      
+      return customInstance<void>(
+      {url: `/api/v1/plugins/${pluginId}/enabled`, method: 'PUT',
+      headers: {'Content-Type': 'application/json', },
+      data: setEnabledBody
+    },
+      );
+    }
+  
+
+
+export const getSetPluginEnabledApiV1PluginsPluginIdEnabledPutMutationOptions = <TError = HTTPValidationError,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof setPluginEnabledApiV1PluginsPluginIdEnabledPut>>, TError,{pluginId: string;data: SetEnabledBody}, TContext>, }
+): UseMutationOptions<Awaited<ReturnType<typeof setPluginEnabledApiV1PluginsPluginIdEnabledPut>>, TError,{pluginId: string;data: SetEnabledBody}, TContext> => {
+
+const mutationKey = ['setPluginEnabledApiV1PluginsPluginIdEnabledPut'];
+const {mutation: mutationOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof setPluginEnabledApiV1PluginsPluginIdEnabledPut>>, {pluginId: string;data: SetEnabledBody}> = (props) => {
+          const {pluginId,data} = props ?? {};
+
+          return  setPluginEnabledApiV1PluginsPluginIdEnabledPut(pluginId,data,)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SetPluginEnabledApiV1PluginsPluginIdEnabledPutMutationResult = NonNullable<Awaited<ReturnType<typeof setPluginEnabledApiV1PluginsPluginIdEnabledPut>>>
+    export type SetPluginEnabledApiV1PluginsPluginIdEnabledPutMutationBody = SetEnabledBody
+    export type SetPluginEnabledApiV1PluginsPluginIdEnabledPutMutationError = HTTPValidationError
+
+    /**
+ * @summary Set Plugin Enabled
+ */
+export const useSetPluginEnabledApiV1PluginsPluginIdEnabledPut = <TError = HTTPValidationError,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof setPluginEnabledApiV1PluginsPluginIdEnabledPut>>, TError,{pluginId: string;data: SetEnabledBody}, TContext>, }
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof setPluginEnabledApiV1PluginsPluginIdEnabledPut>>,
+        TError,
+        {pluginId: string;data: SetEnabledBody},
+        TContext
+      > => {
+
+      const mutationOptions = getSetPluginEnabledApiV1PluginsPluginIdEnabledPutMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    /**
  * @summary Start Plugin Run
  */
 export const startPluginRunApiV1PluginsPluginIdRunsPost = (
