@@ -7,6 +7,7 @@ import {
   ESSENTIALITY_STYLE,
   type EssentialityBucket,
   FITNESS_AXIS_LABELS,
+  type PivotCell,
   essentialityConsensus,
   fitnessPosition,
   pivotConditionMethod,
@@ -23,9 +24,19 @@ const SEGMENTS: EssentialityBucket[] = [
 ];
 
 /** One condition×method strip cell, colored by its call (or empty when absent). */
-function StripCell({ bucket }: { bucket: EssentialityBucket | null }) {
+function StripCell({ bucket }: { bucket: PivotCell | null }) {
   if (bucket === null) {
     return <div className="h-6 rounded-sm border border-dashed border-border bg-transparent" />;
+  }
+  if (bucket === "conflict") {
+    return (
+      <div
+        className="flex h-6 items-center justify-center rounded-sm border border-warning/40 bg-warning/15 text-[0.625rem] font-medium text-warning"
+        title="Sources disagree for this condition × method"
+      >
+        !
+      </div>
+    );
   }
   const style = ESSENTIALITY_STYLE[bucket];
   return (

@@ -110,13 +110,14 @@ describe("essentialityConsensus", () => {
     expect(c?.bucket).toBe("essential");
   });
 
-  it("takes the max confidence among records matching the consensus", () => {
+  it("averages confidence across records backing the consensus (ignoring dissenters)", () => {
     const c = essentialityConsensus([
       { classification: "essential", confidence: 0.6 },
-      { classification: "essential", confidence: 0.95 },
+      { classification: "essential", confidence: 0.9 },
       { classification: "non_essential", confidence: 0.99 },
     ]);
-    expect(c?.confidence).toBe(0.95);
+    // mean of the two essential rows (0.6, 0.9), not the max, and not the 0.99 dissenter
+    expect(c?.confidence).toBeCloseTo(0.75);
   });
 });
 
@@ -133,6 +134,19 @@ describe("pivotConditionMethod", () => {
     expect(p.cell("cholesterol", "TnSeq")).toBe("growth-defect");
     expect(p.cell("cholesterol", "CRISPRi")).toBe("essential");
     expect(p.cell("7H9", "CRISPRi")).toBeNull();
+  });
+
+  it("flags a cell as 'conflict' when two sources disagree on the same condition × method", () => {
+    const p = pivotConditionMethod([
+      { classification: "essential", condition: "7H9", method: "TnSeq" },
+      { classification: "non_essential", condition: "7H9", method: "TnSeq" },
+      { classification: "growth_defect", condition: "cholesterol", method: "TnSeq" },
+      { classification: "growth_defect", condition: "cholesterol", method: "TnSeq" },
+    ]);
+    // disagreeing calls in one cell → conflict (not silently the last one)
+    expect(p.cell("7H9", "TnSeq")).toBe("conflict");
+    // agreeing duplicates keep the call
+    expect(p.cell("cholesterol", "TnSeq")).toBe("growth-defect");
   });
 
   it("falls back to a placeholder for empty condition/method", () => {
