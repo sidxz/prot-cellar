@@ -7,54 +7,27 @@ import { MapPin } from "lucide-react";
 import Link from "next/link";
 
 import { useGeneNeighborhood } from "../../hooks/use-genes";
+import {
+  type EssentialityBucket,
+  ESSENTIALITY_STYLE,
+  essentialityBucket,
+} from "../../lib/essentiality";
+import { type PositionedGene, type TrackGene, layoutNeighbors } from "../../lib/genome-track";
 import type { Gene } from "../../types";
 
+const humanize = (b: string) => b.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+
 // ---------------------------------------------------------------------------
-// Essentiality shading — kept color-consistent with the vulnerability panel
-// chips (axis-annotations-section.tsx): essential→destructive, growth-defect→
-// warning, growth-advantage→outline/blue-ish, non-essential→muted, unknown→
-// neutral. Tokens (not raw colors) so the track + panel read as one system.
+// Legend — the fitness-axis buckets shared with the essentiality call-scale, so
+// the track and the summary read as one system.
 // ---------------------------------------------------------------------------
 
-type EssentialityBucket =
-  | "essential"
-  | "growth-defect"
-  | "growth-advantage"
-  | "non-essential"
-  | "unknown";
-
-/** Bucket a free-text `essentiality` value (hyphen/underscore tolerant). */
-function essentialityBucket(essentiality: string | null | undefined): EssentialityBucket {
-  const v = (essentiality ?? "").toLowerCase().replace(/_/g, "-");
-  if (v.includes("non-essential") || v.includes("nonessential")) return "non-essential";
-  if (v.includes("growth-defect") || v.includes("growth defect")) return "growth-defect";
-  if (v.includes("growth-advantage") || v.includes("growth advantage")) return "growth-advantage";
-  if (v.includes("essential")) return "essential";
-  return "unknown";
-}
-
-/** Box border/background/text classes per bucket. */
-const BUCKET_BOX_STYLE: Record<EssentialityBucket, string> = {
-  essential: "border-destructive/40 bg-destructive/10 text-destructive",
-  "growth-defect": "border-warning/30 bg-warning/15 text-warning",
-  "growth-advantage": "border-border bg-card text-foreground",
-  "non-essential": "border-border bg-muted text-muted-foreground",
-  unknown: "border-border bg-card text-foreground",
-};
-
-/** Map a gene's `essentiality` value to its box style. */
-function essentialityStyle(essentiality: string | null | undefined): string {
-  return BUCKET_BOX_STYLE[essentialityBucket(essentiality)];
-}
-
-// Legend entries: small swatch (same token families as the boxes) + label.
-// `growth-advantage` is intentionally omitted from the default legend to keep
-// it compact; it shares the neutral swatch and is rare in current data.
-const LEGEND_ENTRIES: { label: string; swatch: string }[] = [
-  { label: "Essential", swatch: "border-destructive/40 bg-destructive/10" },
-  { label: "Growth-defect", swatch: "border-warning/30 bg-warning/15" },
-  { label: "Non-essential", swatch: "border-border bg-muted" },
-  { label: "Unknown", swatch: "border-border bg-card" },
+const LEGEND_ENTRIES: { label: string; bucket: EssentialityBucket }[] = [
+  { label: "Essential", bucket: "essential" },
+  { label: "Growth-defect", bucket: "growth-defect" },
+  { label: "Non-essential", bucket: "non-essential" },
+  { label: "Growth-adv.", bucket: "growth-advantage" },
+  { label: "Uncertain", bucket: "uncertain" },
 ];
 
 function EssentialityLegend() {
@@ -65,7 +38,14 @@ function EssentialityLegend() {
     >
       {LEGEND_ENTRIES.map((e) => (
         <span key={e.label} className="inline-flex items-center gap-1">
-          <span className={cn("h-2.5 w-2.5 shrink-0 rounded-sm border", e.swatch)} aria-hidden />
+          <span
+            className={cn(
+              "h-2.5 w-2.5 shrink-0 rounded-sm border",
+              ESSENTIALITY_STYLE[e.bucket].bg,
+              ESSENTIALITY_STYLE[e.bucket].border,
+            )}
+            aria-hidden
+          />
           {e.label}
         </span>
       ))}
@@ -73,54 +53,71 @@ function EssentialityLegend() {
   );
 }
 
-interface NeighborBox {
-  id: string;
-  primary_name: string;
-  genomic_start?: number | null;
-  genomic_strand?: string | null;
-  essentiality?: string | null;
+// ---------------------------------------------------------------------------
+// Track geometry
+// ---------------------------------------------------------------------------
+
+const TRACK_W = 640;
+const TRACK_H = 60;
+const ARROW_Y = 18;
+const ARROW_H = 22;
+const BASELINE_Y = ARROW_Y + ARROW_H + 2;
+
+/** Strand-aware arrow (pentagon) points for a positioned gene. */
+function arrowPoints(g: PositionedGene): string {
+  const { x, w } = g;
+  const ar = Math.min(8, w * 0.4);
+  const y0 = ARROW_Y;
+  const y1 = ARROW_Y + ARROW_H;
+  const my = ARROW_Y + ARROW_H / 2;
+  return g.strand === "-"
+    ? `${x + w},${y0} ${x + ar},${y0} ${x},${my} ${x + ar},${y1} ${x + w},${y1}`
+    : `${x},${y0} ${x + w - ar},${y0} ${x + w},${my} ${x + w - ar},${y1} ${x},${y1}`;
 }
 
-function NeighborBox({ neighbor, isCurrent }: { neighbor: NeighborBox; isCurrent: boolean }) {
-  const className = cn(
-    "flex w-24 shrink-0 flex-col items-center gap-0.5 rounded-md border px-2 py-1.5 text-center transition-colors",
-    essentialityStyle(neighbor.essentiality),
-    isCurrent && "ring-2 ring-primary ring-offset-1 ring-offset-background",
-  );
+function TrackArrow({ g }: { g: PositionedGene }) {
+  const bucket = essentialityBucket(g.essentiality);
+  const style = ESSENTIALITY_STYLE[bucket];
+  const points = arrowPoints(g);
+  const showLabel = g.w >= 26 || g.isCurrent;
 
-  const body = (
+  const shape = (
     <>
-      <span className="w-full truncate font-mono text-xs font-medium" title={neighbor.primary_name}>
-        {neighbor.primary_name}
-      </span>
-      {neighbor.genomic_strand && (
-        <span className="text-[0.625rem] leading-none text-muted-foreground">
-          {neighbor.genomic_strand} strand
-        </span>
+      <polygon points={points} className={style.fill} fillOpacity={0.75} />
+      {g.isCurrent && (
+        <polygon points={points} className="fill-none stroke-primary" strokeWidth={2} />
       )}
+      {showLabel && (
+        <text
+          x={g.x + g.w / 2}
+          y={ARROW_Y - 4}
+          textAnchor="middle"
+          fontSize={8}
+          className={cn("font-mono", g.isCurrent ? "fill-foreground font-semibold" : "fill-muted-foreground")}
+        >
+          {g.name}
+        </text>
+      )}
+      <title>{`${g.name}${g.strand ? ` (${g.strand})` : ""} · ${humanize(bucket)}`}</title>
     </>
   );
 
-  if (isCurrent) {
+  if (g.isCurrent) {
     return (
-      <div className={className} aria-current="true" title={`${neighbor.primary_name} (this gene)`}>
-        {body}
-      </div>
+      <g role="img" aria-current="true" aria-label={`${g.name} (this gene)`}>
+        {shape}
+      </g>
     );
   }
-
   return (
-    <Link
-      href={`/genes/${neighbor.id}`}
-      className={cn(className, "hover:border-primary/60 hover:shadow-sm")}
-    >
-      {body}
+    <Link href={`/genes/${g.id}`} aria-label={g.name}>
+      {shape}
     </Link>
   );
 }
 
 // ---------------------------------------------------------------------------
-// Neighborhood track (only rendered with >= 2 neighbors)
+// Neighborhood track (only rendered with >= 2 coordinate-bearing neighbors)
 // ---------------------------------------------------------------------------
 
 function NeighborhoodTrack({ gene }: { gene: Gene }) {
@@ -130,20 +127,48 @@ function NeighborhoodTrack({ gene }: { gene: Gene }) {
     return <Skeleton className="h-16 w-full rounded-md" />;
   }
 
-  const neighbors = data?.neighbors ?? [];
-  if (isError || neighbors.length < 2) return null;
+  const genes: TrackGene[] = (data?.neighbors ?? [])
+    .filter((n) => n.genomic_start != null && n.genomic_end != null)
+    .map((n) => ({
+      id: n.id,
+      name: n.primary_name,
+      strand: n.genomic_strand ?? null,
+      essentiality: n.essentiality ?? null,
+      start: n.genomic_start as number,
+      end: n.genomic_end as number,
+      isCurrent: n.id === gene.id,
+    }))
+    .sort((a, b) => a.start - b.start);
 
-  const ordered = [...neighbors].sort((a, b) => (a.genomic_start ?? 0) - (b.genomic_start ?? 0));
+  if (isError || genes.length < 2) return null;
+
+  const positioned = layoutNeighbors(genes, TRACK_W);
 
   return (
     <div className="flex flex-col gap-1.5">
       <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
         Genomic neighborhood
       </span>
-      <div className="flex items-stretch gap-1 overflow-x-auto pb-1">
-        {ordered.map((n) => (
-          <NeighborBox key={n.id} neighbor={n} isCurrent={n.id === gene.id} />
-        ))}
+      <div className="overflow-x-auto pb-1">
+        <svg
+          viewBox={`0 0 ${TRACK_W} ${TRACK_H}`}
+          width="100%"
+          style={{ minWidth: TRACK_W }}
+          role="group"
+          aria-label="Genomic neighborhood track"
+        >
+          <line
+            x1={0}
+            y1={BASELINE_Y}
+            x2={TRACK_W}
+            y2={BASELINE_Y}
+            className="stroke-border"
+            strokeWidth={1}
+          />
+          {positioned.map((g) => (
+            <TrackArrow key={g.id} g={g} />
+          ))}
+        </svg>
       </div>
       <EssentialityLegend />
     </div>

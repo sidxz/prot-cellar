@@ -90,14 +90,18 @@ describe("GenomicContextSection", () => {
     const current = screen.getByText("rpoB");
     expect(current.closest("a")).toBeNull();
 
-    // The essentiality legend renders alongside the track so the shading is
-    // interpretable (color-consistent with the vulnerability panel chips).
+    // The proportional SVG track renders as a labelled group.
+    expect(
+      screen.getByRole("group", { name: /genomic neighborhood track/i }),
+    ).toBeInTheDocument();
+
+    // The essentiality legend renders alongside the track (fitness-axis buckets).
     const legend = screen.getByLabelText("Essentiality legend");
     expect(legend).toBeInTheDocument();
     expect(screen.getByText("Essential")).toBeInTheDocument();
     expect(screen.getByText("Growth-defect")).toBeInTheDocument();
     expect(screen.getByText("Non-essential")).toBeInTheDocument();
-    expect(screen.getByText("Unknown")).toBeInTheDocument();
+    expect(screen.getByText("Growth-adv.")).toBeInTheDocument();
   });
 
   it("does not render the legend when there is no neighborhood track", () => {
