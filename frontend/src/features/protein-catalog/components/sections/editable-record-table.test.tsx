@@ -8,6 +8,7 @@ import {
   EditableRecordTable,
   ProvenanceLegend,
   generationMethodBadgeVariant,
+  isAiGenerated,
 } from "./editable-record-table";
 
 interface Rec {
@@ -98,6 +99,26 @@ describe("EditableRecordTable", () => {
     expect(section).toContainElement(screen.getByTestId("viz"));
   });
 
+  it("renders AI-provenance rows in dark blue", () => {
+    render(
+      <EditableRecordTable<Rec, Draft>
+        title="Widget"
+        description="desc"
+        records={[rec]}
+        columns={columns}
+        emptyDraft={EMPTY}
+        toDraft={toDraft}
+        toBody={toBody}
+        onCreate={vi.fn()}
+        onUpdate={vi.fn()}
+        onDelete={vi.fn()}
+        busy={false}
+        isAiRow={() => true}
+      />,
+    );
+    expect(screen.getByText("foo").closest("tr")?.className).toMatch(/text-blue-700/);
+  });
+
   it("shows an empty state and an Add button", () => {
     setup([]);
     expect(screen.getByText(/no widget records yet/i)).toBeInTheDocument();
@@ -153,6 +174,16 @@ describe("generationMethodBadgeVariant", () => {
     expect(generationMethodBadgeVariant("nonsense")).toBe("outline");
     expect(generationMethodBadgeVariant(undefined)).toBe("outline");
     expect(generationMethodBadgeVariant(null)).toBe("outline");
+  });
+});
+
+describe("isAiGenerated", () => {
+  it("is true only for AI methods", () => {
+    expect(isAiGenerated("ai_extracted")).toBe(true);
+    expect(isAiGenerated("ai_predicted")).toBe(true);
+    expect(isAiGenerated("imported")).toBe(false);
+    expect(isAiGenerated("manual")).toBe(false);
+    expect(isAiGenerated(null)).toBe(false);
   });
 });
 

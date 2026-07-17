@@ -36,6 +36,7 @@ import {
   EditableRecordTable,
   type ProvDraft,
   humanize,
+  isAiGenerated,
   numOrNull,
   provColumns,
   provToBody,
@@ -113,6 +114,7 @@ export function EssentialityTable({
       description="Whether the gene is required for growth — a core target-validation signal."
       records={records}
       visualization={<EssentialityCallScale records={records} />}
+      isAiRow={(r) => isAiGenerated(r.provenance.generation_method)}
       columns={ESS_COLUMNS}
       emptyDraft={ESS_EMPTY}
       toDraft={(e) => ({
@@ -197,6 +199,7 @@ export function VulnerabilityTable({
       description="A normalized 0–1 score for how much target knockdown impairs growth."
       records={records}
       visualization={<VulnerabilityPanel records={records} />}
+      isAiRow={(r) => isAiGenerated(r.provenance.generation_method)}
       columns={VULN_COLUMNS}
       emptyDraft={VULN_EMPTY}
       toDraft={(v) => ({
@@ -282,6 +285,7 @@ export function HypomorphTable({
       title="Hypomorph"
       description="Knockdown phenotype — a partial loss-of-function growth defect."
       records={records}
+      isAiRow={(r) => isAiGenerated(r.provenance.generation_method)}
       columns={HYPO_COLUMNS}
       emptyDraft={HYPO_EMPTY}
       toDraft={(h) => ({
@@ -347,6 +351,7 @@ export function CrispriStrainTable({
       title="CRISPRi strain"
       description="A physical knockdown reagent (sgRNA strain) targeting this gene."
       records={records}
+      isAiRow={(r) => isAiGenerated(r.provenance.generation_method)}
       columns={CRISPRI_COLUMNS}
       emptyDraft={CRISPRI_EMPTY}
       toDraft={(s) => ({ name: s.name, ...provToDraft(s.provenance) })}
@@ -443,6 +448,7 @@ export function ResistanceMutationTable({
       description="A heritable variant that confers drug resistance (compound link is read-only for now)."
       records={records}
       visualization={<ResistanceLollipop records={records} />}
+      isAiRow={(r) => isAiGenerated(r.provenance.generation_method)}
       columns={RES_COLUMNS}
       emptyDraft={RES_EMPTY}
       toDraft={(m) => ({

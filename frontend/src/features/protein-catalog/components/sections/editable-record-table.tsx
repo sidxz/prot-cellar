@@ -18,6 +18,7 @@ import {
 } from "@/shared/components/ui/tooltip";
 import type { ProvenanceBody } from "@/shared/lib/api/model";
 import { ProvenanceSourceType } from "@/shared/lib/api/model";
+import { cn } from "@/shared/lib/utils";
 import { Check, Loader2, Pencil, Plus, Trash2, X } from "lucide-react";
 import type { ComponentProps, ReactNode } from "react";
 import { useState } from "react";
@@ -41,6 +42,11 @@ export function generationMethodBadgeVariant(method: string | null | undefined):
     default:
       return "outline";
   }
+}
+
+/** Whether a record's provenance was AI-generated (extracted or predicted). */
+export function isAiGenerated(method: string | null | undefined): boolean {
+  return method === "ai_extracted" || method === "ai_predicted";
 }
 
 /** Coerce a text-input string to a nullable number / nullable trimmed string for a write body. */
@@ -170,6 +176,8 @@ interface Props<R extends { id: string }, D extends Record<string, unknown>> {
   busy: boolean;
   /** Optional visualization rendered inside the section, above the table. */
   visualization?: ReactNode;
+  /** When true for a record, its whole row renders in dark-blue (AI provenance). */
+  isAiRow?: (record: R) => boolean;
 }
 
 function errMsg(e: unknown): string {
@@ -191,6 +199,7 @@ export function EditableRecordTable<R extends { id: string }, D extends Record<s
   onDelete,
   busy,
   visualization,
+  isAiRow,
 }: Props<R, D>) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draft, setDraft] = useState<D>(emptyDraft);
@@ -340,13 +349,19 @@ export function EditableRecordTable<R extends { id: string }, D extends Record<s
                   </td>
                 </tr>
               )}
-              {records.map((r) =>
-                editingId === r.id ? (
-                  editRow(r.id)
-                ) : (
-                  <tr key={r.id} className="border-t border-border">
+              {records.map((r) => {
+                if (editingId === r.id) return editRow(r.id);
+                const ai = isAiRow?.(r) ?? false;
+                return (
+                  <tr
+                    key={r.id}
+                    className={cn(
+                      "border-t border-border",
+                      ai && "text-blue-700 dark:text-blue-400",
+                    )}
+                  >
                     {columns.map((col) => (
-                      <td key={col.label} className={`${TD} text-foreground`}>
+                      <td key={col.label} className={cn(TD, !ai && "text-foreground")}>
                         {col.render(r)}
                       </td>
                     ))}
@@ -376,8 +391,8 @@ export function EditableRecordTable<R extends { id: string }, D extends Record<s
                       </Button>
                     </td>
                   </tr>
-                ),
-              )}
+                );
+              })}
             </tbody>
           </table>
         </div>

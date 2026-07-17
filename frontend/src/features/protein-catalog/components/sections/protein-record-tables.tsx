@@ -25,6 +25,7 @@ import {
   EMPTY_PROV,
   EditableRecordTable,
   type ProvDraft,
+  isAiGenerated,
   numOrNull,
   provColumns,
   provToBody,
@@ -102,6 +103,7 @@ export function ProteinProductionTable({
       title="Protein production"
       description="Recombinant expression / purification record for this protein."
       records={records}
+      isAiRow={(r) => isAiGenerated(r.provenance.generation_method)}
       columns={PROD_COLUMNS}
       emptyDraft={PROD_EMPTY}
       toDraft={(p) => ({
@@ -199,6 +201,7 @@ export function ProteinActivityAssayTable({
       title="Activity assay"
       description="A biochemical assay defined to measure this protein's activity."
       records={records}
+      isAiRow={(r) => isAiGenerated(r.provenance.generation_method)}
       columns={ASSAY_COLUMNS}
       emptyDraft={ASSAY_EMPTY}
       toDraft={(a) => ({
@@ -320,6 +323,7 @@ export function UnpublishedStructureTable({
       title="Unpublished structure"
       description="An internal / unpublished structural model (ligand links are read-only for now)."
       records={records}
+      isAiRow={(r) => isAiGenerated(r.provenance.generation_method)}
       columns={STRUCT_COLUMNS}
       emptyDraft={STRUCT_EMPTY}
       toDraft={(s) => ({
