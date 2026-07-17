@@ -33,6 +33,37 @@ function MetadataRow({ label, children }: MetadataRowProps) {
   );
 }
 
+// The gene's protein product(s), rendered as a metadata row. Hidden while loading
+// or when the gene has no linked proteins.
+function GeneProteinsRow({ geneId }: { geneId: string }) {
+  const { data, isLoading } = useProteins({ geneId });
+  const proteins = data?.items ?? [];
+  if (isLoading || proteins.length === 0) return null;
+
+  return (
+    <MetadataRow label={proteins.length === 1 ? "Protein" : "Proteins"}>
+      <ul className="flex flex-col gap-1.5">
+        {proteins.map((p) => (
+          <li key={p.id} className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+            <Link
+              href={`/proteins/${p.primary_accession}`}
+              className="font-mono text-primary hover:underline underline-offset-4"
+            >
+              {p.primary_accession}
+            </Link>
+            {p.recommended_name && (
+              <span className="truncate text-xs text-muted-foreground">{p.recommended_name}</span>
+            )}
+            <Badge variant={p.is_reviewed ? "default" : "secondary"} className="shrink-0 text-xs">
+              {p.is_reviewed ? "Swiss-Prot" : "TrEMBL"}
+            </Badge>
+          </li>
+        ))}
+      </ul>
+    </MetadataRow>
+  );
+}
+
 // ---------------------------------------------------------------------------
 // Loading skeleton
 // ---------------------------------------------------------------------------
@@ -97,6 +128,9 @@ function GeneMetadataCard({ gene }: GeneMetadataCardProps) {
             </MetadataRow>
           )}
 
+          {/* Protein product(s) encoded by this gene */}
+          <GeneProteinsRow geneId={gene.id} />
+
           {/* NCBI Gene */}
           {gene.ncbi_gene_id && (
             <MetadataRow label="NCBI Gene">
@@ -146,68 +180,6 @@ function GeneMetadataCard({ gene }: GeneMetadataCardProps) {
         </dl>
       </CardContent>
     </Card>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Linked proteins section
-// ---------------------------------------------------------------------------
-
-function LinkedProteinsSection({ geneId }: { geneId: string }) {
-  const { data, isLoading, isError } = useProteins({ geneId });
-  const proteins = data?.items ?? [];
-
-  return (
-    <section aria-labelledby="proteins-heading">
-      <h2 id="proteins-heading" className="text-base font-semibold mb-3 text-foreground">
-        Proteins
-      </h2>
-      <Card>
-        <CardContent className="pt-4">
-          {isLoading ? (
-            <div className="flex flex-col gap-2">
-              <Skeleton className="h-10 w-full" />
-              <Skeleton className="h-10 w-full" />
-            </div>
-          ) : isError ? (
-            <p className="text-sm text-muted-foreground italic">Could not load proteins.</p>
-          ) : proteins.length === 0 ? (
-            <p className="text-sm text-muted-foreground italic">
-              No proteins are linked to this gene.
-            </p>
-          ) : (
-            <ul className="flex flex-col divide-y divide-border/50">
-              {proteins.map((p) => (
-                <li
-                  key={p.id}
-                  className="flex items-center justify-between gap-3 py-2 first:pt-0 last:pb-0"
-                >
-                  <div className="flex min-w-0 flex-col">
-                    <Link
-                      href={`/proteins/${p.primary_accession}`}
-                      className="font-mono text-sm text-primary hover:underline underline-offset-4"
-                    >
-                      {p.primary_accession}
-                    </Link>
-                    {p.recommended_name && (
-                      <span className="truncate text-xs text-muted-foreground">
-                        {p.recommended_name}
-                      </span>
-                    )}
-                  </div>
-                  <Badge
-                    variant={p.is_reviewed ? "default" : "secondary"}
-                    className="shrink-0 text-xs"
-                  >
-                    {p.is_reviewed ? "Swiss-Prot" : "TrEMBL"}
-                  </Badge>
-                </li>
-              ))}
-            </ul>
-          )}
-        </CardContent>
-      </Card>
-    </section>
   );
 }
 
@@ -274,8 +246,6 @@ export function GeneDetailPage({ geneId }: GeneDetailPageProps) {
         </h2>
         <GeneTargetBiologyTab geneId={data.id} />
       </section>
-
-      <LinkedProteinsSection geneId={data.id} />
 
       {data.cross_references && data.cross_references.length > 0 && (
         <section aria-labelledby="xrefs-heading">
