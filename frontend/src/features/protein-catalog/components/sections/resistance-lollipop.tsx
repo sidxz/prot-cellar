@@ -94,6 +94,7 @@ export function ResistanceLollipop({ records }: { records: ResistanceMutationRes
 
       <div className="overflow-x-auto">
         <svg
+          className="font-mono"
           data-testid="resistance-lollipop"
           viewBox={`0 0 ${L_W} ${L_H}`}
           width="100%"

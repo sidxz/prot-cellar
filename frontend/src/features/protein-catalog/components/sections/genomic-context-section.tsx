@@ -150,7 +150,12 @@ function NeighborhoodTrack({ gene }: { gene: Gene }) {
         Genomic neighborhood
       </span>
       <figure className="m-0 overflow-x-auto pb-1" aria-label="Genomic neighborhood track">
-        <svg viewBox={`0 0 ${TRACK_W} ${TRACK_H}`} width="100%" style={{ minWidth: TRACK_W }}>
+        <svg
+          className="font-mono"
+          viewBox={`0 0 ${TRACK_W} ${TRACK_H}`}
+          width="100%"
+          style={{ minWidth: TRACK_W }}
+        >
           <title>Genomic neighborhood track</title>
           <line
             x1={0}
