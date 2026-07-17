@@ -33,7 +33,12 @@ export default function DashboardPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight">prot-cellar</h1>
+        <h1
+          className="text-2xl font-medium tracking-tight"
+          style={{ fontFamily: "var(--font-overused-grotesk), ui-sans-serif, sans-serif" }}
+        >
+          ProtCellar
+        </h1>
         <p className="text-sm text-muted-foreground mt-1">
           Protein &amp; target management platform
         </p>

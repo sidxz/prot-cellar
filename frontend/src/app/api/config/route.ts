@@ -12,7 +12,7 @@
  * Variables use APP_ prefix (server-side only) instead of NEXT_PUBLIC_
  * (which gets baked into the JS bundle at build time).
  *
- * Env var mapping (prot-cellar → chem-cellar equivalent):
+ * Env var mapping (ProtCellar → ChemCellar equivalent):
  *   APP_API_BASE_URL          ← chem: APP_API_URL
  *   APP_SENTINEL_GOOGLE_CLIENT_ID  ← chem: APP_GOOGLE_CLIENT_ID
  *   APP_SENTINEL_ENTRA_CLIENT_ID   ← chem: APP_ENTRA_ID_CLIENT_ID
