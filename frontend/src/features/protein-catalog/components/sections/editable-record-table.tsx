@@ -19,7 +19,7 @@ import {
 import type { ProvenanceBody } from "@/shared/lib/api/model";
 import { ProvenanceSourceType } from "@/shared/lib/api/model";
 import { Check, Loader2, Pencil, Plus, Trash2, X } from "lucide-react";
-import type { ComponentProps } from "react";
+import type { ComponentProps, ReactNode } from "react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -168,6 +168,8 @@ interface Props<R extends { id: string }, D extends Record<string, unknown>> {
   onUpdate: (id: string, body: unknown) => Promise<unknown>;
   onDelete: (id: string) => Promise<unknown>;
   busy: boolean;
+  /** Optional visualization rendered inside the section, above the table. */
+  visualization?: ReactNode;
 }
 
 function errMsg(e: unknown): string {
@@ -188,6 +190,7 @@ export function EditableRecordTable<R extends { id: string }, D extends Record<s
   onUpdate,
   onDelete,
   busy,
+  visualization,
 }: Props<R, D>) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draft, setDraft] = useState<D>(emptyDraft);
@@ -312,6 +315,7 @@ export function EditableRecordTable<R extends { id: string }, D extends Record<s
           </Button>
         </div>
         <p className="text-xs text-muted-foreground">{description}</p>
+        {visualization}
         <div className="overflow-x-auto rounded-md border border-border">
           <table className="w-full text-sm">
             <thead>

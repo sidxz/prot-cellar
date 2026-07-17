@@ -42,6 +42,9 @@ import {
   provToDraft,
   strOrNull,
 } from "./editable-record-table";
+import { EssentialityCallScale } from "./essentiality-call-scale";
+import { ResistanceLollipop } from "./resistance-lollipop";
+import { VulnerabilityPanel } from "./vulnerability-panel";
 
 const dash = (v: string | null | undefined) => v ?? "—";
 
@@ -109,6 +112,7 @@ export function EssentialityTable({
       title="Essentiality"
       description="Whether the gene is required for growth — a core target-validation signal."
       records={records}
+      visualization={<EssentialityCallScale records={records} />}
       columns={ESS_COLUMNS}
       emptyDraft={ESS_EMPTY}
       toDraft={(e) => ({
@@ -192,6 +196,7 @@ export function VulnerabilityTable({
       title="Vulnerability"
       description="A normalized 0–1 score for how much target knockdown impairs growth."
       records={records}
+      visualization={<VulnerabilityPanel records={records} />}
       columns={VULN_COLUMNS}
       emptyDraft={VULN_EMPTY}
       toDraft={(v) => ({
@@ -437,6 +442,7 @@ export function ResistanceMutationTable({
       title="Resistance mutation"
       description="A heritable variant that confers drug resistance (compound link is read-only for now)."
       records={records}
+      visualization={<ResistanceLollipop records={records} />}
       columns={RES_COLUMNS}
       emptyDraft={RES_EMPTY}
       toDraft={(m) => ({

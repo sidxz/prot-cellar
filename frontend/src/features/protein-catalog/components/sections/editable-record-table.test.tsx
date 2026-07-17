@@ -77,6 +77,27 @@ describe("EditableRecordTable", () => {
     expect(screen.getByText("read-only")).toBeInTheDocument();
   });
 
+  it("renders the visualization slot inside the section", () => {
+    render(
+      <EditableRecordTable<Rec, Draft>
+        title="Widget"
+        description="desc"
+        records={[rec]}
+        columns={columns}
+        emptyDraft={EMPTY}
+        toDraft={toDraft}
+        toBody={toBody}
+        onCreate={vi.fn()}
+        onUpdate={vi.fn()}
+        onDelete={vi.fn()}
+        busy={false}
+        visualization={<div data-testid="viz">chart</div>}
+      />,
+    );
+    const section = screen.getByRole("region", { name: "Widget" });
+    expect(section).toContainElement(screen.getByTestId("viz"));
+  });
+
   it("shows an empty state and an Add button", () => {
     setup([]);
     expect(screen.getByText(/no widget records yet/i)).toBeInTheDocument();
