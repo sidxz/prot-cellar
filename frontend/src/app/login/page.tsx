@@ -1,5 +1,6 @@
 "use client";
 
+import { ProteinFold } from "@/shared/components/backgrounds/protein-fold";
 import { LogoMark } from "@/shared/components/ui/logo-mark";
 import { useAppConfig } from "@/shared/lib/app-config";
 import { useAuthz } from "@sentinel-auth/nextjs";
@@ -70,74 +71,9 @@ export default function LoginPage() {
 
   return (
     <div className="fixed inset-0 overflow-hidden bg-background">
-      {/* ── Left: CSS gradient/grid background ── */}
+      {/* ── Left: rotating protein-fold cover ── */}
       <div className="absolute inset-0 md:right-[460px]" aria-hidden="true">
-        {/* Bio-themed CSS gradient background — no gsap/GridMotion */}
-        <div
-          className="h-full w-full"
-          style={{
-            background:
-              "radial-gradient(ellipse 80% 60% at 20% 40%, oklch(0.45 0.14 185 / 0.35) 0%, transparent 60%), " +
-              "radial-gradient(ellipse 60% 80% at 80% 70%, oklch(0.5 0.12 260 / 0.25) 0%, transparent 55%), " +
-              "radial-gradient(ellipse 70% 50% at 50% 10%, oklch(0.55 0.10 150 / 0.18) 0%, transparent 50%), " +
-              "oklch(0.16 0.015 255)",
-          }}
-        >
-          {/* Subtle dot-grid overlay */}
-          <div
-            className="absolute inset-0"
-            style={{
-              backgroundImage:
-                "radial-gradient(circle, oklch(0.9 0 0 / 0.06) 1px, transparent 1px)",
-              backgroundSize: "28px 28px",
-            }}
-          />
-          {/* Decorative helix-like arcs via pure CSS */}
-          <svg
-            role="presentation"
-            className="absolute inset-0 h-full w-full"
-            xmlns="http://www.w3.org/2000/svg"
-            preserveAspectRatio="xMidYMid slice"
-          >
-            <defs>
-              <linearGradient id="arc1" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stopColor="oklch(0.55 0.11 185)" stopOpacity="0.12" />
-                <stop offset="100%" stopColor="oklch(0.55 0.11 185)" stopOpacity="0" />
-              </linearGradient>
-              <linearGradient id="arc2" x1="100%" y1="0%" x2="0%" y2="100%">
-                <stop offset="0%" stopColor="oklch(0.55 0.12 260)" stopOpacity="0.10" />
-                <stop offset="100%" stopColor="oklch(0.55 0.12 260)" stopOpacity="0" />
-              </linearGradient>
-            </defs>
-            <ellipse
-              cx="30%"
-              cy="50%"
-              rx="35%"
-              ry="55%"
-              fill="none"
-              stroke="url(#arc1)"
-              strokeWidth="1"
-            />
-            <ellipse
-              cx="70%"
-              cy="45%"
-              rx="28%"
-              ry="45%"
-              fill="none"
-              stroke="url(#arc2)"
-              strokeWidth="1"
-            />
-            <ellipse
-              cx="50%"
-              cy="80%"
-              rx="42%"
-              ry="30%"
-              fill="none"
-              stroke="url(#arc1)"
-              strokeWidth="0.5"
-            />
-          </svg>
-        </div>
+        <ProteinFold />
       </div>
 
       {/* ── Right: branding + sign-in panel ── */}
