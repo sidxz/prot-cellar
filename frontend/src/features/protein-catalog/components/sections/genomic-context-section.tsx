@@ -8,8 +8,8 @@ import Link from "next/link";
 
 import { useGeneNeighborhood } from "../../hooks/use-genes";
 import {
-  type EssentialityBucket,
   ESSENTIALITY_STYLE,
+  type EssentialityBucket,
   essentialityBucket,
 } from "../../lib/essentiality";
 import { type PositionedGene, type TrackGene, layoutNeighbors } from "../../lib/genome-track";
@@ -93,7 +93,10 @@ function TrackArrow({ g }: { g: PositionedGene }) {
           y={ARROW_Y - 4}
           textAnchor="middle"
           fontSize={8}
-          className={cn("font-mono", g.isCurrent ? "fill-foreground font-semibold" : "fill-muted-foreground")}
+          className={cn(
+            "font-mono",
+            g.isCurrent ? "fill-foreground font-semibold" : "fill-muted-foreground",
+          )}
         >
           {g.name}
         </text>
@@ -103,11 +106,8 @@ function TrackArrow({ g }: { g: PositionedGene }) {
   );
 
   if (g.isCurrent) {
-    return (
-      <g role="img" aria-current="true" aria-label={`${g.name} (this gene)`}>
-        {shape}
-      </g>
-    );
+    // Not a link; the ring + bold label + <title> convey "this gene".
+    return <g>{shape}</g>;
   }
   return (
     <Link href={`/genes/${g.id}`} aria-label={g.name}>
@@ -149,14 +149,9 @@ function NeighborhoodTrack({ gene }: { gene: Gene }) {
       <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
         Genomic neighborhood
       </span>
-      <div className="overflow-x-auto pb-1">
-        <svg
-          viewBox={`0 0 ${TRACK_W} ${TRACK_H}`}
-          width="100%"
-          style={{ minWidth: TRACK_W }}
-          role="group"
-          aria-label="Genomic neighborhood track"
-        >
+      <figure className="m-0 overflow-x-auto pb-1" aria-label="Genomic neighborhood track">
+        <svg viewBox={`0 0 ${TRACK_W} ${TRACK_H}`} width="100%" style={{ minWidth: TRACK_W }}>
+          <title>Genomic neighborhood track</title>
           <line
             x1={0}
             y1={BASELINE_Y}
@@ -169,7 +164,7 @@ function NeighborhoodTrack({ gene }: { gene: Gene }) {
             <TrackArrow key={g.id} g={g} />
           ))}
         </svg>
-      </div>
+      </figure>
       <EssentialityLegend />
     </div>
   );

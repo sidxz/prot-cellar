@@ -90,10 +90,8 @@ describe("GenomicContextSection", () => {
     const current = screen.getByText("rpoB");
     expect(current.closest("a")).toBeNull();
 
-    // The proportional SVG track renders as a labelled group.
-    expect(
-      screen.getByRole("group", { name: /genomic neighborhood track/i }),
-    ).toBeInTheDocument();
+    // The proportional SVG track renders as a labelled figure.
+    expect(screen.getByRole("figure", { name: /genomic neighborhood track/i })).toBeInTheDocument();
 
     // The essentiality legend renders alongside the track (fitness-axis buckets).
     const legend = screen.getByLabelText("Essentiality legend");

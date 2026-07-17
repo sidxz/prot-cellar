@@ -21,11 +21,7 @@ export interface PositionedGene extends TrackGene {
 }
 
 /** Position genes proportionally across `width` px; tiny ORFs get `minW`. */
-export function layoutNeighbors(
-  genes: TrackGene[],
-  width: number,
-  minW = 6,
-): PositionedGene[] {
+export function layoutNeighbors(genes: TrackGene[], width: number, minW = 6): PositionedGene[] {
   if (genes.length === 0) return [];
 
   const lo = Math.min(...genes.map((g) => Math.min(g.start, g.end)));

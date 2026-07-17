@@ -4,16 +4,15 @@ import type { EssentialityResponse } from "@/shared/lib/api/model";
 import { cn } from "@/shared/lib/utils";
 
 import {
-  type EssentialityBucket,
   ESSENTIALITY_STYLE,
+  type EssentialityBucket,
   FITNESS_AXIS_LABELS,
   essentialityConsensus,
   fitnessPosition,
   pivotConditionMethod,
 } from "../../lib/essentiality";
 
-const humanize = (b: string) =>
-  b.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+const humanize = (b: string) => b.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 
 // Segments low → high fitness, matching FITNESS_AXIS_LABELS order.
 const SEGMENTS: EssentialityBucket[] = [
@@ -82,10 +81,7 @@ export function EssentialityCallScale({ records }: { records: EssentialityRespon
         <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
           Consensus call
         </span>
-        <span
-          data-testid="ess-consensus-call"
-          className={cn("text-sm font-semibold", style.text)}
-        >
+        <span data-testid="ess-consensus-call" className={cn("text-sm font-semibold", style.text)}>
           {humanize(consensus.bucket)}
         </span>
       </div>
@@ -95,10 +91,7 @@ export function EssentialityCallScale({ records }: { records: EssentialityRespon
         <div className="relative">
           <div className="flex gap-0.5">
             {SEGMENTS.map((b) => (
-              <div
-                key={b}
-                className={cn("h-5 flex-1 rounded-sm", ESSENTIALITY_STYLE[b].bg)}
-              />
+              <div key={b} className={cn("h-5 flex-1 rounded-sm", ESSENTIALITY_STYLE[b].bg)} />
             ))}
           </div>
           {pct != null && (

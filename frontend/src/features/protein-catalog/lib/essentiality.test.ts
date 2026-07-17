@@ -76,7 +76,12 @@ describe("essentialityConsensus", () => {
 
   it("reports a single record as 'single' with its confidence", () => {
     const c = essentialityConsensus([{ classification: "essential", confidence: 0.9 }]);
-    expect(c).toMatchObject({ bucket: "essential", agreement: "single", total: 1, confidence: 0.9 });
+    expect(c).toMatchObject({
+      bucket: "essential",
+      agreement: "single",
+      total: 1,
+      confidence: 0.9,
+    });
   });
 
   it("marks records with the same call as 'agree'", () => {
