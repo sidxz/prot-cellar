@@ -3,7 +3,6 @@
 import { Skeleton } from "@/shared/components/ui/skeleton";
 
 import { useGeneTargetBiology } from "../../hooks/use-target-biology";
-import { ProvenanceLegend } from "./editable-record-table";
 import {
   CrispriStrainTable,
   EssentialityTable,
@@ -23,7 +22,6 @@ export function GeneTargetBiologyTab({ geneId }: { geneId: string }) {
 
   return (
     <div className="flex flex-col gap-8">
-      <ProvenanceLegend />
       <EssentialityTable geneId={geneId} records={data?.essentiality ?? []} />
       <VulnerabilityTable geneId={geneId} records={data?.vulnerability ?? []} />
       <HypomorphTable geneId={geneId} records={data?.hypomorph ?? []} />

@@ -3,7 +3,6 @@
 import { Skeleton } from "@/shared/components/ui/skeleton";
 
 import { useProteinTargetBiology } from "../../hooks/use-target-biology";
-import { ProvenanceLegend } from "./editable-record-table";
 import {
   ProteinActivityAssayTable,
   ProteinProductionTable,
@@ -20,7 +19,6 @@ export function ProteinTargetBiologyTab({ proteinId }: { proteinId: string }) {
 
   return (
     <div className="flex flex-col gap-8">
-      <ProvenanceLegend />
       <ProteinProductionTable proteinId={proteinId} records={data?.protein_production ?? []} />
       <ProteinActivityAssayTable
         proteinId={proteinId}
