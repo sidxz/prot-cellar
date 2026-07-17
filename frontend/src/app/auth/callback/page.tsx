@@ -1,6 +1,7 @@
 "use client";
 
 import { Button } from "@/shared/components/ui/button";
+import { LogoMark } from "@/shared/components/ui/logo-mark";
 import { Skeleton } from "@/shared/components/ui/skeleton";
 import { AuthzCallback } from "@sentinel-auth/nextjs";
 import { useRouter } from "next/navigation";
@@ -40,7 +41,15 @@ export default function CallbackPage() {
           className="flex flex-col items-end px-8 pt-8"
           style={{ animation: "auth-enter 0.7s ease-out 0.1s both" }}
         >
-          <h1 className="text-lg font-semibold tracking-tight">prot-cellar</h1>
+          <div className="flex items-center gap-3">
+            <LogoMark className="size-12" />
+            <h1
+              className="text-3xl font-medium tracking-tight"
+              style={{ fontFamily: "var(--font-overused-grotesk), ui-sans-serif, sans-serif" }}
+            >
+              ProtCellar
+            </h1>
+          </div>
           <span className="text-xs text-muted-foreground">protein &amp; target platform</span>
         </div>
 
