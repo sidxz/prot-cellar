@@ -20,7 +20,29 @@ from protcellar.application.shared.unit_of_work import UnitOfWork
 from protcellar.domain.protein_catalog.repository import GeneRepository
 from protcellar.domain.shared.errors import DomainError, NotFoundError
 from protcellar.domain.shared.global_workspace import GLOBAL_WORKSPACE_ID
+from protcellar.domain.target_biology.enums import EssentialityClass
+from protcellar.domain.target_biology.essentiality import Essentiality
 from protcellar.domain.target_biology.repository import EssentialityRepository
+
+_ESS_SEVERITY = {
+    EssentialityClass.ESSENTIAL: 4,
+    EssentialityClass.GROWTH_DEFECT: 3,
+    EssentialityClass.NON_ESSENTIAL: 2,
+    EssentialityClass.GROWTH_ADVANTAGE: 1,
+    EssentialityClass.UNCERTAIN: 0,
+}
+
+
+def _consensus_essentiality(records: list[Essentiality]) -> str | None:
+    """Modal essentiality call across a gene's records, ties broken toward the more
+    severe call — mirrors the frontend call-scale so a gene reads the same call in
+    the neighborhood track and in its own Essentiality section."""
+    if not records:
+        return None
+    counts: dict[EssentialityClass, int] = {}
+    for r in records:
+        counts[r.classification] = counts.get(r.classification, 0) + 1
+    return str(max(counts, key=lambda c: (counts[c], _ESS_SEVERITY[c])))
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -83,7 +105,7 @@ class GetGeneNeighborhood:
                         genomic_start=n.genomic_start,
                         genomic_end=n.genomic_end,
                         genomic_strand=n.genomic_strand,
-                        essentiality=str(records[0].classification) if records else None,
+                        essentiality=_consensus_essentiality(records),
                     )
                 )
             return Success(

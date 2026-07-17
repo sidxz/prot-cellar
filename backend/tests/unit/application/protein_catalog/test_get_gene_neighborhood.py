@@ -14,6 +14,7 @@ import pytest
 from protcellar.application.protein_catalog.get_gene_neighborhood import (
     GetGeneNeighborhood,
     GetGeneNeighborhoodQuery,
+    _consensus_essentiality,
 )
 from protcellar.domain.target_biology.enums import EssentialityClass
 from tests.fakes.fake_auth import FakeAuth
@@ -75,6 +76,39 @@ async def test_essentiality_comes_from_target_biology_records() -> None:
     by_name = {s.primary_name: s for s in result.unwrap().neighbors}
     assert by_name["Rv0668"].essentiality == "essential"  # from the target-biology record
     assert by_name["Rv0669"].essentiality is None  # no record -> no call
+
+
+def _rec(cls: EssentialityClass) -> SimpleNamespace:
+    return SimpleNamespace(classification=cls)
+
+
+def test_consensus_essentiality_is_modal_with_severity_tiebreak() -> None:
+    assert _consensus_essentiality([]) is None
+    assert _consensus_essentiality([_rec(EssentialityClass.ESSENTIAL)]) == "essential"
+    # the modal call wins
+    assert (
+        _consensus_essentiality(
+            [
+                _rec(EssentialityClass.ESSENTIAL),
+                _rec(EssentialityClass.ESSENTIAL),
+                _rec(EssentialityClass.NON_ESSENTIAL),
+            ]
+        )
+        == "essential"
+    )
+    # a modal tie breaks toward the more severe call
+    assert (
+        _consensus_essentiality(
+            [_rec(EssentialityClass.NON_ESSENTIAL), _rec(EssentialityClass.ESSENTIAL)]
+        )
+        == "essential"
+    )
+    assert (
+        _consensus_essentiality(
+            [_rec(EssentialityClass.GROWTH_ADVANTAGE), _rec(EssentialityClass.GROWTH_DEFECT)]
+        )
+        == "growth_defect"
+    )
 
 
 @pytest.mark.asyncio
