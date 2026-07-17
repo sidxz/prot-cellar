@@ -3,9 +3,8 @@
 import { Skeleton } from "@/shared/components/ui/skeleton";
 
 import { useGeneTargetBiology } from "../../hooks/use-target-biology";
-import { EssentialityCallScale } from "./essentiality-call-scale";
 import { ProvenanceLegend } from "./editable-record-table";
-import { VulnerabilityPanel } from "./vulnerability-panel";
+import { EssentialityCallScale } from "./essentiality-call-scale";
 import {
   CrispriStrainTable,
   EssentialityTable,
@@ -13,6 +12,8 @@ import {
   ResistanceMutationTable,
   VulnerabilityTable,
 } from "./gene-record-tables";
+import { ResistanceLollipop } from "./resistance-lollipop";
+import { VulnerabilityPanel } from "./vulnerability-panel";
 
 /** Gene detail "Target Biology" tab — the five gene-side records as editable tables. */
 export function GeneTargetBiologyTab({ geneId }: { geneId: string }) {
@@ -35,7 +36,10 @@ export function GeneTargetBiologyTab({ geneId }: { geneId: string }) {
       </div>
       <HypomorphTable geneId={geneId} records={data?.hypomorph ?? []} />
       <CrispriStrainTable geneId={geneId} records={data?.crispri_strain ?? []} />
-      <ResistanceMutationTable geneId={geneId} records={data?.resistance_mutation ?? []} />
+      <div className="flex flex-col gap-3">
+        <ResistanceLollipop records={data?.resistance_mutation ?? []} />
+        <ResistanceMutationTable geneId={geneId} records={data?.resistance_mutation ?? []} />
+      </div>
     </div>
   );
 }
