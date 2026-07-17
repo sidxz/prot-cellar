@@ -238,26 +238,31 @@ export function GeneDetailPage({ geneId }: GeneDetailPageProps) {
           rather than hide behind a tab. (The protein page, which is dense,
           keeps its tabs.) */}
       <GeneMetadataCard gene={data} />
+
+      {/* Target-validation content leads (essentiality → vulnerability → resistance);
+          genomic/operon context is supporting and follows. */}
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base font-semibold text-foreground">Target Biology</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <GeneTargetBiologyTab geneId={data.id} />
+        </CardContent>
+      </Card>
+
       <GenomicContextSection gene={data} />
 
-      <section aria-labelledby="target-biology-heading" className="flex flex-col gap-4">
-        <h2 id="target-biology-heading" className="text-base font-semibold text-foreground">
-          Target Biology
-        </h2>
-        <GeneTargetBiologyTab geneId={data.id} />
-      </section>
-
       {data.cross_references && data.cross_references.length > 0 && (
-        <section aria-labelledby="xrefs-heading">
-          <h2 id="xrefs-heading" className="text-base font-semibold mb-3 text-foreground">
-            Cross-References
-          </h2>
-          <Card>
-            <CardContent className="pt-4">
-              <CrossReferenceLinks items={data.cross_references} />
-            </CardContent>
-          </Card>
-        </section>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base font-semibold text-foreground">
+              Cross-References
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <CrossReferenceLinks items={data.cross_references} />
+          </CardContent>
+        </Card>
       )}
     </div>
   );

@@ -106,7 +106,7 @@ export function ResistanceLollipop({ records }: { records: ResistanceMutationRes
   };
 
   return (
-    <div className="flex flex-col gap-2 rounded-lg border border-border bg-card p-4">
+    <div className="flex flex-col gap-2 rounded-md bg-muted/40 p-4">
       <div className="flex items-baseline justify-between gap-2">
         <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
           Resistance mutations

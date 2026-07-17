@@ -76,7 +76,7 @@ export function EssentialityCallScale({ records }: { records: EssentialityRespon
   const pivot = showStrip ? pivotConditionMethod(records) : null;
 
   return (
-    <div className="flex flex-col gap-3 rounded-lg border border-border bg-card p-4">
+    <div className="flex flex-col gap-3 rounded-md bg-muted/40 p-4">
       <div className="flex items-baseline justify-between gap-2">
         <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
           Consensus call
