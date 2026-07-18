@@ -120,25 +120,18 @@ export function EssentialityCallScale({ records }: { records: EssentialityRespon
         </div>
       </div>
 
-      {/* Confidence meter + agreement subline. */}
-      <div className="flex items-center gap-3">
-        <span className="w-20 shrink-0 font-sans text-[0.625rem] uppercase tracking-wide text-muted-foreground">
-          confidence
-        </span>
-        <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
-          {consensus.confidence != null && (
-            <div
-              className="h-full rounded-full bg-primary"
-              style={{ width: `${consensus.confidence * 100}%` }}
-            />
-          )}
-        </div>
-        <span className="w-8 shrink-0 text-right font-sans text-xs tabular-nums text-foreground">
-          {consensus.confidence != null ? consensus.confidence.toFixed(2) : "—"}
-        </span>
-      </div>
-
-      <span className="font-sans text-[0.625rem] text-muted-foreground">{agreementLabel}</span>
+      {/* Confidence + agreement on one line — a single scalar doesn't need a full meter. */}
+      <span className="font-sans text-[0.6875rem] text-muted-foreground">
+        {consensus.confidence != null && (
+          <>
+            <span className="font-medium tabular-nums text-foreground">
+              {consensus.confidence.toFixed(2)}
+            </span>{" "}
+            confidence <span className="text-muted-foreground/60">·</span>{" "}
+          </>
+        )}
+        {agreementLabel}
+      </span>
 
       {/* Condition × method strip (only when there's more than one record). */}
       {pivot && (
