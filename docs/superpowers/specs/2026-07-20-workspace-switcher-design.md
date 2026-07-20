@@ -1,7 +1,7 @@
 # Workspace Switcher & Login Continuity — Design (ProtCellar port)
 
 **Date:** 2026-07-20
-**Status:** Approved (same-day port of the chem-vault2 design)
+**Status:** Implemented (2026-07-20, workspace-switcher branch)
 **Scope:** Frontend only. No backend changes, no new dependencies.
 **Origin:** `chem-vault2/docs/superpowers/specs/2026-07-20-workspace-switcher-design.md` —
 implemented, reviewed, and runtime-verified (16/16 E2E) in chem-vault2 today. This spec
