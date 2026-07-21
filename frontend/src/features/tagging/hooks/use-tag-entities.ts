@@ -6,9 +6,12 @@ export function useTagEntities(
   tagLogic: "any" | "all" = "any",
   types?: string[],
 ) {
-  return useListTagEntitiesApiV1TagsEntitiesGet({
-    tags: tagIds,
-    tag_logic: tagLogic,
-    types,
-  });
+  return useListTagEntitiesApiV1TagsEntitiesGet(
+    {
+      tags: tagIds,
+      tag_logic: tagLogic,
+      types,
+    },
+    { query: { enabled: tagIds.length > 0 } },
+  );
 }

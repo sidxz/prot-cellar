@@ -41,15 +41,17 @@ const ROWS = [
   },
 ];
 
-const mockUseTagEntities = vi.fn((_tagIds: string[], _tagLogic: string, types?: string[]) => ({
-  data: types ? ROWS.filter((r) => types.includes(r.entity_type)) : ROWS,
+// Single-fetch hook: always returns the full unfiltered row set. Per-type
+// filtering and facet counts are now derived client-side in tag-browse.tsx,
+// so the mock no longer takes a `types` arg to filter by.
+const mockUseTagEntities = vi.fn((_tagIds: string[], _tagLogic: string) => ({
+  data: ROWS,
   isLoading: false,
   error: null,
 }));
 
 vi.mock("../hooks/use-tag-entities", () => ({
-  useTagEntities: (tagIds: string[], tagLogic: string, types?: string[]) =>
-    mockUseTagEntities(tagIds, tagLogic, types),
+  useTagEntities: (tagIds: string[], tagLogic: string) => mockUseTagEntities(tagIds, tagLogic),
 }));
 
 // AG Grid does not render cell content in jsdom; stub DataGrid but still run
@@ -144,18 +146,30 @@ describe("TagBrowse", () => {
     );
   });
 
-  it("passes no type filter (`undefined`) on initial render", () => {
+  it("fetches tag entities exactly once (single-fetch, no type filter) on initial render", () => {
     renderPage();
 
-    expect(mockUseTagEntities).toHaveBeenCalledWith(["t1"], "any", undefined);
+    expect(mockUseTagEntities).toHaveBeenCalledTimes(1);
+    expect(mockUseTagEntities).toHaveBeenCalledWith(["t1"], "any");
   });
 
-  it("toggling a type facet chip filters the `types` passed to useTagEntities", () => {
+  it("toggling a type facet chip narrows the visible rows client-side", () => {
     renderPage();
-    mockUseTagEntities.mockClear();
+
+    // All three rows visible before any facet is toggled.
+    expect(screen.getByText("P12345")).toBeInTheDocument();
+    expect(screen.getByText("recA")).toBeInTheDocument();
+    expect(screen.getByText("Homo sapiens")).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: /gene/i }));
 
-    expect(mockUseTagEntities).toHaveBeenCalledWith(["t1"], "any", ["Gene"]);
+    // Gene row remains; the other types drop out of the grid — filtered
+    // client-side from the one already-fetched result set (see mock above,
+    // which always returns the full unfiltered ROWS regardless of the
+    // facet toggle: any narrowing observed here can only be tag-browse's
+    // own client-side filter, not a differently-shaped fetch).
+    expect(screen.getByText("recA")).toBeInTheDocument();
+    expect(screen.queryByText("P12345")).not.toBeInTheDocument();
+    expect(screen.queryByText("Homo sapiens")).not.toBeInTheDocument();
   });
 });

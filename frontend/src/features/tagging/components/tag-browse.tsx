@@ -92,21 +92,22 @@ export function TagBrowse() {
   const [typeFilter, setTypeFilter] = useState<string | null>(null);
 
   const hasTags = filter.tagIds.length > 0;
-  const types = typeFilter ? [typeFilter] : undefined;
-  const { data, isLoading, error } = useTagEntities(filter.tagIds, filter.tagLogic, types);
+  const { data, isLoading, error } = useTagEntities(filter.tagIds, filter.tagLogic);
 
-  // Unfiltered counts per type, for the facet chips — fetched once more
-  // without a type filter so switching chips doesn't blank out the others'
-  // counts. Cheap: same query key space, cached by react-query.
-  const { data: allData } = useTagEntities(filter.tagIds, filter.tagLogic);
-
+  // Facet counts per type, derived client-side from the single unfiltered
+  // fetch above — the backend caps this endpoint at 200 rows, so filtering
+  // the already-fetched array is cheap and avoids a second request per
+  // facet toggle (chem-cellar's pattern; see use-tag-entities.ts).
   const counts = useMemo(() => {
     const m = new Map<string, number>();
-    for (const r of allData ?? []) m.set(r.entity_type, (m.get(r.entity_type) ?? 0) + 1);
+    for (const r of data ?? []) m.set(r.entity_type, (m.get(r.entity_type) ?? 0) + 1);
     return m;
-  }, [allData]);
+  }, [data]);
 
-  const rows = data ?? [];
+  const rows = useMemo(
+    () => (data ?? []).filter((r) => !typeFilter || r.entity_type === typeFilter),
+    [data, typeFilter],
+  );
 
   const columnDefs = useMemo<ColDef<TaggedEntity>[]>(
     () => [
@@ -180,15 +181,15 @@ export function TagBrowse() {
         <div className="space-y-3">
           <div className="flex flex-wrap items-center gap-2">
             <span className="mr-1 text-sm text-muted-foreground">
-              {allData
-                ? `${allData.length} item${allData.length === 1 ? "" : "s"} across ${counts.size} type${
+              {data
+                ? `${data.length} item${data.length === 1 ? "" : "s"} across ${counts.size} type${
                     counts.size === 1 ? "" : "s"
                   }`
                 : ""}
             </span>
             <FacetChip
               label="All"
-              count={allData?.length ?? 0}
+              count={data?.length ?? 0}
               active={!typeFilter}
               onClick={() => setTypeFilter(null)}
             />
