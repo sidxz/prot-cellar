@@ -17,3 +17,4 @@ export { TagAutocomplete } from "./components/tag-autocomplete";
 export { TagFilter } from "./components/tag-filter";
 export type { TagFilterValue } from "./components/tag-filter";
 export { TagList } from "./components/tag-list";
+export { TagBrowse } from "./components/tag-browse";

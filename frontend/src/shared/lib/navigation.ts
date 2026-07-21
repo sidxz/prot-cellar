@@ -35,6 +35,7 @@ export const navigation: { home: NavItem; groups: NavGroup[] } = {
         { title: "Proteins", href: "/proteins", icon: Dna },
         { title: "Genes", href: "/genes", icon: Network },
         { title: "Targets", href: "/targets", icon: FlaskConical },
+        { title: "Tags", href: "/tags", icon: Tags },
       ],
     },
     {
