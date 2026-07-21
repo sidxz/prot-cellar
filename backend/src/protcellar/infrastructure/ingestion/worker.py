@@ -145,6 +145,9 @@ async def _on_startup(ctx: dict[str, Any]) -> None:
 
     dispatcher = EventDispatcher()
     dispatcher.register(DomainEvent, AuditEventHandler(session_factory))
+    # ponytail: second of two dispatch sites (the other is interface/app.py). A future
+    # external event publisher must register in BOTH or bulk-import events silently drop.
+    # See docs/superpowers/specs/2026-07-21-cross-service-event-notifications-decision.md
     ctx["dispatcher"] = dispatcher
 
 

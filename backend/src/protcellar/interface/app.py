@@ -38,6 +38,11 @@ def create_app() -> FastAPI:
         dispatcher = container[EventDispatcher]
         session_factory = container[async_sessionmaker]
         dispatcher.register(DomainEvent, AuditEventHandler(session_factory))
+        # ponytail: cross-service notification deliberately not built — no consumer yet.
+        # An external publisher registers here as one more subscriber (Redis Streams on
+        # valkey, not Kafka). NOTE: events also dispatch in the arq worker
+        # (infrastructure/ingestion/worker.py) — register in BOTH or bulk imports won't
+        # publish. See docs/superpowers/specs/2026-07-21-cross-service-event-notifications-decision.md
 
         # sentinel.lifespan fetches the JWKS signing key (fatal if it fails —
         # auth can't work without it). Action registration is best-effort and
