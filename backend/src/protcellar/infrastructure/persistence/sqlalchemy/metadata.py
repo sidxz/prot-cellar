@@ -12,6 +12,7 @@ import protcellar.infrastructure.persistence.sqlalchemy.audit_compliance.models
 import protcellar.infrastructure.persistence.sqlalchemy.imports.models
 import protcellar.infrastructure.persistence.sqlalchemy.plugins.models
 import protcellar.infrastructure.persistence.sqlalchemy.protein_catalog.models
+import protcellar.infrastructure.persistence.sqlalchemy.tagging.models
 import protcellar.infrastructure.persistence.sqlalchemy.target.models
 import protcellar.infrastructure.persistence.sqlalchemy.target_biology.models
 import protcellar.infrastructure.persistence.sqlalchemy.taxonomy.models
