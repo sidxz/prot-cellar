@@ -58,6 +58,9 @@ export interface ProteinListFilters {
   isEnzyme?: boolean;
   /** Only proteins with chemical matter in ChEMBL. */
   hasChembl?: boolean;
+  /** Only proteins carrying ALL (or ANY, per tagLogic) of these tag ids. */
+  tags?: string[];
+  tagLogic?: "any" | "all";
 }
 
 /** Filter parameters for listing genes. */
@@ -65,4 +68,7 @@ export interface GeneListFilters {
   name?: string;
   organismId?: string;
   strainId?: string;
+  /** Only genes carrying ALL (or ANY, per tagLogic) of these tag ids. */
+  tags?: string[];
+  tagLogic?: "any" | "all";
 }

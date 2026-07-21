@@ -1,5 +1,6 @@
 "use client";
 
+import { TagFilter, type TagFilterValue } from "@/features/tagging";
 import { DataGrid } from "@/shared/components/data-grid/data-grid";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
@@ -70,6 +71,10 @@ export function TargetListPage() {
     initialFilters.targetType ?? "all",
   );
   const [chemblIdInput, setChemblIdInput] = useState<string>(initialFilters.chemblId ?? "");
+  const [tagFilter, setTagFilter] = useState<TagFilterValue>({
+    tagIds: initialFilters.tags ?? [],
+    tagLogic: initialFilters.tagLogic ?? "any",
+  });
 
   // Persist filters to localStorage on change
   useEffect(() => {
@@ -93,6 +98,15 @@ export function TargetListPage() {
     setFilters((prev) => ({
       ...prev,
       targetType: val === "all" ? undefined : (val as TargetType),
+    }));
+  }
+
+  function applyTagFilter(v: TagFilterValue) {
+    setTagFilter(v);
+    setFilters((prev) => ({
+      ...prev,
+      tags: v.tagIds.length ? v.tagIds : undefined,
+      tagLogic: v.tagLogic,
     }));
   }
 
@@ -199,6 +213,9 @@ export function TargetListPage() {
             className="h-8 w-40"
           />
         </div>
+
+        {/* Tag facet */}
+        <TagFilter value={tagFilter} onChange={applyTagFilter} />
       </div>
 
       {/* Data grid */}

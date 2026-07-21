@@ -9,12 +9,20 @@ import {
 
 import type { Organism, OrganismListFilters } from "../types";
 
-/** List organisms with optional filters and cursor-based pagination. */
+/**
+ * List organisms with optional filters and cursor-based pagination.
+ *
+ * Caveat: when `name` is set the backend switches to a name-search branch
+ * (`OrganismRepository.find_by_name`) that does NOT apply `tags`/`tag_logic`
+ * — tag filtering is only wired into the primary (name-less) list path.
+ */
 export function useOrganisms(filters: OrganismListFilters = {}, cursor?: string) {
   return useListOrganismsApiV1OrganismsGet({
     name: filters.name ?? undefined,
     rank: filters.rank ?? undefined,
     limit: filters.limit ?? undefined,
+    tags: filters.tags ?? undefined,
+    tag_logic: filters.tagLogic ?? undefined,
     cursor: cursor ?? undefined,
   });
 }

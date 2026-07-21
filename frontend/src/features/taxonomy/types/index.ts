@@ -63,11 +63,24 @@ export interface OrganismListFilters {
   name?: string;
   rank?: string;
   limit?: number;
+  /** Only organisms carrying ALL (or ANY, per tagLogic) of these tag ids. */
+  tags?: string[];
+  tagLogic?: "any" | "all";
 }
 
 /** Filter parameters for listing proteomes. */
 export interface ProteomeListFilters {
   organismId?: string;
+  /** Only proteomes carrying ALL (or ANY, per tagLogic) of these tag ids. */
+  tags?: string[];
+  tagLogic?: "any" | "all";
+}
+
+/** Filter parameters for listing strains. */
+export interface StrainListFilters {
+  /** Only strains carrying ALL (or ANY, per tagLogic) of these tag ids. */
+  tags?: string[];
+  tagLogic?: "any" | "all";
 }
 
 // ─── Form value types ─────────────────────────────────────────────────────────

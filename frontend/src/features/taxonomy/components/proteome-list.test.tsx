@@ -4,6 +4,12 @@ import { describe, expect, it, vi } from "vitest";
 
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn() }) }));
 
+// TagFilter has its own dedicated test suite; stub it here so this test
+// isn't coupled to its internals.
+vi.mock("@/features/tagging", () => ({
+  TagFilter: () => null,
+}));
+
 vi.mock("../hooks/use-proteomes", () => ({
   useProteomes: () => ({
     data: {

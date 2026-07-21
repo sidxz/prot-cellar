@@ -1,5 +1,6 @@
 "use client";
 
+import { TagFilter, type TagFilterValue } from "@/features/tagging";
 import { useOrganisms } from "@/features/taxonomy/hooks/use-organisms";
 import { TAXON_FILTER_PAGE_SIZE } from "@/features/taxonomy/types";
 import { DataGrid } from "@/shared/components/data-grid/data-grid";
@@ -66,6 +67,10 @@ export function GeneListPage() {
 
   const [filters, setFilters] = useState<GeneListFilters>(initialFilters);
   const [nameInput, setNameInput] = useState<string>(initialFilters.name ?? "");
+  const [tagFilter, setTagFilter] = useState<TagFilterValue>({
+    tagIds: initialFilters.tags ?? [],
+    tagLogic: initialFilters.tagLogic ?? "any",
+  });
   const { data: orgData } = useOrganisms({ limit: TAXON_FILTER_PAGE_SIZE });
 
   // Persist filters to localStorage on change
@@ -99,6 +104,15 @@ export function GeneListPage() {
 
   const handleStrainChange = useCallback((strainId: string | undefined) => {
     setFilters((prev) => ({ ...prev, strainId }));
+  }, []);
+
+  const applyTagFilter = useCallback((v: TagFilterValue) => {
+    setTagFilter(v);
+    setFilters((prev) => ({
+      ...prev,
+      tags: v.tagIds.length ? v.tagIds : undefined,
+      tagLogic: v.tagLogic,
+    }));
   }, []);
 
   // ── Cursor pagination ────────────────────────────────────────────────────
@@ -184,6 +198,11 @@ export function GeneListPage() {
           onOrganismChange={handleOrganismChange}
           onStrainChange={handleStrainChange}
         />
+
+        {/* Tag facet — NOTE: while a name search is active, the backend routes
+            through GeneRepository.find_by_name, which does not apply tag
+            filtering. Tags only filter the primary (name-less) list view. */}
+        <TagFilter value={tagFilter} onChange={applyTagFilter} />
       </div>
 
       {/* Data grid */}

@@ -1,5 +1,6 @@
 "use client";
 
+import { TagFilter, type TagFilterValue } from "@/features/tagging";
 import { DataGrid } from "@/shared/components/data-grid/data-grid";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
@@ -57,6 +58,10 @@ export function OrganismListPage() {
   const [filters, setFilters] = useState<OrganismListFilters>(initialFilters);
   const [nameInput, setNameInput] = useState<string>(initialFilters.name ?? "");
   const [rankInput, setRankInput] = useState<string>(initialFilters.rank ?? "");
+  const [tagFilter, setTagFilter] = useState<TagFilterValue>({
+    tagIds: initialFilters.tags ?? [],
+    tagLogic: initialFilters.tagLogic ?? "any",
+  });
 
   // Persist filters to localStorage on change
   useEffect(() => {
@@ -83,6 +88,15 @@ export function OrganismListPage() {
     rankDebounceRef.current = setTimeout(() => {
       setFilters((prev) => ({ ...prev, rank: raw.trim() || undefined }));
     }, 300);
+  }, []);
+
+  const applyTagFilter = useCallback((v: TagFilterValue) => {
+    setTagFilter(v);
+    setFilters((prev) => ({
+      ...prev,
+      tags: v.tagIds.length ? v.tagIds : undefined,
+      tagLogic: v.tagLogic,
+    }));
   }, []);
 
   // ── Cursor pagination ────────────────────────────────────────────────────
@@ -173,6 +187,11 @@ export function OrganismListPage() {
             className="h-8 w-36"
           />
         </div>
+
+        {/* Tag facet — NOTE: while a name search is active, the backend routes
+            through OrganismRepository.find_by_name, which does not apply tag
+            filtering. Tags only filter the primary (name-less) list view. */}
+        <TagFilter value={tagFilter} onChange={applyTagFilter} />
       </div>
 
       {/* Data grid */}

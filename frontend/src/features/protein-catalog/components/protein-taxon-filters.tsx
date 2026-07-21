@@ -31,7 +31,7 @@ export function ProteinTaxonFilters({
   onStrainChange,
 }: ProteinTaxonFiltersProps) {
   const { data: orgData } = useOrganisms({ limit: TAXON_FILTER_PAGE_SIZE });
-  const { data: strainData } = useStrains(undefined, TAXON_FILTER_PAGE_SIZE);
+  const { data: strainData } = useStrains({}, undefined, TAXON_FILTER_PAGE_SIZE);
 
   const organisms = orgData?.items ?? [];
   const strains = scopeStrainsToOrganism(strainData?.items ?? [], organismId);

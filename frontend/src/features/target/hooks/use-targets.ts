@@ -17,6 +17,8 @@ export function useTargets(filters: TargetListFilters = {}, cursor?: string) {
   return useListTargetsApiV1TargetsGet({
     target_type: filters.targetType ?? undefined,
     chembl_id: filters.chemblId ?? undefined,
+    tags: filters.tags ?? undefined,
+    tag_logic: filters.tagLogic ?? undefined,
     cursor: cursor ?? undefined,
   });
 }

@@ -34,7 +34,7 @@ export function OrganismReferenceStrain({
   referenceStrainId: string | null | undefined;
 }) {
   const qc = useQueryClient();
-  const { data: strainData } = useStrains(undefined, TAXON_FILTER_PAGE_SIZE);
+  const { data: strainData } = useStrains({}, undefined, TAXON_FILTER_PAGE_SIZE);
   const strains = scopeStrainsToOrganism(strainData?.items ?? [], organismId);
 
   const update = useUpdateOrganismApiV1OrganismsOrganismIdPatch({

@@ -1,5 +1,6 @@
 "use client";
 
+import { TagFilter, type TagFilterValue } from "@/features/tagging";
 import { DataGrid } from "@/shared/components/data-grid/data-grid";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
@@ -56,6 +57,10 @@ export function ProteomeListPage() {
 
   const [filters, setFilters] = useState<ProteomeListFilters>(initialFilters);
   const [organismIdInput, setOrganismIdInput] = useState<string>(initialFilters.organismId ?? "");
+  const [tagFilter, setTagFilter] = useState<TagFilterValue>({
+    tagIds: initialFilters.tags ?? [],
+    tagLogic: initialFilters.tagLogic ?? "any",
+  });
 
   // Persist filters to localStorage on change
   useEffect(() => {
@@ -71,6 +76,15 @@ export function ProteomeListPage() {
     organismDebounceRef.current = setTimeout(() => {
       setFilters((prev) => ({ ...prev, organismId: raw.trim() || undefined }));
     }, 300);
+  }, []);
+
+  const applyTagFilter = useCallback((v: TagFilterValue) => {
+    setTagFilter(v);
+    setFilters((prev) => ({
+      ...prev,
+      tags: v.tagIds.length ? v.tagIds : undefined,
+      tagLogic: v.tagLogic,
+    }));
   }, []);
 
   // ── Cursor pagination ────────────────────────────────────────────────────
@@ -153,6 +167,12 @@ export function ProteomeListPage() {
             Filter by organism id (search picker — future)
           </p>
         </div>
+
+        {/* Tag facet — NOTE: while an organism id filter is active, the backend
+            routes through ProteomeRepository.find_by_organism, which does not
+            apply tag filtering. Tags only filter the primary (organism-less)
+            list view. */}
+        <TagFilter value={tagFilter} onChange={applyTagFilter} />
       </div>
 
       {/* Data grid */}

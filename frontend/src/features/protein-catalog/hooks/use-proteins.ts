@@ -26,6 +26,8 @@ export function useProteins(filters: ProteinListFilters = {}, cursor?: string) {
     is_enzyme: filters.isEnzyme ?? undefined,
     // "Has inhibitors" maps onto the generic cross-reference filter.
     xref_db: filters.hasChembl ? "ChEMBL" : undefined,
+    tags: filters.tags ?? undefined,
+    tag_logic: filters.tagLogic ?? undefined,
     cursor: cursor ?? undefined,
   });
 }

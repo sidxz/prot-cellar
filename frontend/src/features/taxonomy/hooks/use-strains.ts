@@ -10,9 +10,13 @@ import {
 } from "@/shared/lib/api/strains/strains";
 import { showSuccess } from "@/shared/lib/toast";
 
-/** List strains with optional cursor-based pagination and page size. */
-export function useStrains(cursor?: string, limit?: number) {
+import type { StrainListFilters } from "../types";
+
+/** List strains with optional tag filters, cursor-based pagination, and page size. */
+export function useStrains(filters: StrainListFilters = {}, cursor?: string, limit?: number) {
   return useListStrainsApiV1StrainsGet({
+    tags: filters.tags ?? undefined,
+    tag_logic: filters.tagLogic ?? undefined,
     cursor: cursor ?? undefined,
     limit: limit ?? undefined,
   });

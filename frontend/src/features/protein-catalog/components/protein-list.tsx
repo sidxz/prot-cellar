@@ -1,5 +1,6 @@
 "use client";
 
+import { TagFilter, type TagFilterValue } from "@/features/tagging";
 import { OrganismRef } from "@/shared/components/common/organism-ref";
 import { StrainRef } from "@/shared/components/common/strain-ref";
 import { DataGrid } from "@/shared/components/data-grid/data-grid";
@@ -150,6 +151,10 @@ export function ProteinListPage() {
   const [maxLengthInput, setMaxLengthInput] = useState<string>(
     initialFilters.maxLength != null ? String(initialFilters.maxLength) : "",
   );
+  const [tagFilter, setTagFilter] = useState<TagFilterValue>({
+    tagIds: initialFilters.tags ?? [],
+    tagLogic: initialFilters.tagLogic ?? "any",
+  });
 
   // Debounce the free-text search into the filter set (300ms).
   useEffect(() => {
@@ -203,7 +208,8 @@ export function ProteinListPage() {
     !!filters.strainId ||
     filters.reviewed != null ||
     filters.minLength != null ||
-    filters.maxLength != null;
+    filters.maxLength != null ||
+    !!filters.tags?.length;
 
   // ── Filter handlers ──────────────────────────────────────────────────────
   function applyReviewed(state: ReviewedState) {
@@ -235,6 +241,15 @@ export function ProteinListPage() {
     setMaxLengthInput(raw);
     const n = raw === "" ? undefined : Number(raw);
     setFilters((prev) => ({ ...prev, maxLength: Number.isFinite(n) ? (n as number) : undefined }));
+  }
+
+  function applyTagFilter(v: TagFilterValue) {
+    setTagFilter(v);
+    setFilters((prev) => ({
+      ...prev,
+      tags: v.tagIds.length ? v.tagIds : undefined,
+      tagLogic: v.tagLogic,
+    }));
   }
 
   // ── Pagination handlers ──────────────────────────────────────────────────
@@ -334,6 +349,10 @@ export function ProteinListPage() {
           <FilterChip active={!!filters.hasChembl} onClick={() => toggleBool("hasChembl")}>
             Has inhibitors
           </FilterChip>
+
+          {/* Tag facet — combines fine with search/organism/strain/boolean filters
+              (all flow through the same primary list query). */}
+          <TagFilter value={tagFilter} onChange={applyTagFilter} />
 
           <Button
             type="button"

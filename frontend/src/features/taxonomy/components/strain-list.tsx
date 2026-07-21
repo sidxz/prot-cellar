@@ -1,11 +1,13 @@
 "use client";
 
+import { TagFilter, type TagFilterValue } from "@/features/tagging";
 import { DataGrid } from "@/shared/components/data-grid/data-grid";
 import { Button } from "@/shared/components/ui/button";
 import { FlaskConical } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { useStrains } from "../hooks/use-strains";
+import type { StrainListFilters } from "../types";
 import { strainColumnDefs } from "./strain-columns";
 import { StrainFormDialog } from "./strain-form-dialog";
 
@@ -28,12 +30,24 @@ function StrainsEmptyState() {
 export function StrainListPage() {
   const router = useRouter();
 
+  // ── Tag filter ───────────────────────────────────────────────────────────
+  const [tagFilter, setTagFilter] = useState<TagFilterValue>({ tagIds: [], tagLogic: "any" });
+  const filters: StrainListFilters = {
+    tags: tagFilter.tagIds.length ? tagFilter.tagIds : undefined,
+    tagLogic: tagFilter.tagLogic,
+  };
+
   // ── Cursor pagination ────────────────────────────────────────────────────
   const [cursorStack, setCursorStack] = useState<(string | undefined)[]>([undefined]);
   const currentCursor = cursorStack[cursorStack.length - 1];
 
+  function applyTagFilter(v: TagFilterValue) {
+    setTagFilter(v);
+    setCursorStack([undefined]);
+  }
+
   // ── Data ─────────────────────────────────────────────────────────────────
-  const { data, isLoading, isError } = useStrains(currentCursor);
+  const { data, isLoading, isError } = useStrains(filters, currentCursor);
 
   const strains = useMemo(() => {
     if (!data?.items) return undefined;
@@ -82,6 +96,11 @@ export function StrainListPage() {
         <Button type="button" size="sm" onClick={() => setNewStrainOpen(true)}>
           New Strain
         </Button>
+      </div>
+
+      {/* Toolbar */}
+      <div className="flex flex-wrap items-end gap-3 rounded-lg border bg-muted/20 px-4 py-3">
+        <TagFilter value={tagFilter} onChange={applyTagFilter} />
       </div>
 
       {/* Data grid */}

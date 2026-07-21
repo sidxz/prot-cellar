@@ -52,4 +52,7 @@ export const RELATIONSHIP_LABELS: Record<ComponentRelationship, string> = {
 export interface TargetListFilters {
   targetType?: TargetType;
   chemblId?: string;
+  /** Only targets carrying ALL (or ANY, per tagLogic) of these tag ids. */
+  tags?: string[];
+  tagLogic?: "any" | "all";
 }
