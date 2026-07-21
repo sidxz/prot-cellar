@@ -57,6 +57,8 @@ def _create_test_app(database_url: str, fake_auth: FakeAuth) -> FastAPI:
     )
     from protcellar.interface.routes.proteomes import router as proteome_router
     from protcellar.interface.routes.strains import router as strain_router
+    from protcellar.interface.routes.tags import assignment_router as tags_assignment_router
+    from protcellar.interface.routes.tags import router as tags_router
     from protcellar.interface.routes.target_biology import router as target_biology_router
     from protcellar.interface.routes.targets import router as target_router
     from protcellar.interface.routes.version import router as version_router
@@ -76,6 +78,8 @@ def _create_test_app(database_url: str, fake_auth: FakeAuth) -> FastAPI:
     app.include_router(imports_router)
     app.include_router(plugins_router)
     app.include_router(target_biology_router)
+    app.include_router(tags_router)
+    app.include_router(tags_assignment_router)
 
     # Override the stable auth wrapper (not the sentinel SDK directly)
     app.dependency_overrides[get_auth] = lambda: fake_auth
@@ -126,6 +130,20 @@ async def editor_client(
     """Async HTTP client scoped to an editor role (for 403 tests)."""
     editor_auth = FakeAuth(role="editor", workspace_id=workspace_id, user_id=user_id)
     app = _create_test_app(database_url, editor_auth)
+    transport = ASGITransport(app=app)  # type: ignore[arg-type]
+    async with AsyncClient(transport=transport, base_url="http://test") as ac:
+        yield ac
+    engine = app.state.container[AsyncEngine]
+    await engine.dispose()
+
+
+@pytest.fixture
+async def viewer_client(
+    database_url: str, _run_migrations: None, workspace_id: uuid.UUID, user_id: uuid.UUID
+) -> AsyncIterator[AsyncClient]:
+    """Async HTTP client scoped to a viewer role (for editor-required 403 tests)."""
+    viewer_auth = FakeAuth(role="viewer", workspace_id=workspace_id, user_id=user_id)
+    app = _create_test_app(database_url, viewer_auth)
     transport = ASGITransport(app=app)  # type: ignore[arg-type]
     async with AsyncClient(transport=transport, base_url="http://test") as ac:
         yield ac

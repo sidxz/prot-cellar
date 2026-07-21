@@ -130,6 +130,12 @@ def create_app() -> FastAPI:
 
     app.include_router(target_biology_router)
 
+    from protcellar.interface.routes.tags import assignment_router as tags_assignment_router
+    from protcellar.interface.routes.tags import router as tags_router
+
+    app.include_router(tags_router)
+    app.include_router(tags_assignment_router)
+
     return app
 
 
