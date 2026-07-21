@@ -93,14 +93,6 @@ class TagLinkRepository(Protocol):
         """Tags on the entity, each with its assignment provenance."""
         ...
 
-    async def find_entity_ids_for_tags(
-        self,
-        workspace_id: uuid.UUID,
-        tag_ids: list[uuid.UUID],
-        *,
-        match_all: bool,
-    ) -> list[uuid.UUID]: ...
-
     async def repoint(
         self, workspace_id: uuid.UUID, from_tag_id: uuid.UUID, to_tag_id: uuid.UUID
     ) -> None: ...

@@ -20,7 +20,7 @@ from __future__ import annotations
 
 import uuid
 
-from sqlalchemy import delete, distinct, func, literal, select
+from sqlalchemy import delete, literal, select
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 
 from protcellar.domain.shared.global_workspace import GLOBAL_WORKSPACE_ID
@@ -143,7 +143,15 @@ class SQLAlchemyTagLinkRepository:
     ) -> None:
         if not await self.entity_exists_in_workspace(workspace_id, entity_id):
             return
-        del_stmt = delete(self.link_model).where(self._entity_col == entity_id)
+        # Reference entities (proteins/genes/organisms/...) are tagged by many
+        # workspaces against the same shared row, so the reconcile-DELETE must
+        # only ever touch tag links this workspace owns — otherwise workspace
+        # A reconciling its own tags collaterally deletes workspace B's links
+        # on the same entity (cross-tenant data loss).
+        owned = select(TagModel.id).where(TagModel.workspace_id == workspace_id)
+        del_stmt = delete(self.link_model).where(
+            self._entity_col == entity_id, self.link_model.tag_id.in_(owned)
+        )
         if tag_ids:
             del_stmt = del_stmt.where(self.link_model.tag_id.not_in(tag_ids))
         await self._session.execute(del_stmt)
@@ -189,34 +197,6 @@ class SQLAlchemyTagLinkRepository:
             )
             for model, assigned_by, assigned_at in result.all()
         ]
-
-    async def find_entity_ids_for_tags(
-        self,
-        workspace_id: uuid.UUID,
-        tag_ids: list[uuid.UUID],
-        *,
-        match_all: bool,
-    ) -> list[uuid.UUID]:
-        if not tag_ids:
-            return []
-        unique_ids = list(set(tag_ids))
-        col = self._entity_col
-        stmt = (
-            select(col)
-            .join(self.entity_model, self.entity_model.id == col)
-            .where(
-                self.link_model.tag_id.in_(unique_ids),
-                self.entity_model.workspace_id.in_([workspace_id, GLOBAL_WORKSPACE_ID]),
-            )
-        )
-        if match_all:
-            stmt = stmt.group_by(col).having(
-                func.count(distinct(self.link_model.tag_id)) == len(unique_ids)
-            )
-        else:
-            stmt = stmt.distinct()
-        result = await self._session.execute(stmt)
-        return list(result.scalars().all())
 
     async def repoint(
         self, workspace_id: uuid.UUID, from_tag_id: uuid.UUID, to_tag_id: uuid.UUID

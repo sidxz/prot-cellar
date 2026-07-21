@@ -94,31 +94,6 @@ async def test_unknown_entity_id_is_not_visible(uow: AsyncUnitOfWork) -> None:
         assert await repo.entity_exists_in_workspace(uuid.uuid4(), uuid.uuid4()) is False
 
 
-async def test_find_entity_ids_for_tags_includes_global_entities(uow: AsyncUnitOfWork) -> None:
-    """find_entity_ids_for_tags must apply the same global-or-mine visibility
-    as entity_exists_in_workspace — a GLOBAL-pinned organism tagged from a
-    real workspace must still show up when that workspace filters by the tag.
-    Regression test for a bug where the entity-workspace filter was strict
-    `== workspace_id`, silently dropping every global entity from the result."""
-    organism = _organism()
-    ws, user = uuid.uuid4(), uuid.uuid4()
-    async with uow:
-        uow.session.add(organism)
-        tag = await SQLAlchemyTagRepository(uow).get_or_create(ws, TagName(key="priority"), user)
-        await uow.commit()
-
-    async with uow:
-        repo = SQLAlchemyTagLinkRepositoryProvider(uow).for_type(TaggableEntityType.ORGANISM)
-        inserted = await repo.add(ws, organism.id, tag.id, user)
-        await uow.commit()
-    assert inserted is True
-
-    async with uow:
-        repo = SQLAlchemyTagLinkRepositoryProvider(uow).for_type(TaggableEntityType.ORGANISM)
-        entity_ids = await repo.find_entity_ids_for_tags(ws, [tag.id], match_all=False)
-    assert organism.id in entity_ids
-
-
 # ---------------------------------------------------------------------------
 # Organism tombstone override — merged/deleted organisms are not valid targets
 # ---------------------------------------------------------------------------
@@ -194,6 +169,43 @@ async def test_add_remove_round_trip(uow: AsyncUnitOfWork) -> None:
         repo = SQLAlchemyTagLinkRepositoryProvider(uow).for_type(TaggableEntityType.TARGET)
         tags_after_remove = await repo.find_tags_for_entity(ws, target.id)
     assert tags_after_remove == []
+
+
+async def test_set_for_entity_does_not_delete_other_workspaces_tags(uow: AsyncUnitOfWork) -> None:
+    """Regression test: set_for_entity's reconcile-DELETE must be scoped to the
+    caller's own tags. Reference entities (organisms, proteins, ...) are
+    GLOBAL-pinned and tagged by MANY workspaces against the SAME row — an
+    unscoped DELETE issued by workspace A's set_for_entity call collaterally
+    deletes workspace B's tag links on that shared row. Cross-tenant data
+    loss (the merge-blocking Critical from the whole-branch review)."""
+    organism = _organism()
+    ws_a, ws_b, user = uuid.uuid4(), uuid.uuid4(), uuid.uuid4()
+    async with uow:
+        uow.session.add(organism)
+        tag_repo = SQLAlchemyTagRepository(uow)
+        tag_keep_a = await tag_repo.get_or_create(ws_a, TagName(key="keep-a"), user)
+        tag_keep_b = await tag_repo.get_or_create(ws_b, TagName(key="keep-b"), user)
+        await uow.commit()
+
+    async with uow:
+        repo = SQLAlchemyTagLinkRepositoryProvider(uow).for_type(TaggableEntityType.ORGANISM)
+        await repo.add(ws_a, organism.id, tag_keep_a.id, user)
+        await repo.add(ws_b, organism.id, tag_keep_b.id, user)
+        await uow.commit()
+
+    # Workspace A reconciles its own tag set on the shared organism.
+    async with uow:
+        repo = SQLAlchemyTagLinkRepositoryProvider(uow).for_type(TaggableEntityType.ORGANISM)
+        await repo.set_for_entity(ws_a, organism.id, [tag_keep_a.id], user)
+        await uow.commit()
+
+    # Workspace B's tag link on the SAME shared row must survive untouched.
+    async with uow:
+        repo = SQLAlchemyTagLinkRepositoryProvider(uow).for_type(TaggableEntityType.ORGANISM)
+        tags_b = await repo.find_tags_for_entity(ws_b, organism.id)
+        tags_a = await repo.find_tags_for_entity(ws_a, organism.id)
+    assert {t.id for t in tags_b} == {tag_keep_b.id}
+    assert {t.id for t in tags_a} == {tag_keep_a.id}
 
 
 async def test_add_rejects_entity_outside_workspace(uow: AsyncUnitOfWork) -> None:
