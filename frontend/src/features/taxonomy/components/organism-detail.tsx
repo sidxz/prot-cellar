@@ -1,5 +1,6 @@
 "use client";
 
+import { TagsRelation } from "@/features/tagging";
 import { Badge } from "@/shared/components/ui/badge";
 import { Skeleton } from "@/shared/components/ui/skeleton";
 import { useBreadcrumbOverride } from "@/shared/lib/stores/breadcrumb-store";
@@ -188,6 +189,14 @@ export function OrganismDetailPage({ organismId }: OrganismDetailPageProps) {
             <MetadataRow label="Source release">{organism.source_release}</MetadataRow>
           )}
         </dl>
+      </section>
+
+      {/* ── Tags ── */}
+      <section aria-labelledby="tags-heading">
+        <h2 id="tags-heading" className="text-base font-semibold mb-3 text-foreground">
+          Tags
+        </h2>
+        <TagsRelation entity="organisms" id={organism.id} />
       </section>
 
       {/* direct-children list deferred (no API) */}

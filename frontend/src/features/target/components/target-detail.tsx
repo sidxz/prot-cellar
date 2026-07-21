@@ -4,6 +4,7 @@ import { ExternalLink, Target as TargetIcon } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 
+import { TagsRelation } from "@/features/tagging";
 import { OrganismRef } from "@/shared/components/common/organism-ref";
 import { Badge } from "@/shared/components/ui/badge";
 import { Button } from "@/shared/components/ui/button";
@@ -251,6 +252,16 @@ export function TargetDetailPage({ targetId }: TargetDetailPageProps) {
 
       {/* ── Metadata card ── */}
       <MetadataCard target={target} />
+
+      {/* ── Tags ── */}
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base font-semibold text-foreground">Tags</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <TagsRelation entity="targets" id={target.id} />
+        </CardContent>
+      </Card>
 
       {/* ── Cross-references ── */}
       {target.cross_references && target.cross_references.length > 0 && (

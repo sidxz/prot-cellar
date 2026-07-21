@@ -9,6 +9,12 @@ vi.mock("@/shared/lib/api/organisms/organisms", () => ({
   }),
 }));
 
+// TagsRelation has its own dedicated test suite; stub it here so this test
+// stays focused on the target detail chrome (no QueryClient wiring needed).
+vi.mock("@/features/tagging", () => ({
+  TagsRelation: () => null,
+}));
+
 vi.mock("../hooks/use-targets", () => ({
   useTarget: () => ({
     data: {

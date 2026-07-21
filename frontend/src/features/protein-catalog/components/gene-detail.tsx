@@ -1,5 +1,6 @@
 "use client";
 
+import { TagsRelation } from "@/features/tagging";
 import { OrganismRef } from "@/shared/components/common/organism-ref";
 import { Badge } from "@/shared/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/card";
@@ -238,6 +239,15 @@ export function GeneDetailPage({ geneId }: GeneDetailPageProps) {
           rather than hide behind a tab. (The protein page, which is dense,
           keeps its tabs.) */}
       <GeneMetadataCard gene={data} />
+
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base font-semibold text-foreground">Tags</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <TagsRelation entity="genes" id={data.id} />
+        </CardContent>
+      </Card>
 
       {/* Target-validation content leads (essentiality → vulnerability → resistance);
           genomic/operon context is supporting and follows. */}

@@ -18,6 +18,12 @@ vi.mock("@/shared/lib/api/genes/genes", () => ({
   })),
 }));
 
+// TagsRelation has its own dedicated test suite; stub it here so this test
+// stays focused on the gene detail chrome (no QueryClient wiring needed).
+vi.mock("@/features/tagging", () => ({
+  TagsRelation: () => null,
+}));
+
 vi.mock("../hooks/use-proteins", () => ({
   useProteins: () => ({
     data: {

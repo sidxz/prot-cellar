@@ -10,3 +10,7 @@ export {
   useSetEntityTags,
 } from "./hooks/use-entity-tags";
 export { useTagEntities } from "./hooks/use-tag-entities";
+
+// Components
+export { TagsRelation } from "./components/tags-relation";
+export { TagAutocomplete } from "./components/tag-autocomplete";

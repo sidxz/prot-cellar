@@ -1,5 +1,6 @@
 "use client";
 
+import { TagsRelation } from "@/features/tagging";
 import { OrganismRef } from "@/shared/components/common/organism-ref";
 import { Badge } from "@/shared/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/card";
@@ -152,6 +153,16 @@ export function ProteomeDetailPage({ proteomeId }: ProteomeDetailPageProps) {
               </MetadataRow>
             )}
           </dl>
+        </CardContent>
+      </Card>
+
+      {/* ── Tags ── */}
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base font-semibold text-foreground">Tags</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <TagsRelation entity="proteomes" id={proteome.id} />
         </CardContent>
       </Card>
     </div>

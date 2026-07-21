@@ -31,6 +31,12 @@ vi.mock("../hooks/use-target-biology", () => ({
   useProteinTargetBiology: vi.fn(() => ({ data: undefined })),
 }));
 
+// TagsRelation has its own dedicated test suite; stub it here so this test
+// stays focused on the protein detail chrome (no QueryClient wiring needed).
+vi.mock("@/features/tagging", () => ({
+  TagsRelation: () => null,
+}));
+
 // ── Happy-path mock (primary fetch succeeds) ──────────────────────────────
 vi.mock("../hooks/use-proteins", () => ({
   useProtein: vi.fn(() => ({

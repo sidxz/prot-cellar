@@ -34,6 +34,12 @@ vi.mock("./organism-reference-strain", () => ({
   OrganismReferenceStrain: () => null,
 }));
 
+// TagsRelation has its own dedicated test suite; stub it here so this test
+// stays focused on the organism detail chrome (no QueryClient wiring needed).
+vi.mock("@/features/tagging", () => ({
+  TagsRelation: () => null,
+}));
+
 import { OrganismDetailPage } from "./organism-detail";
 
 describe("OrganismDetailPage", () => {

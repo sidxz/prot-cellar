@@ -4,6 +4,7 @@ import { ExternalLink, FlaskConical } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 
+import { TagsRelation } from "@/features/tagging";
 import { OrganismRef } from "@/shared/components/common/organism-ref";
 import { Button } from "@/shared/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/card";
@@ -177,6 +178,16 @@ export function StrainDetailPage({ strainId }: StrainDetailPageProps) {
               </MetadataRow>
             )}
           </dl>
+        </CardContent>
+      </Card>
+
+      {/* ── Tags ── */}
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base font-semibold text-foreground">Tags</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <TagsRelation entity="strains" id={strain.id} />
         </CardContent>
       </Card>
 

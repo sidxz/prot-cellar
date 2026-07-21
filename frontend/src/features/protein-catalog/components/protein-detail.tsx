@@ -1,5 +1,6 @@
 "use client";
 
+import { TagsRelation } from "@/features/tagging";
 import { GeneRef } from "@/shared/components/common/gene-ref";
 import { OrganismRef } from "@/shared/components/common/organism-ref";
 import { StrainRef } from "@/shared/components/common/strain-ref";
@@ -328,6 +329,14 @@ export function ProteinDetailPage({ accession }: ProteinDetailPageProps) {
               <GoTermsSection protein={protein} />
               <SubcellularLocationCard protein={protein} />
               <KeywordsSection protein={protein} />
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base font-semibold">Tags</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <TagsRelation entity="proteins" id={protein.id} />
+                </CardContent>
+              </Card>
               <CitationsSection protein={protein} />
               <IsoformsSection protein={protein} />
             </div>
