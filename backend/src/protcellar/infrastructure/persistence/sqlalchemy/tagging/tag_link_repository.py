@@ -206,7 +206,7 @@ class SQLAlchemyTagLinkRepository:
             .join(self.entity_model, self.entity_model.id == col)
             .where(
                 self.link_model.tag_id.in_(unique_ids),
-                self.entity_model.workspace_id == workspace_id,
+                self.entity_model.workspace_id.in_([workspace_id, GLOBAL_WORKSPACE_ID]),
             )
         )
         if match_all:

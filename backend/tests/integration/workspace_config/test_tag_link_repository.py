@@ -94,6 +94,31 @@ async def test_unknown_entity_id_is_not_visible(uow: AsyncUnitOfWork) -> None:
         assert await repo.entity_exists_in_workspace(uuid.uuid4(), uuid.uuid4()) is False
 
 
+async def test_find_entity_ids_for_tags_includes_global_entities(uow: AsyncUnitOfWork) -> None:
+    """find_entity_ids_for_tags must apply the same global-or-mine visibility
+    as entity_exists_in_workspace — a GLOBAL-pinned organism tagged from a
+    real workspace must still show up when that workspace filters by the tag.
+    Regression test for a bug where the entity-workspace filter was strict
+    `== workspace_id`, silently dropping every global entity from the result."""
+    organism = _organism()
+    ws, user = uuid.uuid4(), uuid.uuid4()
+    async with uow:
+        uow.session.add(organism)
+        tag = await SQLAlchemyTagRepository(uow).get_or_create(ws, TagName(key="priority"), user)
+        await uow.commit()
+
+    async with uow:
+        repo = SQLAlchemyTagLinkRepositoryProvider(uow).for_type(TaggableEntityType.ORGANISM)
+        inserted = await repo.add(ws, organism.id, tag.id, user)
+        await uow.commit()
+    assert inserted is True
+
+    async with uow:
+        repo = SQLAlchemyTagLinkRepositoryProvider(uow).for_type(TaggableEntityType.ORGANISM)
+        entity_ids = await repo.find_entity_ids_for_tags(ws, [tag.id], match_all=False)
+    assert organism.id in entity_ids
+
+
 # ---------------------------------------------------------------------------
 # Organism tombstone override — merged/deleted organisms are not valid targets
 # ---------------------------------------------------------------------------
