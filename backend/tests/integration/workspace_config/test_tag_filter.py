@@ -49,13 +49,13 @@ async def test_tag_filter_subquery_any_vs_all(uow: AsyncUnitOfWork) -> None:
 
     async with uow:
         any_subq = tag_filter_subquery(
-            TargetTagLinkModel, "target_id", [red.id, blue.id], match_all=False
+            TargetTagLinkModel, "target_id", [red.id, blue.id], workspace_id=ws, match_all=False
         )
         any_result = await uow.session.execute(select(any_subq.subquery()))
         any_ids = {row[0] for row in any_result.all()}
 
         all_subq = tag_filter_subquery(
-            TargetTagLinkModel, "target_id", [red.id, blue.id], match_all=True
+            TargetTagLinkModel, "target_id", [red.id, blue.id], workspace_id=ws, match_all=True
         )
         all_result = await uow.session.execute(select(all_subq.subquery()))
         all_ids = {row[0] for row in all_result.all()}

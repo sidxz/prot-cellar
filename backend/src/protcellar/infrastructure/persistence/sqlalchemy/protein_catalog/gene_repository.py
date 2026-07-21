@@ -199,6 +199,7 @@ class SQLAlchemyGeneRepository(SQLAlchemyRepository[Gene, GeneModel], GeneReposi
         limit: int | None = None,
         organism_id: uuid.UUID | None = None,
         strain_id: uuid.UUID | None = None,
+        workspace_id: uuid.UUID,
         tag_ids: list[uuid.UUID] | None = None,
         match_all: bool = False,
     ) -> list[Gene]:
@@ -210,7 +211,13 @@ class SQLAlchemyGeneRepository(SQLAlchemyRepository[Gene, GeneModel], GeneReposi
         if tag_ids:
             stmt = stmt.where(
                 GeneModel.id.in_(
-                    tag_filter_subquery(GeneTagLinkModel, "gene_id", tag_ids, match_all=match_all)
+                    tag_filter_subquery(
+                        GeneTagLinkModel,
+                        "gene_id",
+                        tag_ids,
+                        workspace_id=workspace_id,
+                        match_all=match_all,
+                    )
                 )
             )
         if cursor_id is not None:

@@ -5,12 +5,24 @@ One test per entity proves the ``any`` case (tag one of two entities, list
 filtered by that tag returns only the tagged one); a single ``all`` case
 (on targets) proves the two-tag intersection semantics, since the underlying
 ``tag_filter_subquery`` logic is shared across all six repos.
+
+``test_genes_tag_filter_ignores_foreign_workspace_tag`` covers the
+workspace-scope guard: genes are global reference data (visible from every
+workspace), but a *tag* belongs to exactly one workspace — filtering by a tag
+id that belongs to a different workspace must not leak the tagged entity.
 """
 
 from __future__ import annotations
 
+import uuid
+from collections.abc import AsyncIterator
+
 import pytest
-from httpx import AsyncClient
+from httpx import ASGITransport, AsyncClient
+from sqlalchemy.ext.asyncio import AsyncEngine
+
+from tests.api.conftest import _create_test_app
+from tests.fakes.fake_auth import FakeAuth
 
 
 async def _organism(client: AsyncClient, tax_id: int) -> str:
@@ -48,6 +60,23 @@ async def _tag(client: AsyncClient, collection: str, entity_id: str, key: str) -
     resp = await client.post(f"/api/v1/{collection}/{entity_id}/tags", json={"key": key})
     assert resp.status_code == 201, resp.text
     return resp.json()["id"]
+
+
+@pytest.fixture
+async def other_workspace_client(
+    database_url: str, _run_migrations: None
+) -> AsyncIterator[AsyncClient]:
+    """A second API client hitting the same DB, but under a different workspace
+    from ``client`` — used to prove a tag created in one workspace cannot be
+    used to filter entities from another.
+    """
+    other_auth = FakeAuth(role="admin", workspace_id=uuid.uuid4())
+    app = _create_test_app(database_url, other_auth)
+    transport = ASGITransport(app=app)  # type: ignore[arg-type]
+    async with AsyncClient(transport=transport, base_url="http://test") as ac:
+        yield ac
+    engine = app.state.container[AsyncEngine]
+    await engine.dispose()
 
 
 @pytest.mark.asyncio
@@ -254,3 +283,40 @@ async def test_proteins_tag_filter_any(client: AsyncClient) -> None:
     ids = {p["id"] for p in resp.json()["items"]}
     assert ids == {p1}
     assert p2 not in ids
+
+
+@pytest.mark.asyncio
+async def test_genes_tag_filter_ignores_foreign_workspace_tag(
+    client: AsyncClient, other_workspace_client: AsyncClient
+) -> None:
+    """Genes are global reference data — visible from every workspace's
+    listing — but a tag belongs to exactly one workspace. Filtering by a tag
+    id that belongs to a *different* workspace must not surface the gene:
+    the foreign tag id is ignored rather than honored via the shared link row.
+    """
+    organism_id = await _organism(client, 993009)
+
+    g = await client.post(
+        "/api/v1/genes",
+        json={"primary_name": "TAGF3", "organism_id": organism_id},
+    )
+    assert g.status_code == 201, g.text
+    g_id = g.json()["id"]
+
+    # Tag created + assigned in workspace A ("client").
+    tag_id = await _tag(client, "genes", g_id, "workspace-a-secret")
+
+    # Sanity: workspace B *can* see the gene unfiltered — it's global reference data.
+    unfiltered = await other_workspace_client.get(
+        "/api/v1/genes", params={"organism_id": organism_id}
+    )
+    assert unfiltered.status_code == 200
+    assert g_id in {gn["id"] for gn in unfiltered.json()["items"]}
+
+    # But filtering by workspace A's tag id, from workspace B, must not leak the gene.
+    resp = await other_workspace_client.get(
+        "/api/v1/genes", params={"organism_id": organism_id, "tags": tag_id}
+    )
+    assert resp.status_code == 200
+    ids = {gn["id"] for gn in resp.json()["items"]}
+    assert g_id not in ids

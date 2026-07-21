@@ -337,6 +337,7 @@ class SQLAlchemyProteinRepository(SQLAlchemyRepository[Protein, ProteinModel], P
         keyword: str | None,
         search: str | None,
         is_enzyme: bool | None,
+        workspace_id: uuid.UUID,
         tag_ids: list[uuid.UUID] | None = None,
         match_all: bool = False,
     ) -> Select[Any]:
@@ -417,7 +418,11 @@ class SQLAlchemyProteinRepository(SQLAlchemyRepository[Protein, ProteinModel], P
             stmt = stmt.where(
                 ProteinModel.id.in_(
                     tag_filter_subquery(
-                        ProteinTagLinkModel, "protein_id", tag_ids, match_all=match_all
+                        ProteinTagLinkModel,
+                        "protein_id",
+                        tag_ids,
+                        workspace_id=workspace_id,
+                        match_all=match_all,
                     )
                 )
             )
@@ -440,6 +445,7 @@ class SQLAlchemyProteinRepository(SQLAlchemyRepository[Protein, ProteinModel], P
         keyword: str | None = None,
         search: str | None = None,
         is_enzyme: bool | None = None,
+        workspace_id: uuid.UUID,
         tag_ids: list[uuid.UUID] | None = None,
         match_all: bool = False,
     ) -> list[Protein]:
@@ -457,6 +463,7 @@ class SQLAlchemyProteinRepository(SQLAlchemyRepository[Protein, ProteinModel], P
             keyword=keyword,
             search=search,
             is_enzyme=is_enzyme,
+            workspace_id=workspace_id,
             tag_ids=tag_ids,
             match_all=match_all,
         ).order_by(ProteinModel.id)
@@ -481,6 +488,7 @@ class SQLAlchemyProteinRepository(SQLAlchemyRepository[Protein, ProteinModel], P
         keyword: str | None = None,
         search: str | None = None,
         is_enzyme: bool | None = None,
+        workspace_id: uuid.UUID,
         tag_ids: list[uuid.UUID] | None = None,
         match_all: bool = False,
     ) -> int:
@@ -498,6 +506,7 @@ class SQLAlchemyProteinRepository(SQLAlchemyRepository[Protein, ProteinModel], P
             keyword=keyword,
             search=search,
             is_enzyme=is_enzyme,
+            workspace_id=workspace_id,
             tag_ids=tag_ids,
             match_all=match_all,
         )

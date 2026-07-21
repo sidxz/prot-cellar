@@ -88,7 +88,11 @@ class SQLAlchemyStrainRepository(SQLAlchemyRepository[Strain, StrainModel]):
             stmt = stmt.where(
                 StrainModel.id.in_(
                     tag_filter_subquery(
-                        StrainTagLinkModel, "strain_id", tag_ids, match_all=match_all
+                        StrainTagLinkModel,
+                        "strain_id",
+                        tag_ids,
+                        workspace_id=workspace_id,
+                        match_all=match_all,
                     )
                 )
             )

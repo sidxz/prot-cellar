@@ -34,6 +34,7 @@ class GeneRepository(Protocol):
         limit: int | None = None,
         organism_id: uuid.UUID | None = None,
         strain_id: uuid.UUID | None = None,
+        workspace_id: uuid.UUID,
         tag_ids: list[uuid.UUID] | None = None,
         match_all: bool = False,
     ) -> list[Gene]: ...
@@ -89,6 +90,7 @@ class ProteinRepository(Protocol):
         keyword: str | None = None,
         search: str | None = None,
         is_enzyme: bool | None = None,
+        workspace_id: uuid.UUID,
         tag_ids: list[uuid.UUID] | None = None,
         match_all: bool = False,
     ) -> list[Protein]: ...
@@ -108,6 +110,7 @@ class ProteinRepository(Protocol):
         keyword: str | None = None,
         search: str | None = None,
         is_enzyme: bool | None = None,
+        workspace_id: uuid.UUID,
         tag_ids: list[uuid.UUID] | None = None,
         match_all: bool = False,
     ) -> int: ...

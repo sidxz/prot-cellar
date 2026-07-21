@@ -90,7 +90,12 @@ async def backfill(
     created = 0
     cursor: uuid.UUID | None = None
     while True:
-        genes = await gene_repo.find_all(cursor_id=cursor, limit=_PAGE)
+        # ponytail: this script pages ALL genes (global reference data), not
+        # tag-filtered — workspace_id is unused by find_all here but required
+        # by the protocol; GLOBAL is the correct scope for a full-catalog walk.
+        genes = await gene_repo.find_all(
+            cursor_id=cursor, limit=_PAGE, workspace_id=GLOBAL_WORKSPACE_ID
+        )
         if not genes:
             break
         cursor = genes[-1].id

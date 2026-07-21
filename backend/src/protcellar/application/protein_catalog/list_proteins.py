@@ -95,6 +95,7 @@ class ListProteins:
                 keyword=input.keyword,
                 search=input.search,
                 is_enzyme=input.is_enzyme,
+                workspace_id=auth.workspace_id,  # type: ignore[union-attr]
                 tag_ids=list(input.tag_ids),
                 match_all=input.match_all,
             )
@@ -117,6 +118,7 @@ class ListProteins:
                 keyword=input.keyword,
                 search=input.search,
                 is_enzyme=input.is_enzyme,
+                workspace_id=auth.workspace_id,  # type: ignore[union-attr]
                 tag_ids=list(input.tag_ids),
                 match_all=input.match_all,
             )

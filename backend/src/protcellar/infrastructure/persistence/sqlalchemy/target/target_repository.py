@@ -106,7 +106,11 @@ class SQLAlchemyTargetRepository(SQLAlchemyRepository[Target, TargetModel], Targ
             stmt = stmt.where(
                 TargetModel.id.in_(
                     tag_filter_subquery(
-                        TargetTagLinkModel, "target_id", tag_ids, match_all=match_all
+                        TargetTagLinkModel,
+                        "target_id",
+                        tag_ids,
+                        workspace_id=workspace_id,
+                        match_all=match_all,
                     )
                 )
             )

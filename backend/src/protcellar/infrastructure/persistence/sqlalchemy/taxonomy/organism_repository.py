@@ -149,6 +149,7 @@ class SQLAlchemyOrganismRepository(
         cursor_id: uuid.UUID | None = None,
         limit: int | None = None,
         rank: str | None = None,
+        workspace_id: uuid.UUID,
         tag_ids: list[uuid.UUID] | None = None,
         match_all: bool = False,
     ) -> list[Organism]:
@@ -159,7 +160,11 @@ class SQLAlchemyOrganismRepository(
             stmt = stmt.where(
                 OrganismModel.id.in_(
                     tag_filter_subquery(
-                        OrganismTagLinkModel, "organism_id", tag_ids, match_all=match_all
+                        OrganismTagLinkModel,
+                        "organism_id",
+                        tag_ids,
+                        workspace_id=workspace_id,
+                        match_all=match_all,
                     )
                 )
             )

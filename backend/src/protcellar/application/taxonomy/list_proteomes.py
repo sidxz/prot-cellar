@@ -44,6 +44,7 @@ class ListProteomes:
             proteomes = await self._repo.find_all(
                 cursor_id=input.cursor_id,
                 limit=fetch_limit,
+                workspace_id=auth.workspace_id,  # type: ignore[union-attr]
                 tag_ids=list(input.tag_ids),
                 match_all=input.match_all,
             )

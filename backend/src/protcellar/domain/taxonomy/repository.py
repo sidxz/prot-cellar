@@ -34,6 +34,7 @@ class OrganismRepository(Protocol):
         cursor_id: uuid.UUID | None = None,
         limit: int | None = None,
         rank: str | None = None,
+        workspace_id: uuid.UUID,
         tag_ids: list[uuid.UUID] | None = None,
         match_all: bool = False,
     ) -> list[Organism]: ...
@@ -83,6 +84,7 @@ class ProteomeRepository(Protocol):
         *,
         cursor_id: uuid.UUID | None = None,
         limit: int | None = None,
+        workspace_id: uuid.UUID,
         tag_ids: list[uuid.UUID] | None = None,
         match_all: bool = False,
     ) -> list[Proteome]: ...
