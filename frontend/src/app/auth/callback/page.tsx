@@ -3,6 +3,7 @@
 import { ProteinFold } from "@/shared/components/backgrounds/protein-fold";
 import { LogoMark } from "@/shared/components/ui/logo-mark";
 import { Skeleton } from "@/shared/components/ui/skeleton";
+import { forgetWorkspace } from "@/shared/lib/auth/workspace-memory";
 import { AuthzCallback } from "@sentinel-auth/nextjs";
 import { useRouter } from "next/navigation";
 import { WorkspaceSelector } from "./workspace-selector";
@@ -44,9 +45,12 @@ export default function CallbackPage() {
                 // `returnTo` is the path the user was on before a silent re-auth
                 // redirect — restore their place instead of always landing on "/".
                 onSuccess={(_user, returnTo) => router.replace(returnTo ?? "/")}
-                onError={(error) =>
-                  router.replace(`/login?error=${encodeURIComponent(error.message)}`)
-                }
+                onError={(error) => {
+                  // A failed auto-entry must not loop — forget the remembered
+                  // workspace so the next sign-in shows the picker again.
+                  forgetWorkspace();
+                  router.replace(`/login?error=${encodeURIComponent(error.message)}`);
+                }}
                 // Silent (prompt=none) re-auth needs user interaction — the stale
                 // session is already cleared, so fall back to interactive login.
                 onSilentReauthFailed={() => router.replace("/login")}
