@@ -4,9 +4,12 @@
  * prot-cellar
  * OpenAPI spec version: 0.1.0
  */
+import type { ListProteomesApiV1ProteomesGetTagLogic } from './listProteomesApiV1ProteomesGetTagLogic';
 
 export type ListProteomesApiV1ProteomesGetParams = {
 organism_id?: string | null;
+tags?: string[] | null;
+tag_logic?: ListProteomesApiV1ProteomesGetTagLogic;
 cursor?: string | null;
 limit?: number | null;
 };

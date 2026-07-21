@@ -4,8 +4,11 @@
  * prot-cellar
  * OpenAPI spec version: 0.1.0
  */
+import type { ListStrainsApiV1StrainsGetTagLogic } from './listStrainsApiV1StrainsGetTagLogic';
 
 export type ListStrainsApiV1StrainsGetParams = {
+tags?: string[] | null;
+tag_logic?: ListStrainsApiV1StrainsGetTagLogic;
 cursor?: string | null;
 limit?: number | null;
 };

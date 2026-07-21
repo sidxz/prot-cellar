@@ -4,6 +4,7 @@
  * prot-cellar
  * OpenAPI spec version: 0.1.0
  */
+import type { ListProteinsApiV1ProteinsGetTagLogic } from './listProteinsApiV1ProteinsGetTagLogic';
 
 export type ListProteinsApiV1ProteinsGetParams = {
 organism_id?: string | null;
@@ -19,6 +20,8 @@ go_term?: string | null;
 descendants?: boolean;
 keyword?: string | null;
 q?: string | null;
+tags?: string[] | null;
+tag_logic?: ListProteinsApiV1ProteinsGetTagLogic;
 cursor?: string | null;
 limit?: number | null;
 };

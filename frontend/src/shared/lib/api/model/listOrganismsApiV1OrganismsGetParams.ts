@@ -4,10 +4,13 @@
  * prot-cellar
  * OpenAPI spec version: 0.1.0
  */
+import type { ListOrganismsApiV1OrganismsGetTagLogic } from './listOrganismsApiV1OrganismsGetTagLogic';
 
 export type ListOrganismsApiV1OrganismsGetParams = {
 name?: string | null;
 rank?: string | null;
+tags?: string[] | null;
+tag_logic?: ListOrganismsApiV1OrganismsGetTagLogic;
 cursor?: string | null;
 limit?: number | null;
 };

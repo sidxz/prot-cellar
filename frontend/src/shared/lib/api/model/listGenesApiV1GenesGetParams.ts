@@ -4,11 +4,14 @@
  * prot-cellar
  * OpenAPI spec version: 0.1.0
  */
+import type { ListGenesApiV1GenesGetTagLogic } from './listGenesApiV1GenesGetTagLogic';
 
 export type ListGenesApiV1GenesGetParams = {
 name?: string | null;
 organism_id?: string | null;
 strain_id?: string | null;
+tags?: string[] | null;
+tag_logic?: ListGenesApiV1GenesGetTagLogic;
 cursor?: string | null;
 limit?: number | null;
 };

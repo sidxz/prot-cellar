@@ -5,10 +5,13 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { TargetType } from './targetType';
+import type { ListTargetsApiV1TargetsGetTagLogic } from './listTargetsApiV1TargetsGetTagLogic';
 
 export type ListTargetsApiV1TargetsGetParams = {
 target_type?: TargetType | null;
 chembl_id?: string | null;
+tags?: string[] | null;
+tag_logic?: ListTargetsApiV1TargetsGetTagLogic;
 cursor?: string | null;
 limit?: number | null;
 };
