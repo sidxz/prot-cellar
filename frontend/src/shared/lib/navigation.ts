@@ -10,6 +10,7 @@ import {
   Network,
   Plug,
   ScrollText,
+  Tags,
   Upload,
 } from "lucide-react";
 
@@ -48,6 +49,7 @@ export const navigation: { home: NavItem; groups: NavGroup[] } = {
       label: "Administration",
       items: [
         { title: "Organizations", href: "/admin/organizations", icon: Building2 },
+        { title: "Tags", href: "/admin/tags", icon: Tags },
         { title: "Imports", href: "/admin/imports", icon: Upload },
         { title: "Plugins", href: "/admin/plugins", icon: Plug },
         { title: "Audit", href: "/admin/audit", icon: ScrollText },
