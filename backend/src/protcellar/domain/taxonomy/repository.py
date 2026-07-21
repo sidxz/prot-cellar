@@ -34,6 +34,8 @@ class OrganismRepository(Protocol):
         cursor_id: uuid.UUID | None = None,
         limit: int | None = None,
         rank: str | None = None,
+        tag_ids: list[uuid.UUID] | None = None,
+        match_all: bool = False,
     ) -> list[Organism]: ...
 
     async def save(self, aggregate: Organism) -> None: ...
@@ -55,6 +57,8 @@ class StrainRepository(Protocol):
         *,
         cursor_id: uuid.UUID | None = None,
         limit: int | None = None,
+        tag_ids: list[uuid.UUID] | None = None,
+        match_all: bool = False,
     ) -> list[Strain]: ...
 
     async def find_by_species(
@@ -79,6 +83,8 @@ class ProteomeRepository(Protocol):
         *,
         cursor_id: uuid.UUID | None = None,
         limit: int | None = None,
+        tag_ids: list[uuid.UUID] | None = None,
+        match_all: bool = False,
     ) -> list[Proteome]: ...
 
     async def save(self, aggregate: Proteome) -> None: ...

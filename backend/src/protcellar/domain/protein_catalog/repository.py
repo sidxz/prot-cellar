@@ -34,6 +34,8 @@ class GeneRepository(Protocol):
         limit: int | None = None,
         organism_id: uuid.UUID | None = None,
         strain_id: uuid.UUID | None = None,
+        tag_ids: list[uuid.UUID] | None = None,
+        match_all: bool = False,
     ) -> list[Gene]: ...
 
     async def find_by_source_record_id(
@@ -87,6 +89,8 @@ class ProteinRepository(Protocol):
         keyword: str | None = None,
         search: str | None = None,
         is_enzyme: bool | None = None,
+        tag_ids: list[uuid.UUID] | None = None,
+        match_all: bool = False,
     ) -> list[Protein]: ...
 
     async def count_all(
@@ -104,6 +108,8 @@ class ProteinRepository(Protocol):
         keyword: str | None = None,
         search: str | None = None,
         is_enzyme: bool | None = None,
+        tag_ids: list[uuid.UUID] | None = None,
+        match_all: bool = False,
     ) -> int: ...
 
     async def save(self, aggregate: Protein) -> None: ...

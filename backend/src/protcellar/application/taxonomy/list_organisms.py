@@ -22,6 +22,8 @@ class ListOrganismsQuery(Query):
     limit: int | None = None
     name: str | None = None
     rank: str | None = None
+    tag_ids: tuple[uuid.UUID, ...] = ()
+    match_all: bool = False
 
 
 class ListOrganisms:
@@ -48,6 +50,8 @@ class ListOrganisms:
                 cursor_id=input.cursor_id,
                 limit=fetch_limit,
                 rank=input.rank,
+                tag_ids=list(input.tag_ids),
+                match_all=input.match_all,
             )
 
             next_cursor: str | None = None

@@ -19,6 +19,8 @@ from protcellar.infrastructure.persistence.sqlalchemy.protein_catalog._xref_json
     xrefs_to_json,
 )
 from protcellar.infrastructure.persistence.sqlalchemy.protein_catalog.models import GeneModel
+from protcellar.infrastructure.persistence.sqlalchemy.tagging.models import GeneTagLinkModel
+from protcellar.infrastructure.persistence.sqlalchemy.tagging.tag_filter import tag_filter_subquery
 
 
 class SQLAlchemyGeneRepository(SQLAlchemyRepository[Gene, GeneModel], GeneRepository):
@@ -197,12 +199,20 @@ class SQLAlchemyGeneRepository(SQLAlchemyRepository[Gene, GeneModel], GeneReposi
         limit: int | None = None,
         organism_id: uuid.UUID | None = None,
         strain_id: uuid.UUID | None = None,
+        tag_ids: list[uuid.UUID] | None = None,
+        match_all: bool = False,
     ) -> list[Gene]:
         stmt = select(GeneModel).order_by(GeneModel.id)
         if organism_id is not None:
             stmt = stmt.where(GeneModel.organism_id == organism_id)
         if strain_id is not None:
             stmt = stmt.where(GeneModel.strain_id == strain_id)
+        if tag_ids:
+            stmt = stmt.where(
+                GeneModel.id.in_(
+                    tag_filter_subquery(GeneTagLinkModel, "gene_id", tag_ids, match_all=match_all)
+                )
+            )
         if cursor_id is not None:
             stmt = stmt.where(GeneModel.id > cursor_id)
         if limit is not None:

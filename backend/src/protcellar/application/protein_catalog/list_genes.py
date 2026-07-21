@@ -23,6 +23,8 @@ class ListGenesQuery(Query):
     name: str | None = None
     organism_id: uuid.UUID | None = None
     strain_id: uuid.UUID | None = None
+    tag_ids: tuple[uuid.UUID, ...] = ()
+    match_all: bool = False
 
 
 class ListGenes:
@@ -50,6 +52,8 @@ class ListGenes:
                 limit=fetch_limit,
                 organism_id=input.organism_id,
                 strain_id=input.strain_id,
+                tag_ids=list(input.tag_ids),
+                match_all=input.match_all,
             )
 
             next_cursor: str | None = None

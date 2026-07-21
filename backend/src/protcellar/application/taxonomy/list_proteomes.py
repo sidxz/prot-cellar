@@ -21,6 +21,8 @@ class ListProteomesQuery(Query):
     cursor_id: uuid.UUID | None = None
     limit: int | None = None
     organism_id: uuid.UUID | None = None
+    tag_ids: tuple[uuid.UUID, ...] = ()
+    match_all: bool = False
 
 
 class ListProteomes:
@@ -42,6 +44,8 @@ class ListProteomes:
             proteomes = await self._repo.find_all(
                 cursor_id=input.cursor_id,
                 limit=fetch_limit,
+                tag_ids=list(input.tag_ids),
+                match_all=input.match_all,
             )
 
             next_cursor: str | None = None

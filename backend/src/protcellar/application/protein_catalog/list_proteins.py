@@ -48,6 +48,8 @@ class ListProteinsQuery(Query):
     keyword: str | None = None
     search: str | None = None
     is_enzyme: bool | None = None
+    tag_ids: tuple[uuid.UUID, ...] = ()
+    match_all: bool = False
 
 
 class ListProteins:
@@ -93,6 +95,8 @@ class ListProteins:
                 keyword=input.keyword,
                 search=input.search,
                 is_enzyme=input.is_enzyme,
+                tag_ids=list(input.tag_ids),
+                match_all=input.match_all,
             )
 
             next_cursor: str | None = None
@@ -113,6 +117,8 @@ class ListProteins:
                 keyword=input.keyword,
                 search=input.search,
                 is_enzyme=input.is_enzyme,
+                tag_ids=list(input.tag_ids),
+                match_all=input.match_all,
             )
 
             gene_ids = {p.gene_id for p in proteins if p.gene_id is not None}

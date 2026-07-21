@@ -12,6 +12,8 @@ from protcellar.domain.taxonomy.proteome import Proteome
 from protcellar.domain.taxonomy.repository import ProteomeRepository
 from protcellar.infrastructure.persistence.sqlalchemy.base_repository import SQLAlchemyRepository
 from protcellar.infrastructure.persistence.sqlalchemy.protein_catalog.models import ProteinModel
+from protcellar.infrastructure.persistence.sqlalchemy.tagging.models import ProteomeTagLinkModel
+from protcellar.infrastructure.persistence.sqlalchemy.tagging.tag_filter import tag_filter_subquery
 from protcellar.infrastructure.persistence.sqlalchemy.taxonomy.models import (
     ProteomeModel,
     ProteomeProteinModel,
@@ -81,8 +83,18 @@ class SQLAlchemyProteomeRepository(
         *,
         cursor_id: uuid.UUID | None = None,
         limit: int | None = None,
+        tag_ids: list[uuid.UUID] | None = None,
+        match_all: bool = False,
     ) -> list[Proteome]:
         stmt = select(ProteomeModel).order_by(ProteomeModel.id)
+        if tag_ids:
+            stmt = stmt.where(
+                ProteomeModel.id.in_(
+                    tag_filter_subquery(
+                        ProteomeTagLinkModel, "proteome_id", tag_ids, match_all=match_all
+                    )
+                )
+            )
         if cursor_id is not None:
             stmt = stmt.where(ProteomeModel.id > cursor_id)
         if limit is not None:

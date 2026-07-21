@@ -21,6 +21,8 @@ class ListStrainsQuery(Query):
     workspace_id: uuid.UUID
     cursor_id: uuid.UUID | None = None
     limit: int | None = None
+    tag_ids: tuple[uuid.UUID, ...] = ()
+    match_all: bool = False
 
 
 class ListStrains:
@@ -40,6 +42,8 @@ class ListStrains:
                 input.workspace_id,
                 cursor_id=input.cursor_id,
                 limit=fetch_limit,
+                tag_ids=list(input.tag_ids),
+                match_all=input.match_all,
             )
 
             next_cursor: str | None = None

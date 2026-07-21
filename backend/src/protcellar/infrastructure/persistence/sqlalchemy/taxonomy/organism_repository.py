@@ -10,6 +10,8 @@ from protcellar.domain.taxonomy.enums import NameClass, OrganismSource
 from protcellar.domain.taxonomy.organism import Organism, OrganismName
 from protcellar.domain.taxonomy.repository import OrganismRepository
 from protcellar.infrastructure.persistence.sqlalchemy.base_repository import SQLAlchemyRepository
+from protcellar.infrastructure.persistence.sqlalchemy.tagging.models import OrganismTagLinkModel
+from protcellar.infrastructure.persistence.sqlalchemy.tagging.tag_filter import tag_filter_subquery
 from protcellar.infrastructure.persistence.sqlalchemy.taxonomy.models import (
     OrganismModel,
     OrganismNameModel,
@@ -147,10 +149,20 @@ class SQLAlchemyOrganismRepository(
         cursor_id: uuid.UUID | None = None,
         limit: int | None = None,
         rank: str | None = None,
+        tag_ids: list[uuid.UUID] | None = None,
+        match_all: bool = False,
     ) -> list[Organism]:
         stmt = select(OrganismModel).order_by(OrganismModel.id)
         if rank is not None:
             stmt = stmt.where(OrganismModel.rank == rank)
+        if tag_ids:
+            stmt = stmt.where(
+                OrganismModel.id.in_(
+                    tag_filter_subquery(
+                        OrganismTagLinkModel, "organism_id", tag_ids, match_all=match_all
+                    )
+                )
+            )
         if cursor_id is not None:
             stmt = stmt.where(OrganismModel.id > cursor_id)
         if limit is not None:

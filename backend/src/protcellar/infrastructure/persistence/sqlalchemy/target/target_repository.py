@@ -14,6 +14,8 @@ from protcellar.infrastructure.persistence.sqlalchemy.protein_catalog._xref_json
     xrefs_from_json,
     xrefs_to_json,
 )
+from protcellar.infrastructure.persistence.sqlalchemy.tagging.models import TargetTagLinkModel
+from protcellar.infrastructure.persistence.sqlalchemy.tagging.tag_filter import tag_filter_subquery
 from protcellar.infrastructure.persistence.sqlalchemy.target.models import (
     TargetComponentModel,
     TargetModel,
@@ -92,12 +94,22 @@ class SQLAlchemyTargetRepository(SQLAlchemyRepository[Target, TargetModel], Targ
         limit: int | None = None,
         target_type: TargetType | None = None,
         chembl_id: str | None = None,
+        tag_ids: list[uuid.UUID] | None = None,
+        match_all: bool = False,
     ) -> list[Target]:
         stmt = select(TargetModel).where(TargetModel.workspace_id == workspace_id)
         if target_type is not None:
             stmt = stmt.where(TargetModel.target_type == target_type.value)
         if chembl_id is not None:
             stmt = stmt.where(TargetModel.chembl_id == chembl_id)
+        if tag_ids:
+            stmt = stmt.where(
+                TargetModel.id.in_(
+                    tag_filter_subquery(
+                        TargetTagLinkModel, "target_id", tag_ids, match_all=match_all
+                    )
+                )
+            )
         if cursor_id is not None:
             stmt = stmt.where(TargetModel.id > cursor_id)
         stmt = stmt.order_by(TargetModel.id)

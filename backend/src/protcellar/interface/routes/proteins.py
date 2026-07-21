@@ -3,8 +3,9 @@
 from __future__ import annotations
 
 import uuid
+from typing import Literal
 
-from fastapi import APIRouter, Response
+from fastapi import APIRouter, Query, Response
 from fastapi.responses import JSONResponse, PlainTextResponse
 from pydantic import BaseModel
 
@@ -504,6 +505,8 @@ async def list_proteins(
     descendants: bool = False,
     keyword: str | None = None,
     q: str | None = None,
+    tags: list[uuid.UUID] | None = Query(default=None),
+    tag_logic: Literal["any", "all"] = "any",
     cursor: str | None = None,
     limit: int | None = None,
 ) -> PaginatedResponse[ProteinListItemResponse]:
@@ -523,6 +526,8 @@ async def list_proteins(
         descendants=descendants,
         keyword=keyword,
         search=q.strip() if q and q.strip() else None,
+        tag_ids=tuple(tags) if tags else (),
+        match_all=tag_logic == "all",
     )
     page = result_to_response(await use_case(query, auth=auth))
     return PaginatedResponse(

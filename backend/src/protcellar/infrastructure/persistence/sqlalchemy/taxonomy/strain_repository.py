@@ -11,6 +11,8 @@ from protcellar.domain.taxonomy.strain import Strain
 from protcellar.infrastructure.persistence.sqlalchemy.base_repository import (
     SQLAlchemyRepository,
 )
+from protcellar.infrastructure.persistence.sqlalchemy.tagging.models import StrainTagLinkModel
+from protcellar.infrastructure.persistence.sqlalchemy.tagging.tag_filter import tag_filter_subquery
 from protcellar.infrastructure.persistence.sqlalchemy.taxonomy.models import (
     StrainModel,
 )
@@ -70,6 +72,8 @@ class SQLAlchemyStrainRepository(SQLAlchemyRepository[Strain, StrainModel]):
         *,
         cursor_id: uuid.UUID | None = None,
         limit: int | None = None,
+        tag_ids: list[uuid.UUID] | None = None,
+        match_all: bool = False,
     ) -> list[Strain]:
         """Strains visible to a workspace: its own plus GLOBAL reference strains.
 
@@ -80,6 +84,14 @@ class SQLAlchemyStrainRepository(SQLAlchemyRepository[Strain, StrainModel]):
         stmt = select(StrainModel).where(
             StrainModel.workspace_id.in_([workspace_id, GLOBAL_WORKSPACE_ID])
         )
+        if tag_ids:
+            stmt = stmt.where(
+                StrainModel.id.in_(
+                    tag_filter_subquery(
+                        StrainTagLinkModel, "strain_id", tag_ids, match_all=match_all
+                    )
+                )
+            )
         if cursor_id is not None:
             stmt = stmt.where(StrainModel.id > cursor_id)
         stmt = stmt.order_by(StrainModel.id)

@@ -30,6 +30,8 @@ from protcellar.infrastructure.persistence.sqlalchemy.protein_catalog.models imp
     ProteinKeywordModel,
     ProteinModel,
 )
+from protcellar.infrastructure.persistence.sqlalchemy.tagging.models import ProteinTagLinkModel
+from protcellar.infrastructure.persistence.sqlalchemy.tagging.tag_filter import tag_filter_subquery
 
 _STRUCTURE_DBS = ("PDB", "PDBsum", "AlphaFoldDB", "EMDB", "SMR")
 
@@ -335,6 +337,8 @@ class SQLAlchemyProteinRepository(SQLAlchemyRepository[Protein, ProteinModel], P
         keyword: str | None,
         search: str | None,
         is_enzyme: bool | None,
+        tag_ids: list[uuid.UUID] | None = None,
+        match_all: bool = False,
     ) -> Select[Any]:
         """Apply the shared catalog filters (no ordering / pagination) to ``stmt``.
 
@@ -409,6 +413,14 @@ class SQLAlchemyProteinRepository(SQLAlchemyRepository[Protein, ProteinModel], P
                 stmt = stmt.where(ec_text.isnot(None), ec_text != "[]")
             else:
                 stmt = stmt.where(or_(ec_text.is_(None), ec_text == "[]"))
+        if tag_ids:
+            stmt = stmt.where(
+                ProteinModel.id.in_(
+                    tag_filter_subquery(
+                        ProteinTagLinkModel, "protein_id", tag_ids, match_all=match_all
+                    )
+                )
+            )
         return stmt
 
     async def find_all(
@@ -428,6 +440,8 @@ class SQLAlchemyProteinRepository(SQLAlchemyRepository[Protein, ProteinModel], P
         keyword: str | None = None,
         search: str | None = None,
         is_enzyme: bool | None = None,
+        tag_ids: list[uuid.UUID] | None = None,
+        match_all: bool = False,
     ) -> list[Protein]:
         stmt = self._apply_filters(
             select(ProteinModel),
@@ -443,6 +457,8 @@ class SQLAlchemyProteinRepository(SQLAlchemyRepository[Protein, ProteinModel], P
             keyword=keyword,
             search=search,
             is_enzyme=is_enzyme,
+            tag_ids=tag_ids,
+            match_all=match_all,
         ).order_by(ProteinModel.id)
         if cursor_id is not None:
             stmt = stmt.where(ProteinModel.id > cursor_id)
@@ -465,6 +481,8 @@ class SQLAlchemyProteinRepository(SQLAlchemyRepository[Protein, ProteinModel], P
         keyword: str | None = None,
         search: str | None = None,
         is_enzyme: bool | None = None,
+        tag_ids: list[uuid.UUID] | None = None,
+        match_all: bool = False,
     ) -> int:
         stmt = self._apply_filters(
             select(func.count()).select_from(ProteinModel),
@@ -480,5 +498,7 @@ class SQLAlchemyProteinRepository(SQLAlchemyRepository[Protein, ProteinModel], P
             keyword=keyword,
             search=search,
             is_enzyme=is_enzyme,
+            tag_ids=tag_ids,
+            match_all=match_all,
         )
         return int((await self._session.execute(stmt)).scalar_one())

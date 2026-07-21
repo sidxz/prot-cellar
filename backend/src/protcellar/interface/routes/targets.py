@@ -3,8 +3,9 @@
 from __future__ import annotations
 
 import uuid
+from typing import Literal
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Query
 from pydantic import BaseModel
 
 from protcellar.application.shared.sentinel import UNSET
@@ -119,6 +120,8 @@ async def list_targets(
     use_case: ListTargetsDep,
     target_type: TargetType | None = None,
     chembl_id: str | None = None,
+    tags: list[uuid.UUID] | None = Query(default=None),
+    tag_logic: Literal["any", "all"] = "any",
     cursor: str | None = None,
     limit: int | None = None,
 ) -> PaginatedResponse[TargetResponse]:
@@ -128,6 +131,8 @@ async def list_targets(
         limit=clamp_limit(limit),
         target_type=target_type,
         chembl_id=chembl_id,
+        tag_ids=tuple(tags) if tags else (),
+        match_all=tag_logic == "all",
     )
     page = result_to_response(await use_case(query, auth=auth))
     return PaginatedResponse(
