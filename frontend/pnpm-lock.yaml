@@ -20,12 +20,12 @@ importers:
       '@sentinel-auth/react':
         specifier: ^0.17.0
         version: 0.17.0(@sentinel-auth/js@0.17.0)(react@19.2.7)
+      '@structflo/components':
+        specifier: link:../../structflo-components
+        version: link:../../structflo-components
       '@structflo/daikon-design-tokens':
         specifier: ^1.0.0
         version: 1.0.0
-      '@structflo/daikon-ui':
-        specifier: link:../../daikon-ui
-        version: link:../../daikon-ui
       '@tabler/icons-react':
         specifier: ^3.41.1
         version: 3.44.0(react@19.2.7)

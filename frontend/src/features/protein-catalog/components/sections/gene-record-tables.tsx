@@ -47,7 +47,7 @@ import {
   EssentialityCallScale,
   ResistanceLollipop,
   VulnerabilityPanel,
-} from "@structflo/daikon-ui/target-biology";
+} from "@structflo/components/target-biology";
 
 const dash = (v: string | null | undefined) => v ?? "—";
 
