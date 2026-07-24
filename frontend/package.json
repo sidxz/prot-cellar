@@ -14,7 +14,7 @@
     "generate:api": "orval"
   },
   "dependencies": {
-    "@structflo/daikon-ui": "workspace:*",
+    "@structflo/daikon-ui": "link:../../daikon-ui",
     "@hookform/resolvers": "^5.0.0",
     "@sentinel-auth/js": "^0.17.0",
     "@sentinel-auth/nextjs": "^0.17.0",
