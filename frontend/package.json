@@ -14,7 +14,7 @@
     "generate:api": "orval"
   },
   "dependencies": {
-    "@structflo/components": "link:../../structflo-components",
+    "@structflo/components": "^0.1.0",
     "@hookform/resolvers": "^5.0.0",
     "@sentinel-auth/js": "^0.17.0",
     "@sentinel-auth/nextjs": "^0.17.0",
