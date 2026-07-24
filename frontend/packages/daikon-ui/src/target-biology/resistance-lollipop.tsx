@@ -1,15 +1,14 @@
 "use client";
 
-import type { ResistanceMutationResponse } from "@/shared/lib/api/model";
-import { cn } from "@/shared/lib/utils";
-
-import { useMeasuredWidth } from "../../hooks/use-measured-width";
+import { cn } from "../lib/cn";
+import { useMeasuredWidth } from "./use-measured-width";
 import {
+  type MutationLike,
   type Needle,
   assignLabelRows,
   buildNeedles,
   distinctCompounds,
-} from "../../lib/resistance";
+} from "./resistance";
 
 // Static class literals only (Tailwind can't see interpolated names).
 const CHART_FILL = ["fill-chart-1", "fill-chart-2", "fill-chart-3", "fill-chart-4", "fill-chart-5"];
@@ -88,7 +87,7 @@ function NeedleMark({
  * hotspots vs. scattered low-level resistance. Renders when >= 2 mutations carry
  * a parseable residue position; the table remains the fallback.
  */
-export function ResistanceLollipop({ records }: { records: ResistanceMutationResponse[] }) {
+export function ResistanceLollipop({ records }: { records: MutationLike[] }) {
   const [ref, width] = useMeasuredWidth<HTMLDivElement>();
   const needles = [...buildNeedles(records)].sort((a, b) => a.position - b.position);
   if (needles.length < 2) return null;

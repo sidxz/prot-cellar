@@ -1,17 +1,16 @@
 "use client";
 
-import type { EssentialityResponse } from "@/shared/lib/api/model";
-import { cn } from "@/shared/lib/utils";
-
+import { cn } from "../lib/cn";
 import {
   ESSENTIALITY_STYLE,
   type EssentialityBucket,
+  type EssentialityLike,
   FITNESS_AXIS_LABELS,
   type PivotCell,
   essentialityConsensus,
   fitnessPosition,
   pivotConditionMethod,
-} from "../../lib/essentiality";
+} from "./essentiality";
 
 const humanize = (b: string) => b.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 
@@ -68,7 +67,7 @@ function StripCell({ bucket }: { bucket: PivotCell | null }) {
  * meter, and — when a gene carries multiple records — pivots them into a
  * condition×method strip so agreement/conflict across sources reads at a glance.
  */
-export function EssentialityCallScale({ records }: { records: EssentialityResponse[] }) {
+export function EssentialityCallScale({ records }: { records: EssentialityLike[] }) {
   const consensus = essentialityConsensus(records);
   if (!consensus) return null;
 

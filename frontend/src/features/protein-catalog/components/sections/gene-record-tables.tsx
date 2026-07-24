@@ -43,9 +43,11 @@ import {
   provToDraft,
   strOrNull,
 } from "./editable-record-table";
-import { EssentialityCallScale } from "./essentiality-call-scale";
-import { ResistanceLollipop } from "./resistance-lollipop";
-import { VulnerabilityPanel } from "./vulnerability-panel";
+import {
+  EssentialityCallScale,
+  ResistanceLollipop,
+  VulnerabilityPanel,
+} from "@structflo/daikon-ui/target-biology";
 
 const dash = (v: string | null | undefined) => v ?? "—";
 

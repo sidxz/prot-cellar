@@ -1,11 +1,10 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
-import type { EssentialityResponse } from "@/shared/lib/api/model";
-
 import { EssentialityCallScale } from "./essentiality-call-scale";
+import type { EssentialityLike } from "./essentiality";
 
-const rec = (over: Partial<EssentialityResponse>): EssentialityResponse =>
+const rec = (over: Partial<EssentialityLike>): EssentialityLike =>
   ({
     id: "x",
     gene_id: "g",
@@ -16,7 +15,7 @@ const rec = (over: Partial<EssentialityResponse>): EssentialityResponse =>
     provenance: {},
     extensions: null,
     ...over,
-  }) as unknown as EssentialityResponse;
+  }) as unknown as EssentialityLike;
 
 describe("EssentialityCallScale", () => {
   it("renders nothing without records", () => {

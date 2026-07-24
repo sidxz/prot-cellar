@@ -1,11 +1,10 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
-import type { ResistanceMutationResponse } from "@/shared/lib/api/model";
-
 import { ResistanceLollipop } from "./resistance-lollipop";
+import type { MutationLike } from "./resistance";
 
-const rec = (over: Partial<ResistanceMutationResponse>): ResistanceMutationResponse =>
+const rec = (over: Partial<MutationLike>): MutationLike =>
   ({
     id: "x",
     gene_id: "g",
@@ -18,7 +17,7 @@ const rec = (over: Partial<ResistanceMutationResponse>): ResistanceMutationRespo
     provenance: {},
     extensions: null,
     ...over,
-  }) as unknown as ResistanceMutationResponse;
+  }) as unknown as MutationLike;
 
 describe("ResistanceLollipop", () => {
   it("renders nothing with fewer than 2 positioned mutations", () => {
@@ -30,8 +29,8 @@ describe("ResistanceLollipop", () => {
     render(
       <ResistanceLollipop
         records={[
-          rec({ mutation: "S315T", mic_shift: 200, compound: { compound_id: "c1", name: "INH" } }),
-          rec({ mutation: "M306V", mic_shift: 64, compound: { compound_id: "c2", name: "EMB" } }),
+          rec({ mutation: "S315T", mic_shift: 200, compound: { name: "INH" } }),
+          rec({ mutation: "M306V", mic_shift: 64, compound: { name: "EMB" } }),
         ]}
       />,
     );

@@ -1,6 +1,12 @@
 @import "tailwindcss";
 @import "@structflo/daikon-design-tokens/tokens.css";
 
+/* Tailwind v4 does not scan node_modules; without this the shared @structflo/daikon-ui
+   charts render unstyled (their fill-chart-*, text-muted-foreground classes get purged).
+   The node_modules path works across the pnpm symlink and is portable to any consumer
+   (a cross-repo link: consumer has no packages/ dir of its own). */
+@source "../../node_modules/@structflo/daikon-ui/src";
+
 /* ── Auth page entrance animation ─────────────────────────── */
 @keyframes auth-enter {
   from {

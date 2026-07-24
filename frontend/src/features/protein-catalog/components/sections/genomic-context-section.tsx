@@ -12,7 +12,7 @@ import {
   ESSENTIALITY_STYLE,
   type EssentialityBucket,
   essentialityBucket,
-} from "../../lib/essentiality";
+} from "@structflo/daikon-ui/target-biology";
 import { type PositionedGene, type TrackGene, layoutNeighbors } from "../../lib/genome-track";
 import type { Gene } from "../../types";
 
