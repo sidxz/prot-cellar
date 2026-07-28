@@ -7,6 +7,7 @@ from typing import TypeVar
 from pydantic import BaseModel
 
 from protcellar.application.shared.pagination import (
+    BULK_PAGE_SIZE,
     DEFAULT_PAGE_SIZE,
     MAX_PAGE_SIZE,
     clamp_limit,
@@ -16,6 +17,7 @@ from protcellar.application.shared.pagination import (
 )
 
 __all__ = [
+    "BULK_PAGE_SIZE",
     "DEFAULT_PAGE_SIZE",
     "MAX_PAGE_SIZE",
     "PaginatedResponse",

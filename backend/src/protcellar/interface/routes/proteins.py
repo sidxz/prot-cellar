@@ -42,7 +42,12 @@ from protcellar.interface.dependencies import (
     UpdateProteinDep,
 )
 from protcellar.interface.error_handlers import result_to_response
-from protcellar.interface.pagination import PaginatedResponse, clamp_limit, parse_cursor
+from protcellar.interface.pagination import (
+    BULK_PAGE_SIZE,
+    PaginatedResponse,
+    clamp_limit,
+    parse_cursor,
+)
 
 router = APIRouter(prefix="/api/v1/proteins", tags=["proteins"])
 
@@ -204,9 +209,8 @@ class ProteinListItemResponse(BaseModel):
 
     @classmethod
     def from_list_item(cls, item: ProteinListItem) -> ProteinListItemResponse:
-        p = item.protein
+        p = item.row
         registry = IdentifierRegistry.default()
-        dbs = [x.database for x in p.cross_references]
         names = p.protein_names
         return cls(
             id=p.id,
@@ -224,12 +228,12 @@ class ProteinListItemResponse(BaseModel):
             seq_mass=p.seq_mass,
             protein_existence=p.protein_existence,
             structure=ProteinStructureSummary(
-                pdb_count=sum(1 for d in dbs if d == "PDB"),
-                has_alphafold="AlphaFoldDB" in dbs,
+                pdb_count=p.pdb_count,
+                has_alphafold=p.has_alphafold,
             ),
             chem=ProteinChemSummary(
-                has_chembl="ChEMBL" in dbs,
-                has_drugbank="DrugBank" in dbs,
+                has_chembl=p.has_chembl,
+                has_drugbank=p.has_drugbank,
             ),
         )
 
@@ -512,7 +516,7 @@ async def list_proteins(
 ) -> PaginatedResponse[ProteinListItemResponse]:
     query = ListProteinsQuery(
         cursor_id=parse_cursor(cursor),
-        limit=clamp_limit(limit),
+        limit=clamp_limit(limit, max_size=BULK_PAGE_SIZE),
         organism_id=organism_id,
         strain_id=strain_id,
         gene_id=gene_id,

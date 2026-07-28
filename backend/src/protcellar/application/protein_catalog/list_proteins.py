@@ -13,7 +13,7 @@ from protcellar.application.shared.query import Query
 from protcellar.application.shared.unit_of_work import UnitOfWork
 from protcellar.domain.gene_ontology.repository import GoOntologyRepository
 from protcellar.domain.protein_catalog.gene import Gene
-from protcellar.domain.protein_catalog.protein import Protein
+from protcellar.domain.protein_catalog.read_models import ProteinListRow
 from protcellar.domain.protein_catalog.repository import GeneRepository, ProteinRepository
 from protcellar.domain.shared.errors import DomainError
 
@@ -27,7 +27,7 @@ class ProteinListItem:
     the client into one request per row.
     """
 
-    protein: Protein
+    row: ProteinListRow
     gene: Gene | None
 
 
@@ -80,7 +80,7 @@ class ListProteins:
                     go_terms = [input.go_term]
             effective_limit = input.limit
             fetch_limit = effective_limit + 1 if effective_limit is not None else None
-            proteins = await self._repo.find_all(
+            rows = await self._repo.find_list_rows(
                 cursor_id=input.cursor_id,
                 limit=fetch_limit,
                 organism_id=input.organism_id,
@@ -101,9 +101,9 @@ class ListProteins:
             )
 
             next_cursor: str | None = None
-            if effective_limit is not None and len(proteins) > effective_limit:
-                proteins = proteins[:effective_limit]
-                next_cursor = str(proteins[-1].id)
+            if effective_limit is not None and len(rows) > effective_limit:
+                rows = rows[:effective_limit]
+                next_cursor = str(rows[-1].id)
 
             total_count = await self._repo.count_all(
                 organism_id=input.organism_id,
@@ -123,14 +123,14 @@ class ListProteins:
                 match_all=input.match_all,
             )
 
-            gene_ids = {p.gene_id for p in proteins if p.gene_id is not None}
+            gene_ids = {r.gene_id for r in rows if r.gene_id is not None}
             genes_by_id = {g.id: g for g in await self._gene_repo.find_by_ids(list(gene_ids))}
             items = [
                 ProteinListItem(
-                    protein=p,
-                    gene=genes_by_id.get(p.gene_id) if p.gene_id is not None else None,
+                    row=r,
+                    gene=genes_by_id.get(r.gene_id) if r.gene_id is not None else None,
                 )
-                for p in proteins
+                for r in rows
             ]
 
             return Success(

@@ -9,6 +9,7 @@ from protcellar.domain.shared.pagination import PageResult
 
 # Re-export domain types so application-layer imports work.
 __all__ = [
+    "BULK_PAGE_SIZE",
     "DEFAULT_PAGE_SIZE",
     "MAX_PAGE_SIZE",
     "PageResult",
@@ -20,6 +21,11 @@ __all__ = [
 
 DEFAULT_PAGE_SIZE = 50
 MAX_PAGE_SIZE = 200
+# Bulk catalog reads (reporting/data-views pulls a whole proteome's genes/proteins at once) opt in
+# via clamp_limit(..., max_size=BULK_PAGE_SIZE), so ~4k rows come back in one keyset page instead of
+# ~20 round-trips. Ceiling, not comfort: the UoW's track() is O(n²) in page size and responses are
+# buffered (not streamed), so keep this a few thousand — larger proteomes still page via the cursor.
+BULK_PAGE_SIZE = 5000
 
 
 def parse_cursor(cursor: str | None) -> uuid.UUID | None:

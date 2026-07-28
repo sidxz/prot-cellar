@@ -8,6 +8,7 @@ from typing import Protocol, runtime_checkable
 
 from protcellar.domain.protein_catalog.gene import Gene
 from protcellar.domain.protein_catalog.protein import Protein
+from protcellar.domain.protein_catalog.read_models import ProteinListRow
 
 
 @runtime_checkable
@@ -73,7 +74,7 @@ class ProteinRepository(Protocol):
         self, source: str, source_record_id: str
     ) -> Protein | None: ...
 
-    async def find_all(
+    async def find_list_rows(
         self,
         *,
         cursor_id: uuid.UUID | None = None,
@@ -93,7 +94,7 @@ class ProteinRepository(Protocol):
         workspace_id: uuid.UUID,
         tag_ids: list[uuid.UUID] | None = None,
         match_all: bool = False,
-    ) -> list[Protein]: ...
+    ) -> list[ProteinListRow]: ...
 
     async def count_all(
         self,

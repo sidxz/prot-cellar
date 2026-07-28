@@ -5,10 +5,12 @@ from __future__ import annotations
 import uuid
 from typing import Any
 
-from sqlalchemy import Select, exists, func, or_, select
+from sqlalchemy import Select, and_, exists, func, or_, select
+from sqlalchemy.orm import aliased, load_only, noload
 
 from protcellar.domain.protein_catalog.enums import ProteinExistence
 from protcellar.domain.protein_catalog.protein import Protein
+from protcellar.domain.protein_catalog.read_models import ProteinListRow
 from protcellar.domain.protein_catalog.repository import ProteinRepository
 from protcellar.domain.protein_catalog.value_objects import (
     ProteinCitation,
@@ -34,6 +36,7 @@ from protcellar.infrastructure.persistence.sqlalchemy.tagging.models import Prot
 from protcellar.infrastructure.persistence.sqlalchemy.tagging.tag_filter import tag_filter_subquery
 
 _STRUCTURE_DBS = ("PDB", "PDBsum", "AlphaFoldDB", "EMDB", "SMR")
+_FLAG_DBS = ("PDB", "AlphaFoldDB", "ChEMBL", "DrugBank")  # the 4 the list projection surfaces
 
 
 class SQLAlchemyProteinRepository(SQLAlchemyRepository[Protein, ProteinModel], ProteinRepository):
@@ -428,7 +431,7 @@ class SQLAlchemyProteinRepository(SQLAlchemyRepository[Protein, ProteinModel], P
             )
         return stmt
 
-    async def find_all(
+    async def find_list_rows(
         self,
         *,
         cursor_id: uuid.UUID | None = None,
@@ -448,30 +451,97 @@ class SQLAlchemyProteinRepository(SQLAlchemyRepository[Protein, ProteinModel], P
         workspace_id: uuid.UUID,
         tag_ids: list[uuid.UUID] | None = None,
         match_all: bool = False,
-    ) -> list[Protein]:
-        stmt = self._apply_filters(
-            select(ProteinModel),
-            organism_id=organism_id,
-            strain_id=strain_id,
-            gene_id=gene_id,
-            is_reviewed=is_reviewed,
-            min_length=min_length,
-            max_length=max_length,
-            xref_db=xref_db,
-            has_structure=has_structure,
-            go_terms=go_terms,
-            keyword=keyword,
-            search=search,
-            is_enzyme=is_enzyme,
-            workspace_id=workspace_id,
-            tag_ids=tag_ids,
-            match_all=match_all,
-        ).order_by(ProteinModel.id)
+    ) -> list[ProteinListRow]:
+        # Thin list projection (see ProteinListRow): load only the scalar columns the list shows
+        # and derive the four structure/chem flags from a single LEFT JOIN over just those four
+        # cross-reference databases, aggregated in SQL — not by hydrating the aggregate. The old
+        # aggregate load, ~27 xref rows per protein, made a proteome page take ~16s; joining only
+        # the ~4% of xrefs that are these dbs is sub-second. Detail path (find_by_*) is unchanged.
+        xref = aliased(ProteinCrossReferenceModel)
+        stmt = (
+            self._apply_filters(
+                select(ProteinModel).options(
+                    load_only(
+                        ProteinModel.primary_accession,
+                        ProteinModel.entry_name,
+                        ProteinModel.is_reviewed,
+                        ProteinModel.protein_names,
+                        ProteinModel.organism_id,
+                        ProteinModel.strain_id,
+                        ProteinModel.gene_id,
+                        ProteinModel.seq_length,
+                        ProteinModel.seq_mass,
+                        ProteinModel.protein_existence,
+                    ),
+                    noload(ProteinModel.features),
+                    noload(ProteinModel.comments),
+                    noload(ProteinModel.isoforms),
+                    noload(ProteinModel.keyword_refs),
+                    noload(ProteinModel.citations),
+                    noload(ProteinModel.cross_reference_rows),
+                ),
+                organism_id=organism_id,
+                strain_id=strain_id,
+                gene_id=gene_id,
+                is_reviewed=is_reviewed,
+                min_length=min_length,
+                max_length=max_length,
+                xref_db=xref_db,
+                has_structure=has_structure,
+                go_terms=go_terms,
+                keyword=keyword,
+                search=search,
+                is_enzyme=is_enzyme,
+                workspace_id=workspace_id,
+                tag_ids=tag_ids,
+                match_all=match_all,
+            )
+            .outerjoin(
+                xref, and_(xref.protein_id == ProteinModel.id, xref.database.in_(_FLAG_DBS))
+            )
+            .add_columns(
+                func.count().filter(xref.database == "PDB").label("pdb_count"),
+                func.coalesce(func.bool_or(xref.database == "AlphaFoldDB"), False).label(
+                    "has_alphafold"
+                ),
+                func.coalesce(func.bool_or(xref.database == "ChEMBL"), False).label("has_chembl"),
+                func.coalesce(func.bool_or(xref.database == "DrugBank"), False).label(
+                    "has_drugbank"
+                ),
+            )
+            .group_by(ProteinModel.id)
+            .order_by(ProteinModel.id)
+        )
         if cursor_id is not None:
             stmt = stmt.where(ProteinModel.id > cursor_id)
         if limit is not None:
             stmt = stmt.limit(limit)
-        return [self._to_domain_tracked(m) for m in (await self._session.execute(stmt)).scalars()]
+        rows: list[ProteinListRow] = []
+        for m, pdb, has_af, has_chembl, has_drugbank in await self._session.execute(stmt):
+            rows.append(
+                ProteinListRow(
+                    id=m.id,
+                    primary_accession=m.primary_accession,
+                    entry_name=m.entry_name,
+                    is_reviewed=m.is_reviewed,
+                    protein_names=ProteinNames.from_dict(m.protein_names),
+                    organism_id=m.organism_id,
+                    strain_id=m.strain_id,
+                    gene_id=m.gene_id,
+                    seq_length=m.seq_length,
+                    seq_mass=m.seq_mass,
+                    protein_existence=(
+                        ProteinExistence(m.protein_existence)
+                        if m.protein_existence is not None
+                        else None
+                    ),
+                    pdb_count=pdb,
+                    has_alphafold=has_af,
+                    has_chembl=has_chembl,
+                    has_drugbank=has_drugbank,
+                )
+            )
+        return rows
 
     async def count_all(
         self,

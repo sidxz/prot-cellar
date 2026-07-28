@@ -34,7 +34,12 @@ from protcellar.interface.dependencies import (
     UpdateGeneDep,
 )
 from protcellar.interface.error_handlers import result_to_response
-from protcellar.interface.pagination import PaginatedResponse, clamp_limit, parse_cursor
+from protcellar.interface.pagination import (
+    BULK_PAGE_SIZE,
+    PaginatedResponse,
+    clamp_limit,
+    parse_cursor,
+)
 
 router = APIRouter(prefix="/api/v1/genes", tags=["genes"])
 
@@ -267,7 +272,7 @@ async def list_genes(
 ) -> PaginatedResponse[GeneResponse]:
     query = ListGenesQuery(
         cursor_id=parse_cursor(cursor),
-        limit=clamp_limit(limit),
+        limit=clamp_limit(limit, max_size=BULK_PAGE_SIZE),
         name=name,
         organism_id=organism_id,
         strain_id=strain_id,
