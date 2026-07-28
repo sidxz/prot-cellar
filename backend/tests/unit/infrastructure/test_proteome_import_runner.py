@@ -308,6 +308,14 @@ async def test_import_resolves_species_and_strain(import_uow: AsyncUnitOfWork) -
         assert strain.assembly_acc == "GCA_TEST.1"
         assert strain.ncbi_taxon_id == 771001
 
+        # The proteome itself links to the strain (regression: the importer used to
+        # leave proteomes.strain_id NULL, so proteome filters over-fetched every strain).
+        proteome_repo = SQLAlchemyProteomeRepository(import_uow)
+        proteome = await proteome_repo.find_by_proteome_id("UP000007710")
+        assert proteome is not None
+        assert proteome.strain_id == strain.id
+        assert proteome.organism_id == species.id
+
         # Proteins anchor to the SPECIES and carry the strain on strain_id.
         p1 = await protein_repo.find_by_accession("P0DX01")
         assert p1 is not None
@@ -342,3 +350,8 @@ async def test_import_species_level_proteome_creates_no_strain(
         assert await strain_repo.find_by_species(auth.workspace_id, org.id) == []
         p = await protein_repo.find_by_accession("P0DX10")
         assert p is not None and p.strain_id is None
+
+        # No strain resolved → the proteome's strain_id stays NULL (e.g. human).
+        proteome_repo = SQLAlchemyProteomeRepository(import_uow)
+        proteome = await proteome_repo.find_by_proteome_id("UP000007720")
+        assert proteome is not None and proteome.strain_id is None

@@ -122,7 +122,7 @@ class ProteomeImportRunner:
             return ImportSummary(proteome_id=proteome_id, skipped_unchanged=True)
         organism_id, strain_id = await self._resolve_taxa(meta, dry_run=dry_run, auth=auth)
         proteome_db_id = await self._ensure_proteome(
-            proteome_id, organism_id, meta, dry_run=dry_run
+            proteome_id, organism_id, strain_id, meta, dry_run=dry_run
         )
 
         tax_id = (meta.get("taxonomy") or {}).get("taxonId")
@@ -298,21 +298,33 @@ class ProteomeImportRunner:
             return strain.id
 
     async def _ensure_proteome(
-        self, proteome_id: str, organism_id: uuid.UUID, meta: dict[str, Any], *, dry_run: bool
+        self,
+        proteome_id: str,
+        organism_id: uuid.UUID,
+        strain_id: uuid.UUID | None,
+        meta: dict[str, Any],
+        *,
+        dry_run: bool,
     ) -> uuid.UUID:
         is_reference = "reference" in str(meta.get("proteomeType") or "reference").lower()
         async with self._uow:
             repo = SQLAlchemyProteomeRepository(self._uow)
             existing = await repo.find_by_proteome_id(proteome_id)
             if existing is not None:
-                if not dry_run and existing.source_version != meta.get("modified"):
-                    existing.update(source_version=meta.get("modified"))
+                fields: dict[str, Any] = {}
+                if existing.source_version != meta.get("modified"):
+                    fields["source_version"] = meta.get("modified")
+                if existing.strain_id is None and strain_id is not None:
+                    fields["strain_id"] = strain_id  # backfill rows imported before strain linkage
+                if not dry_run and fields:
+                    existing.update(**fields)
                     await repo.save(existing)
                     await self._uow.commit()
                 return existing.id
             proteome = Proteome.create(
                 uniprot_proteome_id=proteome_id,
                 organism_id=organism_id,
+                strain_id=strain_id,
                 proteome_type=ProteomeType.REFERENCE if is_reference else ProteomeType.REDUNDANT,
                 is_reference=is_reference,
                 source_version=meta.get("modified"),
@@ -354,8 +366,14 @@ class ProteomeImportRunner:
         auth: AuthContext | None,
     ) -> None:
         gene_id_by_key = await self._upsert_genes(
-            entries, organism_id, strain_id, tax_id, source_release, summary,
-            dry_run=dry_run, auth=auth,
+            entries,
+            organism_id,
+            strain_id,
+            tax_id,
+            source_release,
+            summary,
+            dry_run=dry_run,
+            auth=auth,
         )
 
         records: list[ProteinImportRecord] = []
