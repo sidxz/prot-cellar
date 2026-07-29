@@ -10,9 +10,10 @@ vi.mock("@/shared/lib/api/organisms/organisms", () => ({
 }));
 
 // GeneRef resolves a gene id to its human-readable name via this hook.
+// Distinct symbol/locus: the protein page's Gene row must show the symbol, not the locus.
 vi.mock("@/shared/lib/api/genes/genes", () => ({
   useGetGeneApiV1GenesGeneIdGet: () => ({
-    data: { id: "g1", primary_name: "rpoB", display_label: "rpoB" },
+    data: { id: "g1", primary_name: "rpoB", display_label: "Rv0667" },
     isLoading: false,
     isError: false,
   }),
@@ -119,6 +120,8 @@ describe("ProteinDetailPage", () => {
 
     const geneLink = screen.getByRole("link", { name: /rpoB/ });
     expect(geneLink).toHaveAttribute("href", "/genes/g1");
+    // Protein context leads with the symbol, never the locus tag.
+    expect(screen.queryByText("Rv0667")).not.toBeInTheDocument();
     expect(screen.queryByText("g1")).not.toBeInTheDocument();
   });
 

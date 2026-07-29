@@ -34,7 +34,7 @@ export function GeneRef({ id, className }: GeneRefProps) {
       href={`/genes/${id}`}
       className={cn("font-mono text-primary hover:underline underline-offset-4", className)}
     >
-      {data.display_label}
+      {data.primary_name}
     </Link>
   );
 }
