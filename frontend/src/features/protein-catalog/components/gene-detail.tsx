@@ -194,8 +194,8 @@ export interface GeneDetailPageProps {
 
 export function GeneDetailPage({ geneId }: GeneDetailPageProps) {
   const { data, isLoading, isError } = useGene(geneId);
-  // Show the gene name (not its UUID) in the breadcrumb once loaded.
-  useBreadcrumbOverride(geneId, data?.primary_name ?? "");
+  // Show the gene's lead label (locus for locus-tagged organisms) in the breadcrumb once loaded.
+  useBreadcrumbOverride(geneId, data?.display_label ?? "");
 
   // ── Loading ──────────────────────────────────────────────────────────────
   if (isLoading) {
@@ -228,10 +228,13 @@ export function GeneDetailPage({ geneId }: GeneDetailPageProps) {
       <header className="flex flex-col gap-2">
         <div className="flex flex-wrap items-center gap-3">
           <h1 className="text-2xl font-bold tracking-tight text-foreground font-mono">
-            {data.primary_name}
+            {data.display_label}
           </h1>
           <Badge variant="default">Gene</Badge>
         </div>
+        {data.display_label !== data.primary_name && (
+          <p className="text-sm text-muted-foreground">{data.primary_name}</p>
+        )}
       </header>
 
       {/* Single scroll (no tabs): the gene overview is light, and the typed

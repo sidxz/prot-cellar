@@ -12,6 +12,7 @@ import type { GeneNeighborSummaryEssentiality } from './geneNeighborSummaryEssen
 export interface GeneNeighborSummary {
   id: string;
   primary_name: string;
+  display_label: string;
   genomic_start?: GeneNeighborSummaryGenomicStart;
   genomic_end?: GeneNeighborSummaryGenomicEnd;
   genomic_strand?: GeneNeighborSummaryGenomicStrand;

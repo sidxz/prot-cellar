@@ -2,6 +2,7 @@ import { OrganismRef } from "@/shared/components/common/organism-ref";
 import { Badge } from "@/shared/components/ui/badge";
 import type { ColDef, ICellRendererParams } from "ag-grid-community";
 import Link from "next/link";
+import { secondaryNames } from "../lib/gene-label";
 import type { Gene } from "../types";
 
 function PrimaryNameCell({ data, value }: ICellRendererParams<Gene, string>) {
@@ -18,8 +19,14 @@ function PrimaryNameCell({ data, value }: ICellRendererParams<Gene, string>) {
 }
 
 function SynonymsCell({ data }: ICellRendererParams<Gene>) {
-  if (!data?.synonyms?.length) return <span className="text-muted-foreground">—</span>;
-  return <span className="text-sm">{data.synonyms.join(", ")}</span>;
+  if (!data) return <span className="text-muted-foreground">—</span>;
+  // Gene lead is display_label (the locus); show symbol + remaining loci + synonyms beneath it.
+  const rest = secondaryNames(
+    [data.primary_name, ...(data.ordered_locus_names ?? []), ...(data.synonyms ?? [])],
+    data.display_label,
+  );
+  if (rest.length === 0) return <span className="text-muted-foreground">—</span>;
+  return <span className="text-sm">{rest.join(", ")}</span>;
 }
 
 function OrganismCell({ data }: ICellRendererParams<Gene>) {
@@ -83,7 +90,7 @@ function HgncCell({ data }: ICellRendererParams<Gene>) {
 export const geneColumnDefs: ColDef<Gene>[] = [
   {
     headerName: "Gene Name",
-    field: "primary_name",
+    field: "display_label",
     width: 140,
     cellRenderer: PrimaryNameCell,
   },

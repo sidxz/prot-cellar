@@ -6137,6 +6137,10 @@
             "type": "string",
             "title": "Primary Name"
           },
+          "display_label": {
+            "type": "string",
+            "title": "Display Label"
+          },
           "genomic_start": {
             "anyOf": [
               {
@@ -6185,7 +6189,8 @@
         "type": "object",
         "required": [
           "id",
-          "primary_name"
+          "primary_name",
+          "display_label"
         ],
         "title": "GeneNeighborSummary"
       },
@@ -6250,6 +6255,17 @@
             },
             "type": "array",
             "title": "Synonyms"
+          },
+          "ordered_locus_names": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Ordered Locus Names"
+          },
+          "display_label": {
+            "type": "string",
+            "title": "Display Label"
           },
           "ncbi_gene_id": {
             "anyOf": [
@@ -6397,6 +6413,8 @@
           "primary_name",
           "organism_id",
           "synonyms",
+          "ordered_locus_names",
+          "display_label",
           "cross_references",
           "annotations",
           "version"
@@ -6420,13 +6438,21 @@
             },
             "type": "array",
             "title": "Synonyms"
+          },
+          "ordered_locus_names": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Ordered Locus Names"
           }
         },
         "type": "object",
         "required": [
           "id",
           "primary_name",
-          "synonyms"
+          "synonyms",
+          "ordered_locus_names"
         ],
         "title": "GeneSummaryResponse",
         "description": "Lightweight gene fields embedded in the protein list for at-a-glance display."

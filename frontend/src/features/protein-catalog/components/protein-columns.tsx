@@ -3,6 +3,7 @@ import { Badge } from "@/shared/components/ui/badge";
 import { cn } from "@/shared/lib/utils";
 import type { ColDef, ICellRendererParams } from "ag-grid-community";
 import Link from "next/link";
+import { secondaryNames } from "../lib/gene-label";
 import type { ProteinListItem } from "../types";
 
 // Row height needed to comfortably fit the three-line identity cell.
@@ -20,7 +21,14 @@ const stop = (e: React.MouseEvent) => e.stopPropagation();
 function IdentityCell({ data }: ICellRendererParams<ProteinListItem>) {
   if (!data) return <span className="text-muted-foreground">—</span>;
   const gene = data.gene;
-  const synonyms = gene?.synonyms?.filter((s) => s !== gene.primary_name) ?? [];
+  // Protein lead stays the symbol (primary_name); show loci + synonyms beneath it,
+  // so the locus survives now that it's a distinct field (no longer in synonyms).
+  const synonyms = gene
+    ? secondaryNames(
+        [...(gene.ordered_locus_names ?? []), ...(gene.synonyms ?? [])],
+        gene.primary_name,
+      )
+    : [];
   return (
     <div className="flex flex-col justify-center gap-0.5 py-1.5 leading-tight">
       <div className="flex items-baseline gap-1.5 truncate">

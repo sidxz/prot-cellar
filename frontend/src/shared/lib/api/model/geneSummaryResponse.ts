@@ -12,4 +12,5 @@ export interface GeneSummaryResponse {
   id: string;
   primary_name: string;
   synonyms: string[];
+  ordered_locus_names: string[];
 }

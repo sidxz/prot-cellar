@@ -52,6 +52,7 @@ describe("GenomicContextSection", () => {
           {
             id: "g0",
             primary_name: "rpoC",
+            display_label: "rpoC",
             genomic_start: 700000,
             genomic_end: 705000,
             genomic_strand: "+",
@@ -60,6 +61,7 @@ describe("GenomicContextSection", () => {
           {
             id: "g1",
             primary_name: "rpoB",
+            display_label: "rpoB",
             genomic_start: 759807,
             genomic_end: 763325,
             genomic_strand: "+",
@@ -68,6 +70,7 @@ describe("GenomicContextSection", () => {
           {
             id: "g2",
             primary_name: "rpsL",
+            display_label: "rpsL",
             genomic_start: 800000,
             genomic_end: 805000,
             genomic_strand: "-",

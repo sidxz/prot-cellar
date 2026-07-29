@@ -6,13 +6,13 @@ import { cn } from "@/shared/lib/utils";
 import { MapPin } from "lucide-react";
 import Link from "next/link";
 
-import { useGeneNeighborhood } from "../../hooks/use-genes";
-import { useMeasuredWidth } from "../../hooks/use-measured-width";
 import {
   ESSENTIALITY_STYLE,
   type EssentialityBucket,
   essentialityBucket,
 } from "@structflo/components/target-biology";
+import { useGeneNeighborhood } from "../../hooks/use-genes";
+import { useMeasuredWidth } from "../../hooks/use-measured-width";
 import { type PositionedGene, type TrackGene, layoutNeighbors } from "../../lib/genome-track";
 import type { Gene } from "../../types";
 
@@ -127,7 +127,7 @@ function NeighborhoodTrack({ gene }: { gene: Gene }) {
     .filter((n) => n.genomic_start != null && n.genomic_end != null)
     .map((n) => ({
       id: n.id,
-      name: n.primary_name,
+      name: n.display_label,
       strand: n.genomic_strand ?? null,
       essentiality: n.essentiality ?? null,
       start: n.genomic_start as number,

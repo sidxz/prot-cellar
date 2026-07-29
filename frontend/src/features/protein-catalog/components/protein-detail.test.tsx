@@ -12,7 +12,7 @@ vi.mock("@/shared/lib/api/organisms/organisms", () => ({
 // GeneRef resolves a gene id to its human-readable name via this hook.
 vi.mock("@/shared/lib/api/genes/genes", () => ({
   useGetGeneApiV1GenesGeneIdGet: () => ({
-    data: { id: "g1", primary_name: "rpoB" },
+    data: { id: "g1", primary_name: "rpoB", display_label: "rpoB" },
     isLoading: false,
     isError: false,
   }),

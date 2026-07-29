@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 
 vi.mock("@/shared/lib/api/genes/genes", () => ({
   useGetGeneApiV1GenesGeneIdGet: () => ({
-    data: { id: "g1", primary_name: "rpoB" },
+    data: { id: "g1", primary_name: "rpoB", display_label: "rpoB" },
     isLoading: false,
     isError: false,
   }),
