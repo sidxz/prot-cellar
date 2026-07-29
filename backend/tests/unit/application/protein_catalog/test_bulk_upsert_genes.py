@@ -50,7 +50,10 @@ class _NoopDispatcher:
 
 
 def _rec(
-    srid: str = "83332:Rv1908c", checksum: str = "c1", primary: str = "katG"
+    srid: str = "83332:Rv1908c",
+    checksum: str = "c1",
+    primary: str = "katG",
+    ordered_locus_names: tuple[str, ...] = ("Rv1908c",),
 ) -> GeneImportRecord:
     return GeneImportRecord(
         primary_name=primary,
@@ -59,7 +62,8 @@ def _rec(
         source_release="2026_02",
         source_record_id=srid,
         source_record_checksum=checksum,
-        synonyms=("Rv1908c",),
+        synonyms=(),
+        ordered_locus_names=ordered_locus_names,
     )
 
 
@@ -131,3 +135,13 @@ async def test_dry_run_persists_nothing() -> None:
     ).unwrap()
     assert [x.status for x in r] == ["created"]
     assert repo.by_srid == {}
+
+
+@pytest.mark.asyncio
+async def test_created_gene_carries_ordered_locus_names() -> None:
+    repo = _FakeGeneRepo()
+    uc = _uc(repo)
+    auth = FakeAuth(role="admin")
+    await uc(BulkUpsertGenesCommand(records=(_rec(),)), auth=auth)
+    saved = repo.by_srid[("uniprot", "83332:Rv1908c")]
+    assert saved.ordered_locus_names == ["Rv1908c"]

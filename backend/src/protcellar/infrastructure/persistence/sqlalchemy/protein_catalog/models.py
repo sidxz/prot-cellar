@@ -31,6 +31,7 @@ class GeneModel(Base, EntityModelMixin, WorkspaceIdMixin, VersionMixin, Provenan
         ForeignKey("strains.id"), nullable=True, index=True
     )
     synonyms: Mapped[list[str] | None] = mapped_column(ARRAY(String), nullable=True)
+    ordered_locus_names: Mapped[list[str] | None] = mapped_column(ARRAY(String), nullable=True)
     ncbi_gene_id: Mapped[str | None] = mapped_column(String(32), nullable=True, index=True)
     ensembl_gene_id: Mapped[str | None] = mapped_column(String(32), nullable=True, index=True)
     hgnc_id: Mapped[str | None] = mapped_column(String(32), nullable=True)

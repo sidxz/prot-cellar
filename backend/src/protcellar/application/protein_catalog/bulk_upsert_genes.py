@@ -71,6 +71,7 @@ class BulkUpsertGenes:
                         update_fields: dict[str, Any] = {
                             "primary_name": rec.primary_name,
                             "synonyms": list(rec.synonyms),
+                            "ordered_locus_names": list(rec.ordered_locus_names),
                             "ncbi_gene_id": rec.ncbi_gene_id,
                             "ensembl_gene_id": rec.ensembl_gene_id,
                             "cross_references": list(rec.cross_references),
@@ -90,6 +91,7 @@ class BulkUpsertGenes:
                             organism_id=rec.organism_id,
                             strain_id=rec.strain_id,
                             synonyms=list(rec.synonyms),
+                            ordered_locus_names=list(rec.ordered_locus_names),
                             ncbi_gene_id=rec.ncbi_gene_id,
                             ensembl_gene_id=rec.ensembl_gene_id,
                             cross_references=list(rec.cross_references),

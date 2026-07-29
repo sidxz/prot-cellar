@@ -33,6 +33,9 @@ class SQLAlchemyGeneRepository(SQLAlchemyRepository[Gene, GeneModel], GeneReposi
             organism_id=model.organism_id,
             strain_id=model.strain_id,
             synonyms=list(model.synonyms) if model.synonyms else [],
+            ordered_locus_names=(
+                list(model.ordered_locus_names) if model.ordered_locus_names else []
+            ),
             ncbi_gene_id=model.ncbi_gene_id,
             ensembl_gene_id=model.ensembl_gene_id,
             hgnc_id=model.hgnc_id,
@@ -61,6 +64,7 @@ class SQLAlchemyGeneRepository(SQLAlchemyRepository[Gene, GeneModel], GeneReposi
             organism_id=aggregate.organism_id,
             strain_id=aggregate.strain_id,
             synonyms=aggregate.synonyms or None,
+            ordered_locus_names=aggregate.ordered_locus_names or None,
             ncbi_gene_id=aggregate.ncbi_gene_id,
             ensembl_gene_id=aggregate.ensembl_gene_id,
             hgnc_id=aggregate.hgnc_id,
@@ -84,6 +88,7 @@ class SQLAlchemyGeneRepository(SQLAlchemyRepository[Gene, GeneModel], GeneReposi
         model.organism_id = aggregate.organism_id
         model.strain_id = aggregate.strain_id
         model.synonyms = aggregate.synonyms or None
+        model.ordered_locus_names = aggregate.ordered_locus_names or None
         model.ncbi_gene_id = aggregate.ncbi_gene_id
         model.ensembl_gene_id = aggregate.ensembl_gene_id
         model.hgnc_id = aggregate.hgnc_id
