@@ -3,7 +3,7 @@ import uuid
 import pytest
 
 from protcellar.domain.protein_catalog.events import GeneCreated, GeneUpdated
-from protcellar.domain.protein_catalog.gene import Gene
+from protcellar.domain.protein_catalog.gene import Gene, gene_display_label
 from protcellar.domain.shared.errors import ValidationError
 from protcellar.domain.shared.global_workspace import GLOBAL_WORKSPACE_ID
 
@@ -87,3 +87,32 @@ def test_gene_holds_annotations_and_update_replaces_them() -> None:
     g.update(genomic_strand="-")
     assert g.genomic_strand == "-"
     assert g.annotations == [ann]  # untouched keys preserved
+
+
+def test_gene_carries_ordered_locus_names() -> None:
+    gene = Gene.create(
+        primary_name="rho",
+        organism_id=uuid.uuid4(),
+        ordered_locus_names=["Rv1297"],
+    )
+    assert gene.ordered_locus_names == ["Rv1297"]
+
+
+def test_gene_ordered_locus_names_default_empty() -> None:
+    gene = Gene.create(primary_name="TP53", organism_id=uuid.uuid4())
+    assert gene.ordered_locus_names == []
+
+
+def test_gene_update_ordered_locus_names() -> None:
+    gene = Gene.create(primary_name="rho", organism_id=uuid.uuid4())
+    gene.update(ordered_locus_names=["Rv1297"])
+    assert gene.ordered_locus_names == ["Rv1297"]
+
+
+def test_display_label_prefers_locus() -> None:
+    assert gene_display_label("rho", ["Rv1297"]) == "Rv1297"
+
+
+def test_display_label_falls_back_to_primary_when_no_locus() -> None:
+    # Human genes have no ordered locus names -> symbol wins.
+    assert gene_display_label("TP53", []) == "TP53"
