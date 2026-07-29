@@ -104,7 +104,9 @@ class GetGeneNeighborhood:
                     GeneNeighborSummary(
                         id=n.id,
                         primary_name=n.primary_name,
-                        display_label=gene_display_label(n.primary_name, n.ordered_locus_names),
+                        display_label=gene_display_label(
+                            n.primary_name, n.ordered_locus_names, n.orf_names
+                        ),
                         genomic_start=n.genomic_start,
                         genomic_end=n.genomic_end,
                         genomic_strand=n.genomic_strand,

@@ -109,10 +109,33 @@ def test_gene_update_ordered_locus_names() -> None:
     assert gene.ordered_locus_names == ["Rv1297"]
 
 
+def test_gene_carries_orf_names() -> None:
+    gene = Gene.create(
+        primary_name="VPS26", organism_id=uuid.uuid4(), orf_names=["PF3D7_1250300"]
+    )
+    assert gene.orf_names == ["PF3D7_1250300"]
+
+
+def test_gene_orf_names_default_empty() -> None:
+    assert Gene.create(primary_name="TP53", organism_id=uuid.uuid4()).orf_names == []
+
+
+def test_gene_update_orf_names() -> None:
+    gene = Gene.create(primary_name="VPS26", organism_id=uuid.uuid4())
+    gene.update(orf_names=["PF3D7_1250300"])
+    assert gene.orf_names == ["PF3D7_1250300"]
+
+
 def test_display_label_prefers_locus() -> None:
-    assert gene_display_label("rho", ["Rv1297"]) == "Rv1297"
+    # Ordered locus tag wins over both ORF name and symbol.
+    assert gene_display_label("rho", ["Rv1297"], ["MTCY373.17"]) == "Rv1297"
 
 
-def test_display_label_falls_back_to_primary_when_no_locus() -> None:
-    # Human genes have no ordered locus names -> symbol wins.
-    assert gene_display_label("TP53", []) == "TP53"
+def test_display_label_uses_orf_when_no_locus() -> None:
+    # Plasmodium: PF3D7 ids are ORF names, not ordered locus names -> ORF leads.
+    assert gene_display_label("VPS26", [], ["PF3D7_1250300"]) == "PF3D7_1250300"
+
+
+def test_display_label_falls_back_to_primary_when_no_locus_or_orf() -> None:
+    # Human genes have neither -> symbol wins.
+    assert gene_display_label("TP53", [], []) == "TP53"

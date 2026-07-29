@@ -32,6 +32,8 @@ def _gene(gid: uuid.UUID, name: str, *, organism: uuid.UUID, start: int) -> Simp
     return SimpleNamespace(
         id=gid,
         primary_name=name,
+        ordered_locus_names=[],
+        orf_names=[],
         organism_id=organism,
         genomic_accession="NC_000962.3",
         genomic_start=start,

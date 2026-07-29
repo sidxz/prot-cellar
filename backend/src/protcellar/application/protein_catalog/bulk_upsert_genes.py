@@ -31,6 +31,7 @@ class GeneImportRecord:
     strain_id: uuid.UUID | None = None
     synonyms: tuple[str, ...] = ()
     ordered_locus_names: tuple[str, ...] = ()
+    orf_names: tuple[str, ...] = ()
     ncbi_gene_id: str | None = None
     ensembl_gene_id: str | None = None
     cross_references: tuple[CrossReference, ...] = ()
@@ -72,6 +73,7 @@ class BulkUpsertGenes:
                             "primary_name": rec.primary_name,
                             "synonyms": list(rec.synonyms),
                             "ordered_locus_names": list(rec.ordered_locus_names),
+                            "orf_names": list(rec.orf_names),
                             "ncbi_gene_id": rec.ncbi_gene_id,
                             "ensembl_gene_id": rec.ensembl_gene_id,
                             "cross_references": list(rec.cross_references),
@@ -92,6 +94,7 @@ class BulkUpsertGenes:
                             strain_id=rec.strain_id,
                             synonyms=list(rec.synonyms),
                             ordered_locus_names=list(rec.ordered_locus_names),
+                            orf_names=list(rec.orf_names),
                             ncbi_gene_id=rec.ncbi_gene_id,
                             ensembl_gene_id=rec.ensembl_gene_id,
                             cross_references=list(rec.cross_references),

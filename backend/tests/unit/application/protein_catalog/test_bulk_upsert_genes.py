@@ -54,6 +54,7 @@ def _rec(
     checksum: str = "c1",
     primary: str = "katG",
     ordered_locus_names: tuple[str, ...] = ("Rv1908c",),
+    orf_names: tuple[str, ...] = (),
 ) -> GeneImportRecord:
     return GeneImportRecord(
         primary_name=primary,
@@ -64,6 +65,7 @@ def _rec(
         source_record_checksum=checksum,
         synonyms=(),
         ordered_locus_names=ordered_locus_names,
+        orf_names=orf_names,
     )
 
 
@@ -145,3 +147,13 @@ async def test_created_gene_carries_ordered_locus_names() -> None:
     await uc(BulkUpsertGenesCommand(records=(_rec(),)), auth=auth)
     saved = repo.by_srid[("uniprot", "83332:Rv1908c")]
     assert saved.ordered_locus_names == ["Rv1908c"]
+
+
+@pytest.mark.asyncio
+async def test_created_gene_carries_orf_names() -> None:
+    repo = _FakeGeneRepo()
+    auth = FakeAuth(role="admin")
+    rec = _rec(srid="36329:PF3D7_1250300", primary="VPS26", ordered_locus_names=(), orf_names=("PF3D7_1250300",))
+    await _uc(repo)(BulkUpsertGenesCommand(records=(rec,)), auth=auth)
+    saved = repo.by_srid[("uniprot", "36329:PF3D7_1250300")]
+    assert saved.orf_names == ["PF3D7_1250300"]

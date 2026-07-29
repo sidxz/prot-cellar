@@ -24,6 +24,7 @@ class Gene(AggregateRoot):
         strain_id: uuid.UUID | None = None,
         synonyms: list[str] | None = None,
         ordered_locus_names: list[str] | None = None,
+        orf_names: list[str] | None = None,
         ncbi_gene_id: str | None = None,
         ensembl_gene_id: str | None = None,
         hgnc_id: str | None = None,
@@ -55,6 +56,7 @@ class Gene(AggregateRoot):
         self.ordered_locus_names = (
             ordered_locus_names if ordered_locus_names is not None else []
         )
+        self.orf_names = orf_names if orf_names is not None else []
         self.ncbi_gene_id = ncbi_gene_id
         self.ensembl_gene_id = ensembl_gene_id
         self.hgnc_id = hgnc_id
@@ -80,6 +82,7 @@ class Gene(AggregateRoot):
         strain_id: uuid.UUID | None = None,
         synonyms: list[str] | None = None,
         ordered_locus_names: list[str] | None = None,
+        orf_names: list[str] | None = None,
         ncbi_gene_id: str | None = None,
         ensembl_gene_id: str | None = None,
         hgnc_id: str | None = None,
@@ -97,6 +100,7 @@ class Gene(AggregateRoot):
             strain_id=strain_id,
             synonyms=synonyms,
             ordered_locus_names=ordered_locus_names,
+            orf_names=orf_names,
             ncbi_gene_id=ncbi_gene_id,
             ensembl_gene_id=ensembl_gene_id,
             hgnc_id=hgnc_id,
@@ -135,6 +139,8 @@ class Gene(AggregateRoot):
             self.synonyms = list(fields["synonyms"] or [])
         if "ordered_locus_names" in fields:
             self.ordered_locus_names = list(fields["ordered_locus_names"] or [])
+        if "orf_names" in fields:
+            self.orf_names = list(fields["orf_names"] or [])
         if "ncbi_gene_id" in fields:
             self.ncbi_gene_id = fields["ncbi_gene_id"]
         if "ensembl_gene_id" in fields:
@@ -169,9 +175,16 @@ class Gene(AggregateRoot):
         )
 
 
-def gene_display_label(primary_name: str, ordered_locus_names: list[str]) -> str:
-    """Gene-context label: the ordered locus tag (Rv1066, PF3D7_0216700) when present,
-    else the primary name. Protein-context views keep the symbol (primary_name)."""
-    # ponytail: first OLN wins; a multi-strain gene may list Rv#### + MT#### — a
+def gene_display_label(
+    primary_name: str, ordered_locus_names: list[str], orf_names: list[str]
+) -> str:
+    """Gene-context label: the ordered locus tag (Rv1066), else the ORF name
+    (PF3D7_0216700 for Plasmodium, whose loci UniProt files as ORF names), else the
+    primary name. Protein-context views keep the symbol (primary_name)."""
+    # ponytail: first locus/ORF wins; a multi-strain gene may list Rv#### + MT#### — a
     # strain-aware pick needs a strain->prefix map, defer until a view needs it.
-    return ordered_locus_names[0] if ordered_locus_names else primary_name
+    if ordered_locus_names:
+        return ordered_locus_names[0]
+    if orf_names:
+        return orf_names[0]
+    return primary_name

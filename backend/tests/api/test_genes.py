@@ -358,6 +358,25 @@ async def test_gene_list_and_detail_lead_with_locus(client: AsyncClient, databas
 
 
 @pytest.mark.asyncio
+async def test_gene_leads_with_orf_when_no_locus(client: AsyncClient, database_url: str) -> None:
+    # Plasmodium: PF3D7 ids are ORF names -> named genes lead with the ORF, not the symbol.
+    organism_id = await _make_organism(
+        client, ncbi_tax_id=36329, scientific_name="Plasmodium falciparum 3D7"
+    )
+    gene = Gene.create(
+        primary_name="VPS26",
+        organism_id=uuid.UUID(organism_id),
+        orf_names=["PF3D7_1250300"],
+    )
+    await _seed_gene(database_url, gene)
+    detail = await client.get(f"/api/v1/genes/{gene.id}")
+    body = detail.json()
+    assert body["display_label"] == "PF3D7_1250300"
+    assert body["orf_names"] == ["PF3D7_1250300"]
+    assert body["primary_name"] == "VPS26"
+
+
+@pytest.mark.asyncio
 async def test_human_gene_falls_back_to_symbol(client: AsyncClient, database_url: str) -> None:
     organism_id = await _make_organism(
         client, ncbi_tax_id=9606, scientific_name="Homo sapiens"

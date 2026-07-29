@@ -84,6 +84,7 @@ class GeneResponse(BaseModel):
     strain_id: uuid.UUID | None = None
     synonyms: list[str]
     ordered_locus_names: list[str]
+    orf_names: list[str]
     display_label: str
     ncbi_gene_id: str | None = None
     ncbi_gene_url: str | None = None
@@ -119,7 +120,8 @@ class GeneResponse(BaseModel):
             strain_id=g.strain_id,
             synonyms=g.synonyms,
             ordered_locus_names=g.ordered_locus_names,
-            display_label=gene_display_label(g.primary_name, g.ordered_locus_names),
+            orf_names=g.orf_names,
+            display_label=gene_display_label(g.primary_name, g.ordered_locus_names, g.orf_names),
             ncbi_gene_id=g.ncbi_gene_id,
             ncbi_gene_url=ncbi_gene_url,
             ensembl_gene_id=g.ensembl_gene_id,

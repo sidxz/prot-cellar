@@ -163,6 +163,7 @@ class GeneSummaryResponse(BaseModel):
     primary_name: str
     synonyms: list[str]
     ordered_locus_names: list[str]
+    orf_names: list[str]
 
     @classmethod
     def from_domain(cls, g: Gene) -> GeneSummaryResponse:
@@ -171,6 +172,7 @@ class GeneSummaryResponse(BaseModel):
             primary_name=g.primary_name,
             synonyms=list(g.synonyms),
             ordered_locus_names=list(g.ordered_locus_names),
+            orf_names=list(g.orf_names),
         )
 
 

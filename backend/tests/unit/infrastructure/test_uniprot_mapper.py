@@ -224,6 +224,14 @@ def test_locus_only_entry_uses_locus_as_primary_name() -> None:
     assert genes[0].synonyms == ()
 
 
+def test_orf_names_extracted_distinctly() -> None:
+    # Plasmodium: PF3D7 ids are ORF names — their own field, not flattened into synonyms.
+    entry = {"genes": [{"geneName": {"value": "VPS26"}, "orfNames": [{"value": "PF3D7_1250300"}]}]}
+    g = map_uniprot_genes(entry, organism_id=uuid.uuid4(), tax_id=36329)[0]
+    assert g.orf_names == ("PF3D7_1250300",)
+    assert "PF3D7_1250300" not in g.synonyms
+
+
 def test_ordered_locus_names_change_checksum() -> None:
     base = {"genes": [{"geneName": {"value": "rho"}}]}
     with_locus = {
