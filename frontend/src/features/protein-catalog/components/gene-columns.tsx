@@ -20,9 +20,14 @@ function PrimaryNameCell({ data, value }: ICellRendererParams<Gene, string>) {
 
 function SynonymsCell({ data }: ICellRendererParams<Gene>) {
   if (!data) return <span className="text-muted-foreground">—</span>;
-  // Gene lead is display_label (the locus); show symbol + remaining loci + synonyms beneath it.
+  // Gene lead is display_label (the locus/ORF); show symbol + remaining ids beneath it.
   const rest = secondaryNames(
-    [data.primary_name, ...(data.ordered_locus_names ?? []), ...(data.synonyms ?? [])],
+    [
+      data.primary_name,
+      ...(data.ordered_locus_names ?? []),
+      ...(data.orf_names ?? []),
+      ...(data.synonyms ?? []),
+    ],
     data.display_label,
   );
   if (rest.length === 0) return <span className="text-muted-foreground">—</span>;

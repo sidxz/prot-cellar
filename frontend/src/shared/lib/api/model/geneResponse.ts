@@ -26,6 +26,7 @@ export interface GeneResponse {
   strain_id?: GeneResponseStrainId;
   synonyms: string[];
   ordered_locus_names: string[];
+  orf_names: string[];
   display_label: string;
   ncbi_gene_id?: GeneResponseNcbiGeneId;
   ncbi_gene_url?: GeneResponseNcbiGeneUrl;

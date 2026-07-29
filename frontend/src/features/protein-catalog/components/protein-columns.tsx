@@ -21,11 +21,11 @@ const stop = (e: React.MouseEvent) => e.stopPropagation();
 function IdentityCell({ data }: ICellRendererParams<ProteinListItem>) {
   if (!data) return <span className="text-muted-foreground">—</span>;
   const gene = data.gene;
-  // Protein lead stays the symbol (primary_name); show loci + synonyms beneath it,
-  // so the locus survives now that it's a distinct field (no longer in synonyms).
+  // Protein lead stays the symbol (primary_name); show loci + ORF names + synonyms
+  // beneath it, so those ids survive now that they're distinct fields (not in synonyms).
   const synonyms = gene
     ? secondaryNames(
-        [...(gene.ordered_locus_names ?? []), ...(gene.synonyms ?? [])],
+        [...(gene.ordered_locus_names ?? []), ...(gene.orf_names ?? []), ...(gene.synonyms ?? [])],
         gene.primary_name,
       )
     : [];
