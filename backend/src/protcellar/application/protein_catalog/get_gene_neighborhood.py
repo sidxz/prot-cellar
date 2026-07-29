@@ -17,6 +17,7 @@ from returns.result import Failure, Result, Success
 from protcellar.application.auth import AuthContext, require_authenticated
 from protcellar.application.shared.query import Query
 from protcellar.application.shared.unit_of_work import UnitOfWork
+from protcellar.domain.protein_catalog.gene import gene_display_label
 from protcellar.domain.protein_catalog.repository import GeneRepository
 from protcellar.domain.shared.errors import DomainError, NotFoundError
 from protcellar.domain.shared.global_workspace import GLOBAL_WORKSPACE_ID
@@ -49,6 +50,7 @@ def _consensus_essentiality(records: list[Essentiality]) -> str | None:
 class GeneNeighborSummary:
     id: uuid.UUID
     primary_name: str
+    display_label: str
     genomic_start: int | None
     genomic_end: int | None
     genomic_strand: str | None
@@ -102,6 +104,7 @@ class GetGeneNeighborhood:
                     GeneNeighborSummary(
                         id=n.id,
                         primary_name=n.primary_name,
+                        display_label=gene_display_label(n.primary_name, n.ordered_locus_names),
                         genomic_start=n.genomic_start,
                         genomic_end=n.genomic_end,
                         genomic_strand=n.genomic_strand,

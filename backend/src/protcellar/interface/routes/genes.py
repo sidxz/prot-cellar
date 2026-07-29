@@ -20,7 +20,7 @@ from protcellar.application.protein_catalog.get_gene_neighborhood import (
 from protcellar.application.protein_catalog.list_genes import ListGenesQuery
 from protcellar.application.protein_catalog.update_gene import UpdateGeneCommand
 from protcellar.application.shared.sentinel import UNSET
-from protcellar.domain.protein_catalog.gene import Gene
+from protcellar.domain.protein_catalog.gene import Gene, gene_display_label
 from protcellar.domain.protein_catalog.gene_annotation import GeneAnnotation, GeneAnnotationAxis
 from protcellar.domain.shared.cross_reference import CrossReference
 from protcellar.infrastructure.identifiers.registry import IdentifierRegistry
@@ -83,6 +83,8 @@ class GeneResponse(BaseModel):
     organism_id: uuid.UUID
     strain_id: uuid.UUID | None = None
     synonyms: list[str]
+    ordered_locus_names: list[str]
+    display_label: str
     ncbi_gene_id: str | None = None
     ncbi_gene_url: str | None = None
     ensembl_gene_id: str | None = None
@@ -116,6 +118,8 @@ class GeneResponse(BaseModel):
             organism_id=g.organism_id,
             strain_id=g.strain_id,
             synonyms=g.synonyms,
+            ordered_locus_names=g.ordered_locus_names,
+            display_label=gene_display_label(g.primary_name, g.ordered_locus_names),
             ncbi_gene_id=g.ncbi_gene_id,
             ncbi_gene_url=ncbi_gene_url,
             ensembl_gene_id=g.ensembl_gene_id,
@@ -171,6 +175,7 @@ class GeneAnnotationBody(BaseModel):
 class GeneNeighborSummary(BaseModel):
     id: uuid.UUID
     primary_name: str
+    display_label: str
     genomic_start: int | None = None
     genomic_end: int | None = None
     genomic_strand: str | None = None
@@ -313,6 +318,7 @@ async def get_gene_neighborhood(
             GeneNeighborSummary(
                 id=n.id,
                 primary_name=n.primary_name,
+                display_label=n.display_label,
                 genomic_start=n.genomic_start,
                 genomic_end=n.genomic_end,
                 genomic_strand=n.genomic_strand,

@@ -330,3 +330,41 @@ async def test_gene_neighborhood_404_when_no_location(client: AsyncClient) -> No
 async def test_gene_neighborhood_404_for_unknown_gene(client: AsyncClient) -> None:
     r = await client.get(f"/api/v1/genes/{uuid.uuid4()}/neighborhood")
     assert r.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_gene_list_and_detail_lead_with_locus(client: AsyncClient, database_url: str) -> None:
+    organism_id = await _make_organism(
+        client, ncbi_tax_id=83332, scientific_name="Mycobacterium tuberculosis"
+    )
+    gene = Gene.create(
+        primary_name="rho",
+        organism_id=uuid.UUID(organism_id),
+        synonyms=["MTCY373.17"],
+        ordered_locus_names=["Rv1297"],
+    )
+    await _seed_gene(database_url, gene)
+
+    detail = await client.get(f"/api/v1/genes/{gene.id}")
+    assert detail.status_code == 200
+    body = detail.json()
+    assert body["display_label"] == "Rv1297"  # gene context leads with the locus
+    assert body["ordered_locus_names"] == ["Rv1297"]
+    assert body["primary_name"] == "rho"  # symbol still present
+
+    listed = await client.get("/api/v1/genes", params={"name": "rho"})
+    item = next(g for g in listed.json()["items"] if g["id"] == str(gene.id))
+    assert item["display_label"] == "Rv1297"
+
+
+@pytest.mark.asyncio
+async def test_human_gene_falls_back_to_symbol(client: AsyncClient, database_url: str) -> None:
+    organism_id = await _make_organism(
+        client, ncbi_tax_id=9606, scientific_name="Homo sapiens"
+    )
+    gene = Gene.create(
+        primary_name="TP53", organism_id=uuid.UUID(organism_id), synonyms=["P53"]
+    )
+    await _seed_gene(database_url, gene)
+    detail = await client.get(f"/api/v1/genes/{gene.id}")
+    assert detail.json()["display_label"] == "TP53"  # no locus -> symbol wins

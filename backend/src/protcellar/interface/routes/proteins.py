@@ -162,10 +162,16 @@ class GeneSummaryResponse(BaseModel):
     id: uuid.UUID
     primary_name: str
     synonyms: list[str]
+    ordered_locus_names: list[str]
 
     @classmethod
     def from_domain(cls, g: Gene) -> GeneSummaryResponse:
-        return cls(id=g.id, primary_name=g.primary_name, synonyms=list(g.synonyms))
+        return cls(
+            id=g.id,
+            primary_name=g.primary_name,
+            synonyms=list(g.synonyms),
+            ordered_locus_names=list(g.ordered_locus_names),
+        )
 
 
 class ProteinStructureSummary(BaseModel):
