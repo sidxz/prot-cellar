@@ -1,8 +1,9 @@
 # Gene locus-first display label
 
 **Date:** 2026-07-28
-**Status:** Approved (design), pending implementation plan
-**Branch (proposed):** `feat/gene-locus-display-label`
+**Status:** Implemented (see the ORF-name addendum at the end — the ladder shipped as
+3-tier, not the 2-tier described in the original body below).
+**Branch:** `feat/gene-locus-display-label`
 
 ## Problem
 
@@ -172,3 +173,36 @@ neighborhood DTO.
 Frontend: orval regen, `gene-columns.tsx`, `gene-detail.tsx`, `gene-ref.tsx`,
 `genomic-context-section.tsx`, `protein-columns.tsx`.
 Ops: re-import TB + *P. falciparum* proteomes.
+
+---
+
+## Addendum (2026-07-28) — ORF-name extension, as implemented
+
+The original body assumed *P. falciparum*'s `PF3D7_…` identifiers were UniProt
+**ordered locus names**. Backfill proved otherwise: UniProt files them as **ORF
+names** (`orfNames`), the same category as TB's cosmid names (`MTCY373.17`). So the
+2-tier ladder (`ordered_locus → symbol`) left *named* Pf genes leading with their
+symbol instead of `PF3D7_…`.
+
+**Shipped instead — a 3-tier ladder and a second distinct field:**
+
+> **Gene display label = first ordered locus name → else first ORF name → else `primary_name`**
+
+- `orf_names` is promoted to its own field alongside `ordered_locus_names`, through the
+  same chain (Gene aggregate → `GeneModel` +migration → importer `_gene_synonyms` stops
+  flattening `orfNames` too → `GeneImportRecord` → DTOs → both frontend secondary-line
+  composes). `_gene_checksum` includes it.
+- **TB is unaffected**: its `Rv####`/`MT####` ordered locus names take precedence, so the
+  ORF tier is never reached for TB genes that have a locus.
+- **Pf named genes now lead with `PF3D7_…`** (ORF tier); symbol-less Pf genes already did.
+- **Human** still falls through both tiers to the symbol (no loci, no ORF names).
+- Ceiling accepted (per the "extend" decision): a gene with *only* an ORF name and no
+  ordered locus name leads with the ORF name — desired for Pf, and harmless for the few
+  such TB genes.
+
+**Backfill:** re-import the three locus/ORF-bearing proteomes — `UP000001584` (TB H37Rv),
+`UP000001020` (TB CDC1551), `UP000001450` (*P. falciparum*). Human (`UP000005640`) skipped.
+
+The "no per-strain config" property is unchanged and now covers every Mycobacterium
+strain/species and Plasmodium by construction — each organism's locus/ORF prefix lives in
+its own data.
