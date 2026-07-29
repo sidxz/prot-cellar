@@ -204,7 +204,8 @@ def test_extracts_gene_with_name_and_locus() -> None:
     g = genes[0]
     assert g.primary_name == "katG"
     assert g.source_record_id == "83332:Rv1908c"  # locus tag is the stable key
-    assert "Rv1908c" in g.synonyms
+    assert "Rv1908c" in g.ordered_locus_names  # now its own field...
+    assert "Rv1908c" not in g.synonyms  # ...and no longer flattened into synonyms
     assert g.organism_id == org
     assert g.source == "uniprot"
     assert g.source_record_checksum  # non-empty content hash
@@ -219,7 +220,19 @@ def test_locus_only_entry_uses_locus_as_primary_name() -> None:
     genes = map_uniprot_genes(entry, organism_id=uuid.uuid4(), tax_id=83332)
     assert genes[0].primary_name == "Rv0001"
     assert genes[0].source_record_id == "83332:Rv0001"
+    assert genes[0].ordered_locus_names == ("Rv0001",)
     assert genes[0].synonyms == ()
+
+
+def test_ordered_locus_names_change_checksum() -> None:
+    base = {"genes": [{"geneName": {"value": "rho"}}]}
+    with_locus = {
+        "genes": [{"geneName": {"value": "rho"}, "orderedLocusNames": [{"value": "Rv1297"}]}]
+    }
+    org = uuid.uuid4()
+    a = map_uniprot_genes(base, organism_id=org, tax_id=83332)[0]
+    b = map_uniprot_genes(with_locus, organism_id=org, tax_id=83332)[0]
+    assert a.source_record_checksum != b.source_record_checksum
 
 
 def test_entry_without_genes_yields_nothing() -> None:

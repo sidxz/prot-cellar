@@ -30,6 +30,7 @@ class GeneImportRecord:
     source_record_checksum: str
     strain_id: uuid.UUID | None = None
     synonyms: tuple[str, ...] = ()
+    ordered_locus_names: tuple[str, ...] = ()
     ncbi_gene_id: str | None = None
     ensembl_gene_id: str | None = None
     cross_references: tuple[CrossReference, ...] = ()

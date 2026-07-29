@@ -253,6 +253,7 @@ def map_uniprot_genes(
             continue
         ncbi = _ncbi_gene_id(entry)
         synonyms = _gene_synonyms(gene, primary)
+        ordered_locus_names = _values(gene.get("orderedLocusNames"))
         out.append(
             GeneImportRecord(
                 primary_name=primary,
@@ -260,8 +261,11 @@ def map_uniprot_genes(
                 source=source,
                 source_release=source_release,
                 source_record_id=f"{tax_id}:{basis}",
-                source_record_checksum=_gene_checksum(primary, synonyms, ncbi),
+                source_record_checksum=_gene_checksum(
+                    primary, synonyms, ordered_locus_names, ncbi
+                ),
                 synonyms=synonyms,
+                ordered_locus_names=ordered_locus_names,
                 ncbi_gene_id=ncbi,
             )
         )
@@ -307,7 +311,6 @@ def _gene_synonyms(gene: dict[str, Any], primary_name: str) -> tuple[str, ...]:
     if name:
         pool.append(name)
     pool.extend(_values(gene.get("synonyms")))
-    pool.extend(_values(gene.get("orderedLocusNames")))
     pool.extend(_values(gene.get("orfNames")))
     seen: set[str] = set()
     result: list[str] = []
@@ -332,6 +335,18 @@ def _ncbi_gene_id(entry: dict[str, Any]) -> str | None:
     return ids[0] if len(ids) == 1 else None
 
 
-def _gene_checksum(primary_name: str, synonyms: tuple[str, ...], ncbi_gene_id: str | None) -> str:
-    basis = "|".join([primary_name, ",".join(sorted(synonyms)), ncbi_gene_id or ""])
+def _gene_checksum(
+    primary_name: str,
+    synonyms: tuple[str, ...],
+    ordered_locus_names: tuple[str, ...],
+    ncbi_gene_id: str | None,
+) -> str:
+    basis = "|".join(
+        [
+            primary_name,
+            ",".join(sorted(synonyms)),
+            ",".join(sorted(ordered_locus_names)),
+            ncbi_gene_id or "",
+        ]
+    )
     return hashlib.sha1(basis.encode("utf-8")).hexdigest()[:16]
