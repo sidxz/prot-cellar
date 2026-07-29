@@ -20,7 +20,7 @@ from protcellar.application.protein_catalog.resolve_protein_id import ResolvePro
 from protcellar.application.protein_catalog.update_protein import UpdateProteinCommand
 from protcellar.application.shared.sentinel import UNSET
 from protcellar.domain.protein_catalog.enums import ProteinExistence
-from protcellar.domain.protein_catalog.gene import Gene
+from protcellar.domain.protein_catalog.gene import Gene, gene_display_label
 from protcellar.domain.protein_catalog.protein import Protein
 from protcellar.domain.protein_catalog.value_objects import (
     ProteinCitation,
@@ -164,6 +164,7 @@ class GeneSummaryResponse(BaseModel):
     synonyms: list[str]
     ordered_locus_names: list[str]
     orf_names: list[str]
+    display_label: str
 
     @classmethod
     def from_domain(cls, g: Gene) -> GeneSummaryResponse:
@@ -173,6 +174,7 @@ class GeneSummaryResponse(BaseModel):
             synonyms=list(g.synonyms),
             ordered_locus_names=list(g.ordered_locus_names),
             orf_names=list(g.orf_names),
+            display_label=gene_display_label(g.primary_name, g.ordered_locus_names, g.orf_names),
         )
 
 

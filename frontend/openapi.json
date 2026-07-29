@@ -6460,6 +6460,10 @@
             },
             "type": "array",
             "title": "Orf Names"
+          },
+          "display_label": {
+            "type": "string",
+            "title": "Display Label"
           }
         },
         "type": "object",
@@ -6468,7 +6472,8 @@
           "primary_name",
           "synonyms",
           "ordered_locus_names",
-          "orf_names"
+          "orf_names",
+          "display_label"
         ],
         "title": "GeneSummaryResponse",
         "description": "Lightweight gene fields embedded in the protein list for at-a-glance display."

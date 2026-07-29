@@ -185,6 +185,10 @@ async def test_list_item_projects_gene_names_structure_and_chem(client: AsyncCli
     # flattened identity / gene summary
     assert item["gene"]["primary_name"] == "rho"
     assert item["gene"]["synonyms"] == ["nusG", "Rv1297"]
+    # display_label is exposed on the embedded gene summary too (no locus field set here
+    # via the create route, so it falls back to the symbol). Locus/ORF tiers are covered
+    # by the gene-endpoint tests + gene_display_label unit tests.
+    assert item["gene"]["display_label"] == "rho"
     assert item["recommended_name"] == "Transcription termination factor Rho"
     assert item["short_names"] == ["Rho"]
     assert item["ec_numbers"] == ["3.6.4.-"]

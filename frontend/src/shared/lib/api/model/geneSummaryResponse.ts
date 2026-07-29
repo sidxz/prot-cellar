@@ -14,4 +14,5 @@ export interface GeneSummaryResponse {
   synonyms: string[];
   ordered_locus_names: string[];
   orf_names: string[];
+  display_label: string;
 }
