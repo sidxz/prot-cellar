@@ -112,7 +112,9 @@ export function StrainFormDialog({ open, onOpenChange, strain }: StrainFormDialo
           strainId: strain.id,
           data: {
             name: values.name,
-            ncbi_taxon_id: values.ncbi_taxon_id?.trim() ? Number(values.ncbi_taxon_id.trim()) : undefined,
+            ncbi_taxon_id: values.ncbi_taxon_id?.trim()
+              ? Number(values.ncbi_taxon_id.trim())
+              : undefined,
             isolate: values.isolate?.trim() || undefined,
             biosample_acc: values.biosample_acc?.trim() || undefined,
             assembly_acc: values.assembly_acc?.trim() || undefined,
@@ -126,7 +128,9 @@ export function StrainFormDialog({ open, onOpenChange, strain }: StrainFormDialo
           data: {
             species_organism_id: values.species_organism_id,
             name: values.name,
-            ncbi_taxon_id: values.ncbi_taxon_id?.trim() ? Number(values.ncbi_taxon_id.trim()) : undefined,
+            ncbi_taxon_id: values.ncbi_taxon_id?.trim()
+              ? Number(values.ncbi_taxon_id.trim())
+              : undefined,
             isolate: values.isolate?.trim() || undefined,
             biosample_acc: values.biosample_acc?.trim() || undefined,
             assembly_acc: values.assembly_acc?.trim() || undefined,
