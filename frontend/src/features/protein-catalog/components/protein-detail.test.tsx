@@ -9,8 +9,8 @@ vi.mock("@/shared/lib/api/organisms/organisms", () => ({
   }),
 }));
 
-// GeneRef resolves a gene id to its human-readable name via this hook.
-// Distinct symbol/locus: the protein page's Gene row must show the symbol, not the locus.
+// GeneRef resolves a gene id to its preferred name via this hook.
+// The Gene metadata row leads with the preferred display name (locus), symbol secondary.
 vi.mock("@/shared/lib/api/genes/genes", () => ({
   useGetGeneApiV1GenesGeneIdGet: () => ({
     data: { id: "g1", primary_name: "rpoB", display_label: "Rv0667" },
@@ -88,9 +88,13 @@ vi.mock("next/navigation", () => ({
 import { ProteinDetailPage } from "./protein-detail";
 
 describe("ProteinDetailPage", () => {
-  it("shows the accession and a cross-reference link", () => {
+  it("leads the heading with the protein name, keeps the accession visible", () => {
     render(<ProteinDetailPage accession="P12345" />);
-    expect(screen.getByRole("heading", { name: "P12345" })).toBeInTheDocument();
+    // Heading is the protein name, not the raw accession.
+    expect(screen.getByRole("heading", { name: "Albumin" })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "P12345" })).not.toBeInTheDocument();
+    // Accession still shown (subtitle) + a cross-reference link.
+    expect(screen.getAllByText(/P12345/).length).toBeGreaterThan(0);
     expect(screen.getByRole("link", { name: /1AO6/ })).toBeInTheDocument();
   });
 
@@ -118,10 +122,11 @@ describe("ProteinDetailPage", () => {
 
     render(<ProteinDetailPage accession="P12345" />);
 
-    const geneLink = screen.getByRole("link", { name: /rpoB/ });
+    // Gene row leads with the preferred display name (locus), symbol kept as secondary.
+    const geneLink = screen.getByRole("link", { name: /Rv0667/ });
     expect(geneLink).toHaveAttribute("href", "/genes/g1");
-    // Protein context leads with the symbol, never the locus tag.
-    expect(screen.queryByText("Rv0667")).not.toBeInTheDocument();
+    expect(geneLink).toHaveTextContent("Rv0667");
+    expect(geneLink).toHaveTextContent("rpoB");
     expect(screen.queryByText("g1")).not.toBeInTheDocument();
   });
 

@@ -29,12 +29,17 @@ export function GeneRef({ id, className }: GeneRefProps) {
     );
   }
 
+  // Lead with the gene's preferred display name (the locus/ORF, matching the Genes
+  // catalog); keep the symbol as a muted secondary when it differs.
   return (
     <Link
       href={`/genes/${id}`}
       className={cn("font-mono text-primary hover:underline underline-offset-4", className)}
     >
-      {data.primary_name}
+      {data.display_label}
+      {data.display_label !== data.primary_name && (
+        <span className="text-muted-foreground"> · {data.primary_name}</span>
+      )}
     </Link>
   );
 }

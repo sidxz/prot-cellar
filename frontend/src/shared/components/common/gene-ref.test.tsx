@@ -2,8 +2,8 @@ import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 vi.mock("@/shared/lib/api/genes/genes", () => ({
-  // Distinct symbol vs locus: GeneRef is a protein-context ref, so it must show
-  // the symbol (primary_name), NOT the locus lead (display_label).
+  // Distinct symbol vs locus: GeneRef leads with the preferred display name
+  // (the locus), keeping the symbol as a secondary.
   useGetGeneApiV1GenesGeneIdGet: () => ({
     data: { id: "g1", primary_name: "rho", display_label: "Rv1297" },
     isLoading: false,
@@ -14,12 +14,13 @@ vi.mock("@/shared/lib/api/genes/genes", () => ({
 import { GeneRef } from "./gene-ref";
 
 describe("GeneRef", () => {
-  it("renders the gene symbol (not the locus lead) as a link to the gene page", () => {
+  it("leads with the preferred display name, keeps the symbol, links to the gene page", () => {
     render(<GeneRef id="g1" />);
-    const link = screen.getByRole("link", { name: /rho/ });
+    const link = screen.getByRole("link", { name: /Rv1297/ });
     expect(link).toHaveAttribute("href", "/genes/g1");
-    // Protein context leads with the symbol; the locus tag must NOT be the label here.
-    expect(screen.queryByText("Rv1297")).not.toBeInTheDocument();
+    // The preferred name leads; the symbol is still shown as a secondary.
+    expect(link).toHaveTextContent("Rv1297");
+    expect(link).toHaveTextContent("rho");
     // The raw id should not be shown as the visible label.
     expect(screen.queryByText("g1")).not.toBeInTheDocument();
   });
@@ -31,7 +32,7 @@ describe("GeneRef", () => {
 
   it("accepts a className prop without crashing", () => {
     render(<GeneRef id="g1" className="custom-class" />);
-    const link = screen.getByRole("link", { name: /rho/ });
+    const link = screen.getByRole("link", { name: /Rv1297/ });
     expect(link.className).toContain("custom-class");
   });
 });

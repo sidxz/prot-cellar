@@ -14,7 +14,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { useProtein, useProteinFasta, useResolveProtein } from "../hooks/use-proteins";
-import { proteinExistenceLabel } from "../lib/protein-format";
+import { proteinExistenceLabel, proteinPrimaryName } from "../lib/protein-format";
 import type { Protein } from "../types";
 import { CitationsSection } from "./sections/citations-section";
 import { CrossReferencesSection } from "./sections/cross-references-section";
@@ -276,8 +276,8 @@ export function ProteinDetailPage({ accession }: ProteinDetailPageProps) {
       {/* ── Page header ── */}
       <header className="flex flex-col gap-2">
         <div className="flex flex-wrap items-center gap-3">
-          <h1 className="text-2xl font-bold tracking-tight text-foreground font-mono">
-            {protein.primary_accession}
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">
+            {proteinPrimaryName(protein)}
           </h1>
           <Badge variant={protein.is_reviewed ? "default" : "secondary"}>
             {protein.is_reviewed ? "Swiss-Prot" : "TrEMBL"}
@@ -295,9 +295,10 @@ export function ProteinDetailPage({ accession }: ProteinDetailPageProps) {
             </a>
           )}
         </div>
-        {protein.entry_name && (
-          <p className="text-sm text-muted-foreground font-mono">{protein.entry_name}</p>
-        )}
+        <p className="text-sm text-muted-foreground font-mono">
+          {protein.primary_accession}
+          {protein.entry_name && ` · ${protein.entry_name}`}
+        </p>
       </header>
 
       <Tabs defaultValue="overview" className="flex flex-col gap-6">
