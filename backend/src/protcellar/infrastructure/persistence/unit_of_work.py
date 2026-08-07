@@ -30,7 +30,10 @@ class AsyncUnitOfWork:
     def __init__(self, session_factory: async_sessionmaker[AsyncSession]) -> None:
         self._session_factory = session_factory
         self._session: AsyncSession | None = None
-        self._tracked_aggregates: list[AggregateRoot] = []
+        # dict-as-ordered-set: Entity hashes/compares by id, so membership is O(1)
+        # (a list scan made 5k-row list pages O(n²) — seconds of pure CPU) while
+        # commit() still sees aggregates in insertion order.
+        self._tracked_aggregates: dict[AggregateRoot, None] = {}
 
     @property
     def is_active(self) -> bool:
@@ -50,7 +53,7 @@ class AsyncUnitOfWork:
         Called automatically by repositories on ``find_by_id`` and ``save``.
         """
         if aggregate not in self._tracked_aggregates:
-            self._tracked_aggregates.append(aggregate)
+            self._tracked_aggregates[aggregate] = None
 
     async def commit(self) -> list[DomainEvent]:
         """Flush, commit, then collect and clear events.
@@ -72,7 +75,7 @@ class AsyncUnitOfWork:
 
     async def __aenter__(self) -> AsyncUnitOfWork:
         self._session = self._session_factory()
-        self._tracked_aggregates = []
+        self._tracked_aggregates = {}
         return self
 
     async def __aexit__(
@@ -92,4 +95,4 @@ class AsyncUnitOfWork:
         if self._session is not None:
             await self._session.close()
         self._session = None
-        self._tracked_aggregates = []
+        self._tracked_aggregates = {}
