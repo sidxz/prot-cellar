@@ -8,7 +8,7 @@ from typing import Protocol, runtime_checkable
 
 from protcellar.domain.protein_catalog.gene import Gene
 from protcellar.domain.protein_catalog.protein import Protein
-from protcellar.domain.protein_catalog.read_models import ProteinListRow
+from protcellar.domain.protein_catalog.read_models import GeneSummaryRow, ProteinListRow
 
 
 @runtime_checkable
@@ -17,7 +17,9 @@ class GeneRepository(Protocol):
         self, workspace_id: uuid.UUID, id: uuid.UUID
     ) -> Gene | None: ...
 
-    async def find_by_ids(self, ids: Sequence[uuid.UUID]) -> list[Gene]: ...
+    async def find_summary_rows_by_ids(
+        self, ids: Sequence[uuid.UUID]
+    ) -> list[GeneSummaryRow]: ...
 
     async def find_by_name(
         self,

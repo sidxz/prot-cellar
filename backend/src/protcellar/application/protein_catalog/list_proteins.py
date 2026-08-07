@@ -12,8 +12,7 @@ from protcellar.application.shared.pagination import PageResult
 from protcellar.application.shared.query import Query
 from protcellar.application.shared.unit_of_work import UnitOfWork
 from protcellar.domain.gene_ontology.repository import GoOntologyRepository
-from protcellar.domain.protein_catalog.gene import Gene
-from protcellar.domain.protein_catalog.read_models import ProteinListRow
+from protcellar.domain.protein_catalog.read_models import GeneSummaryRow, ProteinListRow
 from protcellar.domain.protein_catalog.repository import GeneRepository, ProteinRepository
 from protcellar.domain.shared.errors import DomainError
 
@@ -28,7 +27,7 @@ class ProteinListItem:
     """
 
     row: ProteinListRow
-    gene: Gene | None
+    gene: GeneSummaryRow | None
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -124,7 +123,9 @@ class ListProteins:
             )
 
             gene_ids = {r.gene_id for r in rows if r.gene_id is not None}
-            genes_by_id = {g.id: g for g in await self._gene_repo.find_by_ids(list(gene_ids))}
+            genes_by_id = {
+                g.id: g for g in await self._gene_repo.find_summary_rows_by_ids(list(gene_ids))
+            }
             items = [
                 ProteinListItem(
                     row=r,

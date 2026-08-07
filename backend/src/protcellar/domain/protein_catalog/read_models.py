@@ -14,6 +14,21 @@ from protcellar.domain.protein_catalog.value_objects import ProteinNames
 
 
 @dataclass(frozen=True, kw_only=True)
+class GeneSummaryRow:
+    """The gene naming fields embedded per protein list row (see GeneSummaryResponse).
+
+    Field names mirror ``Gene`` so response builders accept either. Selecting only these
+    columns skips hydrating the aggregate's JSON cross-references/annotations — and skips
+    read-path tracking — for the thousands of genes a bulk protein page can reference."""
+
+    id: uuid.UUID
+    primary_name: str
+    synonyms: list[str]
+    ordered_locus_names: list[str]
+    orf_names: list[str]
+
+
+@dataclass(frozen=True, kw_only=True)
 class ProteinListRow:
     """One protein as the catalog list needs it: scalar columns + a name summary + the four
     structure/chemistry flags. The flags are computed in SQL, so no cross-reference (or feature /

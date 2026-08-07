@@ -8,6 +8,7 @@ from collections.abc import Sequence
 from sqlalchemy import select
 
 from protcellar.domain.protein_catalog.gene import Gene
+from protcellar.domain.protein_catalog.read_models import GeneSummaryRow
 from protcellar.domain.protein_catalog.repository import GeneRepository
 from protcellar.infrastructure.persistence.sqlalchemy.base_repository import SQLAlchemyRepository
 from protcellar.infrastructure.persistence.sqlalchemy.protein_catalog._annotation_json import (
@@ -108,11 +109,29 @@ class SQLAlchemyGeneRepository(SQLAlchemyRepository[Gene, GeneModel], GeneReposi
         model.source_record_checksum = aggregate.source_record_checksum
         model.imported_at = aggregate.imported_at
 
-    async def find_by_ids(self, ids: Sequence[uuid.UUID]) -> list[Gene]:
+    async def find_summary_rows_by_ids(self, ids: Sequence[uuid.UUID]) -> list[GeneSummaryRow]:
+        # Column select only (see GeneSummaryRow): no aggregate hydration, no tracking.
         if not ids:
             return []
-        stmt = select(GeneModel).where(GeneModel.id.in_(list(ids)))
-        return [self._to_domain_tracked(m) for m in (await self._session.execute(stmt)).scalars()]
+        stmt = select(
+            GeneModel.id,
+            GeneModel.primary_name,
+            GeneModel.synonyms,
+            GeneModel.ordered_locus_names,
+            GeneModel.orf_names,
+        ).where(GeneModel.id.in_(list(ids)))
+        return [
+            GeneSummaryRow(
+                id=row.id,
+                primary_name=row.primary_name,
+                synonyms=list(row.synonyms) if row.synonyms else [],
+                ordered_locus_names=(
+                    list(row.ordered_locus_names) if row.ordered_locus_names else []
+                ),
+                orf_names=list(row.orf_names) if row.orf_names else [],
+            )
+            for row in await self._session.execute(stmt)
+        ]
 
     async def find_by_name(
         self,

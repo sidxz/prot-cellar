@@ -22,6 +22,7 @@ from protcellar.application.shared.sentinel import UNSET
 from protcellar.domain.protein_catalog.enums import ProteinExistence
 from protcellar.domain.protein_catalog.gene import Gene, gene_display_label
 from protcellar.domain.protein_catalog.protein import Protein
+from protcellar.domain.protein_catalog.read_models import GeneSummaryRow
 from protcellar.domain.protein_catalog.value_objects import (
     ProteinCitation,
     ProteinComment,
@@ -167,7 +168,7 @@ class GeneSummaryResponse(BaseModel):
     display_label: str
 
     @classmethod
-    def from_domain(cls, g: Gene) -> GeneSummaryResponse:
+    def from_domain(cls, g: Gene | GeneSummaryRow) -> GeneSummaryResponse:
         return cls(
             id=g.id,
             primary_name=g.primary_name,
