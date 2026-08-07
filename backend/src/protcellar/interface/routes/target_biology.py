@@ -366,6 +366,21 @@ class ProvenanceBody(BaseModel):
         )
 
 
+class CompoundRefBody(BaseModel):
+    """Inbound reference to a compound held in a chemistry catalog.
+
+    This service does not resolve the id — it stores the caller's pair verbatim, the
+    same self-contained reference `CompoundRef` already models. `name` is a
+    denormalized label for display; `compound_id` is the identity.
+    """
+
+    compound_id: uuid.UUID
+    name: str | None = None
+
+    def to_domain(self) -> CompoundRef:
+        return CompoundRef(compound_id=self.compound_id, name=self.name or None)
+
+
 class EssentialityWriteBody(BaseModel):
     classification: EssentialityClass
     condition: str | None = None
@@ -407,6 +422,7 @@ class VulnerabilityPatchBody(BaseModel):
 class HypomorphWriteBody(BaseModel):
     growth_defect: bool
     growth_defect_severity: str | None = None
+    knockdown_strain_id: uuid.UUID | None = None
     condition: str | None = None
     method: str | None = None
     provenance: ProvenanceBody
@@ -415,6 +431,7 @@ class HypomorphWriteBody(BaseModel):
 class HypomorphPatchBody(BaseModel):
     growth_defect: bool | None = None
     growth_defect_severity: str | None = None
+    knockdown_strain_id: uuid.UUID | None = None
     condition: str | None = None
     method: str | None = None
     provenance: ProvenanceBody | None = None
@@ -438,6 +455,7 @@ class CrispriStrainPatchBody(BaseModel):
 
 class ResistanceMutationWriteBody(BaseModel):
     mutation: str
+    compound: CompoundRefBody | None = None
     mic_shift: float | None = None
     parent_strain: str | None = None
     protein_coordinate: str | None = None
@@ -447,6 +465,7 @@ class ResistanceMutationWriteBody(BaseModel):
 
 class ResistanceMutationPatchBody(BaseModel):
     mutation: str | None = None
+    compound: CompoundRefBody | None = None
     mic_shift: float | None = None
     parent_strain: str | None = None
     protein_coordinate: str | None = None
@@ -502,6 +521,7 @@ class ProteinActivityAssayPatchBody(BaseModel):
 class UnpublishedStructureWriteBody(BaseModel):
     method: str | None = None
     resolution: float | None = None
+    ligands: list[CompoundRefBody] = []
     is_published: bool = False
     is_experimental: bool = True
     provenance: ProvenanceBody
@@ -510,6 +530,7 @@ class UnpublishedStructureWriteBody(BaseModel):
 class UnpublishedStructurePatchBody(BaseModel):
     method: str | None = None
     resolution: float | None = None
+    ligands: list[CompoundRefBody] | None = None
     is_published: bool | None = None
     is_experimental: bool | None = None
     provenance: ProvenanceBody | None = None
@@ -699,6 +720,7 @@ async def create_hypomorph(
         growth_defect=body.growth_defect,
         provenance=body.provenance.to_domain(),
         growth_defect_severity=body.growth_defect_severity,
+        knockdown_strain_id=body.knockdown_strain_id,
         condition=body.condition,
         method=body.method,
     )
@@ -781,6 +803,7 @@ async def create_resistance_mutation(
         gene_id=gene_id,
         mutation=body.mutation,
         provenance=body.provenance.to_domain(),
+        compound=body.compound.to_domain() if body.compound else None,
         mic_shift=body.mic_shift,
         parent_strain=body.parent_strain,
         protein_coordinate=body.protein_coordinate,
@@ -925,6 +948,7 @@ async def create_unpublished_structure(
         provenance=body.provenance.to_domain(),
         method=body.method,
         resolution=body.resolution,
+        ligands=tuple(lig.to_domain() for lig in body.ligands),
         is_published=body.is_published,
         is_experimental=body.is_experimental,
     )

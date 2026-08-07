@@ -311,8 +311,15 @@ async def test_patch_with_stale_version_conflicts(client: AsyncClient, database_
     )
     assert stale.status_code == 409
     assert stale.json()["retry"] is True
-    # The losing write must not have landed.
-    assert first.json()["condition"] == "cholesterol"
+
+    # The losing write must not have landed: a fresh read (via a correctly
+    # versioned patch of an unrelated field) still shows the winner's value.
+    recheck = await client.patch(
+        f"/api/v1/target-biology/essentiality/{record.id}",
+        json={"method": "TnSeq", "version": 2},
+    )
+    assert recheck.status_code == 200, recheck.text
+    assert recheck.json()["condition"] == "cholesterol"
 
 
 async def test_patch_without_version_still_succeeds(
@@ -397,3 +404,77 @@ async def test_hypomorph_severity_requires_growth_defect(client: AsyncClient) ->
 async def test_delete_unknown_kind_is_422(client: AsyncClient) -> None:
     r = await client.delete(f"/api/v1/target-biology/not_a_kind/{uuid.uuid4()}")
     assert r.status_code == 422
+
+
+# --- Previously-write-only fields: compound, ligands, knockdown_strain_id ---
+
+
+async def test_resistance_mutation_compound_round_trips(
+    client: AsyncClient, database_url: str
+) -> None:
+    gene_id = uuid.uuid4()
+    compound_id = uuid.uuid4()
+
+    created = await client.post(
+        f"/api/v1/genes/{gene_id}/target-biology/resistance_mutation",
+        json={
+            "mutation": "S315T",
+            "compound": {"compound_id": str(compound_id), "name": "isoniazid"},
+            "mic_shift": 200,
+            "provenance": {"source_type": "published", "citations": []},
+        },
+    )
+    assert created.status_code == 201, created.text
+    assert created.json()["compound"]["name"] == "isoniazid"
+    assert created.json()["compound"]["compound_id"] == str(compound_id)
+
+    record_id = created.json()["id"]
+    other = uuid.uuid4()
+    patched = await client.patch(
+        f"/api/v1/target-biology/resistance_mutation/{record_id}",
+        json={"compound": {"compound_id": str(other), "name": "rifampicin"}},
+    )
+    assert patched.status_code == 200, patched.text
+    assert patched.json()["compound"]["name"] == "rifampicin"
+    # An untouched compound survives a patch of something else.
+    again = await client.patch(
+        f"/api/v1/target-biology/resistance_mutation/{record_id}",
+        json={"mic_shift": 64},
+    )
+    assert again.status_code == 200, again.text
+    assert again.json()["compound"]["name"] == "rifampicin"
+
+
+async def test_unpublished_structure_ligands_round_trip(
+    client: AsyncClient, database_url: str
+) -> None:
+    protein_id = uuid.uuid4()
+    created = await client.post(
+        f"/api/v1/proteins/{protein_id}/target-biology/unpublished_structure",
+        json={
+            "method": "X-ray",
+            "resolution": 1.9,
+            "ligands": [{"compound_id": str(uuid.uuid4()), "name": "ATP"}],
+            "provenance": {"source_type": "internal", "citations": []},
+        },
+    )
+    assert created.status_code == 201, created.text
+    assert [lig["name"] for lig in created.json()["ligands"]] == ["ATP"]
+
+
+async def test_hypomorph_knockdown_strain_round_trips(
+    client: AsyncClient, database_url: str
+) -> None:
+    gene_id = uuid.uuid4()
+    strain_id = uuid.uuid4()
+    created = await client.post(
+        f"/api/v1/genes/{gene_id}/target-biology/hypomorph",
+        json={
+            "growth_defect": True,
+            "growth_defect_severity": "severe",
+            "knockdown_strain_id": str(strain_id),
+            "provenance": {"source_type": "internal", "citations": []},
+        },
+    )
+    assert created.status_code == 201, created.text
+    assert created.json()["knockdown_strain_id"] == str(strain_id)
