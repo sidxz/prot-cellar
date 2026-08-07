@@ -102,6 +102,7 @@ class EssentialityResponse(BaseModel):
     confidence: float | None = None
     provenance: ProvenanceResponse
     extensions: dict[str, Any]
+    version: int
 
     @classmethod
     def from_domain(cls, e: Essentiality) -> EssentialityResponse:
@@ -114,6 +115,7 @@ class EssentialityResponse(BaseModel):
             confidence=e.confidence,
             provenance=ProvenanceResponse.from_domain(e.provenance),
             extensions=e.extensions,
+            version=e.version,
         )
 
 
@@ -126,6 +128,7 @@ class VulnerabilityResponse(BaseModel):
     confidence: float | None = None
     provenance: ProvenanceResponse
     extensions: dict[str, Any]
+    version: int
 
     @classmethod
     def from_domain(cls, v: Vulnerability) -> VulnerabilityResponse:
@@ -138,6 +141,7 @@ class VulnerabilityResponse(BaseModel):
             confidence=v.confidence,
             provenance=ProvenanceResponse.from_domain(v.provenance),
             extensions=v.extensions,
+            version=v.version,
         )
 
 
@@ -151,6 +155,7 @@ class HypomorphResponse(BaseModel):
     method: str | None = None
     provenance: ProvenanceResponse
     extensions: dict[str, Any]
+    version: int
 
     @classmethod
     def from_domain(cls, h: Hypomorph) -> HypomorphResponse:
@@ -164,6 +169,7 @@ class HypomorphResponse(BaseModel):
             method=h.method,
             provenance=ProvenanceResponse.from_domain(h.provenance),
             extensions=h.extensions,
+            version=h.version,
         )
 
 
@@ -173,6 +179,7 @@ class CrispriStrainResponse(BaseModel):
     target_gene_id: uuid.UUID
     provenance: ProvenanceResponse
     extensions: dict[str, Any]
+    version: int
 
     @classmethod
     def from_domain(cls, s: CrispriStrain) -> CrispriStrainResponse:
@@ -182,6 +189,7 @@ class CrispriStrainResponse(BaseModel):
             target_gene_id=s.target_gene_id,
             provenance=ProvenanceResponse.from_domain(s.provenance),
             extensions=s.extensions,
+            version=s.version,
         )
 
 
@@ -196,6 +204,7 @@ class ResistanceMutationResponse(BaseModel):
     method: str | None = None
     provenance: ProvenanceResponse
     extensions: dict[str, Any]
+    version: int
 
     @classmethod
     def from_domain(cls, m: ResistanceMutation) -> ResistanceMutationResponse:
@@ -210,6 +219,7 @@ class ResistanceMutationResponse(BaseModel):
             method=m.method,
             provenance=ProvenanceResponse.from_domain(m.provenance),
             extensions=m.extensions,
+            version=m.version,
         )
 
 
@@ -226,6 +236,7 @@ class ProteinProductionResponse(BaseModel):
     method: str | None = None
     provenance: ProvenanceResponse
     extensions: dict[str, Any]
+    version: int
 
     @classmethod
     def from_domain(cls, p: ProteinProduction) -> ProteinProductionResponse:
@@ -239,6 +250,7 @@ class ProteinProductionResponse(BaseModel):
             method=p.method,
             provenance=ProvenanceResponse.from_domain(p.provenance),
             extensions=p.extensions,
+            version=p.version,
         )
 
 
@@ -252,6 +264,7 @@ class ProteinActivityAssayResponse(BaseModel):
     method: str | None = None
     provenance: ProvenanceResponse
     extensions: dict[str, Any]
+    version: int
 
     @classmethod
     def from_domain(cls, a: ProteinActivityAssay) -> ProteinActivityAssayResponse:
@@ -265,6 +278,7 @@ class ProteinActivityAssayResponse(BaseModel):
             method=a.method,
             provenance=ProvenanceResponse.from_domain(a.provenance),
             extensions=a.extensions,
+            version=a.version,
         )
 
 
@@ -278,6 +292,7 @@ class UnpublishedStructureResponse(BaseModel):
     is_experimental: bool
     provenance: ProvenanceResponse
     extensions: dict[str, Any]
+    version: int
 
     @classmethod
     def from_domain(cls, s: UnpublishedStructure) -> UnpublishedStructureResponse:
@@ -291,6 +306,7 @@ class UnpublishedStructureResponse(BaseModel):
             is_experimental=s.is_experimental,
             provenance=ProvenanceResponse.from_domain(s.provenance),
             extensions=s.extensions,
+            version=s.version,
         )
 
 
@@ -364,6 +380,7 @@ class EssentialityPatchBody(BaseModel):
     method: str | None = None
     confidence: float | None = None
     provenance: ProvenanceBody | None = None
+    version: int | None = None
 
     model_config = {"extra": "forbid"}
 
@@ -382,6 +399,7 @@ class VulnerabilityPatchBody(BaseModel):
     method: str | None = None
     confidence: float | None = None
     provenance: ProvenanceBody | None = None
+    version: int | None = None
 
     model_config = {"extra": "forbid"}
 
@@ -400,6 +418,7 @@ class HypomorphPatchBody(BaseModel):
     condition: str | None = None
     method: str | None = None
     provenance: ProvenanceBody | None = None
+    version: int | None = None
 
     model_config = {"extra": "forbid"}
 
@@ -412,6 +431,7 @@ class CrispriStrainWriteBody(BaseModel):
 class CrispriStrainPatchBody(BaseModel):
     name: str | None = None
     provenance: ProvenanceBody | None = None
+    version: int | None = None
 
     model_config = {"extra": "forbid"}
 
@@ -432,6 +452,7 @@ class ResistanceMutationPatchBody(BaseModel):
     protein_coordinate: str | None = None
     method: str | None = None
     provenance: ProvenanceBody | None = None
+    version: int | None = None
 
     model_config = {"extra": "forbid"}
 
@@ -452,6 +473,7 @@ class ProteinProductionPatchBody(BaseModel):
     condition: str | None = None
     method: str | None = None
     provenance: ProvenanceBody | None = None
+    version: int | None = None
 
     model_config = {"extra": "forbid"}
 
@@ -472,6 +494,7 @@ class ProteinActivityAssayPatchBody(BaseModel):
     condition: str | None = None
     method: str | None = None
     provenance: ProvenanceBody | None = None
+    version: int | None = None
 
     model_config = {"extra": "forbid"}
 
@@ -490,6 +513,7 @@ class UnpublishedStructurePatchBody(BaseModel):
     is_published: bool | None = None
     is_experimental: bool | None = None
     provenance: ProvenanceBody | None = None
+    version: int | None = None
 
     model_config = {"extra": "forbid"}
 
@@ -506,8 +530,11 @@ def _patch_updates(body: BaseModel) -> dict[str, Any]:
     absent key means "leave it alone". This is what keeps an edit to one field from
     re-stamping ``generation_method`` — provenance is only re-attributed when the
     caller submits it.
+
+    ``version`` is stripped: it is the caller's concurrency expectation, not a field.
     """
     updates: dict[str, Any] = body.model_dump(exclude_unset=True)
+    updates.pop("version", None)
     for name in _VALUE_OBJECT_FIELDS & set(updates):
         value = getattr(body, name)
         if value is None:
@@ -601,7 +628,13 @@ async def update_essentiality(
     use_case: UpdateTargetBiologyRecordDep,
 ) -> EssentialityResponse:
     result = result_to_response(
-        await use_case(RecordKind.ESSENTIALITY, record_id, _patch_updates(body), auth=auth)
+        await use_case(
+            RecordKind.ESSENTIALITY,
+            record_id,
+            _patch_updates(body),
+            auth=auth,
+            expected_version=body.version,
+        )
     )
     return EssentialityResponse.from_domain(result)
 
@@ -638,7 +671,13 @@ async def update_vulnerability(
     use_case: UpdateTargetBiologyRecordDep,
 ) -> VulnerabilityResponse:
     result = result_to_response(
-        await use_case(RecordKind.VULNERABILITY, record_id, _patch_updates(body), auth=auth)
+        await use_case(
+            RecordKind.VULNERABILITY,
+            record_id,
+            _patch_updates(body),
+            auth=auth,
+            expected_version=body.version,
+        )
     )
     return VulnerabilityResponse.from_domain(result)
 
@@ -675,7 +714,13 @@ async def update_hypomorph(
     use_case: UpdateTargetBiologyRecordDep,
 ) -> HypomorphResponse:
     result = result_to_response(
-        await use_case(RecordKind.HYPOMORPH, record_id, _patch_updates(body), auth=auth)
+        await use_case(
+            RecordKind.HYPOMORPH,
+            record_id,
+            _patch_updates(body),
+            auth=auth,
+            expected_version=body.version,
+        )
     )
     return HypomorphResponse.from_domain(result)
 
@@ -709,7 +754,13 @@ async def update_crispri_strain(
     use_case: UpdateTargetBiologyRecordDep,
 ) -> CrispriStrainResponse:
     result = result_to_response(
-        await use_case(RecordKind.CRISPRI_STRAIN, record_id, _patch_updates(body), auth=auth)
+        await use_case(
+            RecordKind.CRISPRI_STRAIN,
+            record_id,
+            _patch_updates(body),
+            auth=auth,
+            expected_version=body.version,
+        )
     )
     return CrispriStrainResponse.from_domain(result)
 
@@ -750,7 +801,13 @@ async def update_resistance_mutation(
     use_case: UpdateTargetBiologyRecordDep,
 ) -> ResistanceMutationResponse:
     result = result_to_response(
-        await use_case(RecordKind.RESISTANCE_MUTATION, record_id, _patch_updates(body), auth=auth)
+        await use_case(
+            RecordKind.RESISTANCE_MUTATION,
+            record_id,
+            _patch_updates(body),
+            auth=auth,
+            expected_version=body.version,
+        )
     )
     return ResistanceMutationResponse.from_domain(result)
 
@@ -791,7 +848,13 @@ async def update_protein_production(
     use_case: UpdateTargetBiologyRecordDep,
 ) -> ProteinProductionResponse:
     result = result_to_response(
-        await use_case(RecordKind.PROTEIN_PRODUCTION, record_id, _patch_updates(body), auth=auth)
+        await use_case(
+            RecordKind.PROTEIN_PRODUCTION,
+            record_id,
+            _patch_updates(body),
+            auth=auth,
+            expected_version=body.version,
+        )
     )
     return ProteinProductionResponse.from_domain(result)
 
@@ -835,7 +898,11 @@ async def update_protein_activity_assay(
 ) -> ProteinActivityAssayResponse:
     result = result_to_response(
         await use_case(
-            RecordKind.PROTEIN_ACTIVITY_ASSAY, record_id, _patch_updates(body), auth=auth
+            RecordKind.PROTEIN_ACTIVITY_ASSAY,
+            record_id,
+            _patch_updates(body),
+            auth=auth,
+            expected_version=body.version,
         )
     )
     return ProteinActivityAssayResponse.from_domain(result)
@@ -879,7 +946,11 @@ async def update_unpublished_structure(
 ) -> UnpublishedStructureResponse:
     result = result_to_response(
         await use_case(
-            RecordKind.UNPUBLISHED_STRUCTURE, record_id, _patch_updates(body), auth=auth
+            RecordKind.UNPUBLISHED_STRUCTURE,
+            record_id,
+            _patch_updates(body),
+            auth=auth,
+            expected_version=body.version,
         )
     )
     return UnpublishedStructureResponse.from_domain(result)

@@ -18,7 +18,11 @@ from protcellar.application.auth import AuthContext, require_admin
 from protcellar.application.shared.event_dispatcher import EventDispatcherProtocol
 from protcellar.application.shared.unit_of_work import UnitOfWork
 from protcellar.domain.shared.entity import AggregateRoot
-from protcellar.domain.shared.errors import DomainError, NotFoundError
+from protcellar.domain.shared.errors import (
+    ConcurrencyConflictError,
+    DomainError,
+    NotFoundError,
+)
 from protcellar.domain.shared.global_workspace import GLOBAL_WORKSPACE_ID
 
 
@@ -66,6 +70,7 @@ class UpdateTargetBiologyRecord:
         record_id: uuid.UUID,
         updates: dict[str, Any],
         auth: AuthContext | None = None,
+        expected_version: int | None = None,
     ) -> Result[AggregateRoot, DomainError]:
         require_admin(auth)
         async with self._uow:
@@ -74,6 +79,17 @@ class UpdateTargetBiologyRecord:
             )
             if record is None:
                 return Failure(NotFoundError(kind.value, str(record_id)))
+            # Opt-in: a caller that supplies no version keeps last-write-wins, so
+            # importers and scripts are unaffected. The repository CAS stays as the
+            # backstop for the race between this read and the save below.
+            if expected_version is not None and record.version != expected_version:
+                return Failure(
+                    ConcurrencyConflictError(
+                        kind.value,
+                        str(record_id),
+                        detail=(f"Expected version {expected_version}, found {record.version}"),
+                    )
+                )
             record.update(**updates)
             await self._repos[kind].save(record)
             events = await self._uow.commit()

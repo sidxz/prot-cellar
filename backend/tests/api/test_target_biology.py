@@ -287,6 +287,53 @@ async def test_patch_rejects_unknown_field(client: AsyncClient, database_url: st
     assert resp.status_code == 422
 
 
+async def test_patch_with_stale_version_conflicts(client: AsyncClient, database_url: str) -> None:
+    record = Essentiality(
+        workspace_id=WS,
+        gene_id=uuid.uuid4(),
+        classification=EssentialityClass.ESSENTIAL,
+        provenance=Provenance(source_type=ProvenanceSourceType.PUBLISHED),
+        condition="7H9",
+    )
+    await _save(database_url, SQLAlchemyEssentialityRepository, record)
+
+    first = await client.patch(
+        f"/api/v1/target-biology/essentiality/{record.id}",
+        json={"condition": "cholesterol", "version": 1},
+    )
+    assert first.status_code == 200, first.text
+    assert first.json()["version"] == 2
+
+    # Someone else's browser still holds version 1.
+    stale = await client.patch(
+        f"/api/v1/target-biology/essentiality/{record.id}",
+        json={"condition": "glycerol", "version": 1},
+    )
+    assert stale.status_code == 409
+    assert stale.json()["retry"] is True
+    # The losing write must not have landed.
+    assert first.json()["condition"] == "cholesterol"
+
+
+async def test_patch_without_version_still_succeeds(
+    client: AsyncClient, database_url: str
+) -> None:
+    """Version is opt-in — importers and scripts keep working."""
+    record = Essentiality(
+        workspace_id=WS,
+        gene_id=uuid.uuid4(),
+        classification=EssentialityClass.ESSENTIAL,
+        provenance=Provenance(source_type=ProvenanceSourceType.PUBLISHED),
+    )
+    await _save(database_url, SQLAlchemyEssentialityRepository, record)
+
+    resp = await client.patch(
+        f"/api/v1/target-biology/essentiality/{record.id}",
+        json={"condition": "7H9"},
+    )
+    assert resp.status_code == 200, resp.text
+
+
 # --- Other record kinds through the generic CRUD path -----------------------
 
 _INTERNAL_PROV = {"source_type": "internal", "citations": []}
