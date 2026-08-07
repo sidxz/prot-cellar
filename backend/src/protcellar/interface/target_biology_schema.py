@@ -114,6 +114,10 @@ def describe_write_surface(
     """Build the descriptor. ``suggested`` is keyed by ``(kind, field)``."""
     return {
         "provenance": {"fields": _describe_model(ProvenanceBody, kind=None, suggested={})},
+        # PATCH bodies aren't modeled above (every field on them is optional), but all
+        # eight carry this same optimistic-concurrency field — name it once here so a
+        # client can discover it instead of hardcoding "version".
+        "concurrency": {"field": "version"},
         "kinds": {
             kind.value: {
                 "label": label,

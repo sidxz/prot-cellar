@@ -87,5 +87,30 @@ def test_extensions_is_reported_read_only_on_every_kind() -> None:
         assert "extensions" in schema["kinds"][kind.value]["read_only"]
 
 
+def test_concurrency_field_is_discoverable() -> None:
+    # PATCH bodies carry `version` for optimistic locking but aren't modeled in
+    # `kinds` (which is derived from the POST bodies) — a client must be able to
+    # learn the field name from the descriptor instead of hardcoding it.
+    schema = describe_write_surface({})
+    assert schema["concurrency"] == {"field": "version"}
+
+
+def test_vocabulary_annotations_match_the_suggested_values_reader() -> None:
+    """The interface's `vocabulary` flags and the reader's queried columns restate the
+    same field list twice; nothing but this test keeps the two from drifting apart —
+    a flag with no column means dead `suggested_values: []`, a column with no flag
+    means a wasted query whose result no client ever sees."""
+    from protcellar.infrastructure.persistence.sqlalchemy.target_biology.suggested_values_reader import (  # noqa: E501
+        _VOCABULARY_COLUMNS,
+    )
+
+    schema = describe_write_surface({})
+    for kind in RecordKind:
+        descriptor_fields = {
+            f["name"] for f in schema["kinds"][kind.value]["fields"] if "suggested_values" in f
+        }
+        assert descriptor_fields == set(_VOCABULARY_COLUMNS[kind]), kind
+
+
 def _field(schema: dict, kind: str, name: str) -> dict:
     return next(f for f in schema["kinds"][kind]["fields"] if f["name"] == name)

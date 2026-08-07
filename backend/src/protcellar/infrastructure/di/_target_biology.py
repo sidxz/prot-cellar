@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from lagom import Container
+from lagom import Container, Singleton
 from sqlalchemy.ext.asyncio import async_sessionmaker
 
 from protcellar.application.target_biology.crud import (
@@ -17,7 +17,7 @@ from protcellar.application.target_biology.get_gene_target_biology import GetGen
 from protcellar.application.target_biology.get_protein_target_biology import (
     GetProteinTargetBiology,
 )
-from protcellar.application.target_biology.suggested_values import SuggestedValuesReader
+from protcellar.domain.target_biology.repository import SuggestedValuesReader
 from protcellar.infrastructure.messaging.event_dispatcher import EventDispatcher
 from protcellar.infrastructure.persistence.sqlalchemy.target_biology.crispri_strain_repository import (  # noqa: E501
     SQLAlchemyCrispriStrainRepository,
@@ -36,6 +36,9 @@ from protcellar.infrastructure.persistence.sqlalchemy.target_biology.protein_pro
 )
 from protcellar.infrastructure.persistence.sqlalchemy.target_biology.resistance_mutation_repository import (  # noqa: E501
     SQLAlchemyResistanceMutationRepository,
+)
+from protcellar.infrastructure.persistence.sqlalchemy.target_biology.suggested_values_reader import (  # noqa: E501
+    SQLAlchemySuggestedValuesReader,
 )
 from protcellar.infrastructure.persistence.sqlalchemy.target_biology.unpublished_structure_repository import (  # noqa: E501
     SQLAlchemyUnpublishedStructureRepository,
@@ -57,12 +60,6 @@ def _all_repos(uow: AsyncUnitOfWork) -> dict[RecordKind, Any]:
         RecordKind.PROTEIN_ACTIVITY_ASSAY: SQLAlchemyProteinActivityAssayRepository(uow),
         RecordKind.UNPUBLISHED_STRUCTURE: SQLAlchemyUnpublishedStructureRepository(uow),
     }
-
-
-def _all_models(uow: AsyncUnitOfWork) -> dict[RecordKind, Any]:
-    """The ORM model class backing each kind — reuses ``_all_repos`` instead of
-    restating which model belongs to which kind a second time."""
-    return {kind: repo.model_class for kind, repo in _all_repos(uow).items()}
 
 
 def register_target_biology(container: Container) -> None:
@@ -98,13 +95,21 @@ def register_target_biology(container: Container) -> None:
         uow = AsyncUnitOfWork(c[async_sessionmaker])
         return DeleteTargetBiologyRecord(uow, _all_repos(uow))
 
-    def _suggested_values(c: Container) -> Any:
-        uow = AsyncUnitOfWork(c[async_sessionmaker])
-        return SuggestedValuesReader(c[async_sessionmaker], _all_models(uow))
+    def _suggested_values() -> Any:
+        # No UoW: this reader holds no per-request state (each call opens its own
+        # session), so it is registered as a singleton — which is also what lets its
+        # in-process TTL cache actually persist across requests instead of starting
+        # cold every time.
+        return SQLAlchemySuggestedValuesReader(container[async_sessionmaker])
 
     container.define(GetGeneTargetBiology, _gene_bundle)
     container.define(GetProteinTargetBiology, _protein_bundle)
     container.define(CreateTargetBiologyRecord, _create)
     container.define(UpdateTargetBiologyRecord, _update)
     container.define(DeleteTargetBiologyRecord, _delete)
-    container.define(SuggestedValuesReader, _suggested_values)
+    # Protocol key + Singleton value: mypy wants a concrete type here (see the
+    # identical `di/imports.py::JobEnqueuer` precedent for the same ignore).
+    container.define(
+        SuggestedValuesReader,  # type: ignore[type-abstract]
+        Singleton(_suggested_values),
+    )

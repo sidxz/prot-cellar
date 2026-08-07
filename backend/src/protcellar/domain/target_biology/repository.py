@@ -119,3 +119,13 @@ class UnpublishedStructureRepository(Protocol):
     ) -> list[UnpublishedStructure]: ...
 
     async def save(self, aggregate: UnpublishedStructure) -> None: ...
+
+
+@runtime_checkable
+class SuggestedValuesReader(Protocol):
+    """Distinct values already stored for each free-text vocabulary field, across all
+    eight record kinds. Keyed by ``(kind, field)`` using their plain string names —
+    the domain layer does not know about the application-level ``RecordKind`` enum.
+    """
+
+    async def for_all_kinds(self) -> dict[tuple[str, str], list[str]]: ...
