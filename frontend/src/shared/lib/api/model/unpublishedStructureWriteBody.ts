@@ -6,11 +6,13 @@
  */
 import type { UnpublishedStructureWriteBodyMethod } from './unpublishedStructureWriteBodyMethod';
 import type { UnpublishedStructureWriteBodyResolution } from './unpublishedStructureWriteBodyResolution';
+import type { CompoundRefBody } from './compoundRefBody';
 import type { ProvenanceBody } from './provenanceBody';
 
 export interface UnpublishedStructureWriteBody {
   method?: UnpublishedStructureWriteBodyMethod;
   resolution?: UnpublishedStructureWriteBodyResolution;
+  ligands?: CompoundRefBody[];
   is_published?: boolean;
   is_experimental?: boolean;
   provenance: ProvenanceBody;

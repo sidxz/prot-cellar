@@ -2526,6 +2526,30 @@
         }
       }
     },
+    "/api/v1/target-biology/schema": {
+      "get": {
+        "tags": [
+          "target-biology"
+        ],
+        "summary": "Get Target Biology Schema",
+        "description": "The published write contract: what each record kind accepts, and the values\nalready in use for its vocabulary fields. Requires a caller, so the write surface\nis not enumerable anonymously.",
+        "operationId": "get_target_biology_schema_api_v1_target_biology_schema_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Get Target Biology Schema Api V1 Target Biology Schema Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/genes/{gene_id}/target-biology": {
       "get": {
         "tags": [
@@ -2689,7 +2713,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/EssentialityWriteBody"
+                "$ref": "#/components/schemas/EssentialityPatchBody"
               }
             }
           }
@@ -2795,7 +2819,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/VulnerabilityWriteBody"
+                "$ref": "#/components/schemas/VulnerabilityPatchBody"
               }
             }
           }
@@ -2901,7 +2925,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/HypomorphWriteBody"
+                "$ref": "#/components/schemas/HypomorphPatchBody"
               }
             }
           }
@@ -3007,7 +3031,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/CrispriStrainWriteBody"
+                "$ref": "#/components/schemas/CrispriStrainPatchBody"
               }
             }
           }
@@ -3113,7 +3137,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/ResistanceMutationWriteBody"
+                "$ref": "#/components/schemas/ResistanceMutationPatchBody"
               }
             }
           }
@@ -3219,7 +3243,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/ProteinProductionWriteBody"
+                "$ref": "#/components/schemas/ProteinProductionPatchBody"
               }
             }
           }
@@ -3325,7 +3349,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/ProteinActivityAssayWriteBody"
+                "$ref": "#/components/schemas/ProteinActivityAssayPatchBody"
               }
             }
           }
@@ -3431,7 +3455,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/UnpublishedStructureWriteBody"
+                "$ref": "#/components/schemas/UnpublishedStructurePatchBody"
               }
             }
           }
@@ -4684,6 +4708,32 @@
         ],
         "title": "ComponentResponse"
       },
+      "CompoundRefBody": {
+        "properties": {
+          "compound_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Compound Id"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          }
+        },
+        "type": "object",
+        "required": [
+          "compound_id"
+        ],
+        "title": "CompoundRefBody",
+        "description": "Inbound reference to a compound held in a chemistry catalog.\n\nThis service does not resolve the id \u2014 it stores the caller's pair verbatim, the\nsame self-contained reference `CompoundRef` already models. `name` is a\ndenormalized label for display; `compound_id` is the identity."
+      },
       "CompoundRefResponse": {
         "properties": {
           "compound_id": {
@@ -5317,6 +5367,45 @@
         ],
         "title": "CreateTargetBody"
       },
+      "CrispriStrainPatchBody": {
+        "properties": {
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "provenance": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ProvenanceBody"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "version": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Version"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "CrispriStrainPatchBody"
+      },
       "CrispriStrainResponse": {
         "properties": {
           "id": {
@@ -5340,6 +5429,10 @@
             "additionalProperties": true,
             "type": "object",
             "title": "Extensions"
+          },
+          "version": {
+            "type": "integer",
+            "title": "Version"
           }
         },
         "type": "object",
@@ -5348,7 +5441,8 @@
           "name",
           "target_gene_id",
           "provenance",
-          "extensions"
+          "extensions",
+          "version"
         ],
         "title": "CrispriStrainResponse"
       },
@@ -5519,6 +5613,77 @@
         ],
         "title": "EssentialityClass"
       },
+      "EssentialityPatchBody": {
+        "properties": {
+          "classification": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/EssentialityClass"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "condition": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Condition"
+          },
+          "method": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Method"
+          },
+          "confidence": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Confidence"
+          },
+          "provenance": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ProvenanceBody"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "version": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Version"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "EssentialityPatchBody"
+      },
       "EssentialityResponse": {
         "properties": {
           "id": {
@@ -5575,6 +5740,10 @@
             "additionalProperties": true,
             "type": "object",
             "title": "Extensions"
+          },
+          "version": {
+            "type": "integer",
+            "title": "Version"
           }
         },
         "type": "object",
@@ -5583,7 +5752,8 @@
           "gene_id",
           "classification",
           "provenance",
-          "extensions"
+          "extensions",
+          "version"
         ],
         "title": "EssentialityResponse"
       },
@@ -6561,6 +6731,90 @@
         "type": "object",
         "title": "HTTPValidationError"
       },
+      "HypomorphPatchBody": {
+        "properties": {
+          "growth_defect": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Growth Defect"
+          },
+          "growth_defect_severity": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Growth Defect Severity"
+          },
+          "knockdown_strain_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Knockdown Strain Id"
+          },
+          "condition": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Condition"
+          },
+          "method": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Method"
+          },
+          "provenance": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ProvenanceBody"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "version": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Version"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "HypomorphPatchBody"
+      },
       "HypomorphResponse": {
         "properties": {
           "id": {
@@ -6629,6 +6883,10 @@
             "additionalProperties": true,
             "type": "object",
             "title": "Extensions"
+          },
+          "version": {
+            "type": "integer",
+            "title": "Version"
           }
         },
         "type": "object",
@@ -6637,7 +6895,8 @@
           "gene_id",
           "growth_defect",
           "provenance",
-          "extensions"
+          "extensions",
+          "version"
         ],
         "title": "HypomorphResponse"
       },
@@ -6657,6 +6916,18 @@
               }
             ],
             "title": "Growth Defect Severity"
+          },
+          "knockdown_strain_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Knockdown Strain Id"
           },
           "condition": {
             "anyOf": [
@@ -7775,6 +8046,89 @@
         ],
         "title": "PluginManifestResponse"
       },
+      "ProteinActivityAssayPatchBody": {
+        "properties": {
+          "activity_measured": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Activity Measured"
+          },
+          "readout": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Readout"
+          },
+          "throughput": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Throughput"
+          },
+          "condition": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Condition"
+          },
+          "method": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Method"
+          },
+          "provenance": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ProvenanceBody"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "version": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Version"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "ProteinActivityAssayPatchBody"
+      },
       "ProteinActivityAssayResponse": {
         "properties": {
           "id": {
@@ -7842,6 +8196,10 @@
             "additionalProperties": true,
             "type": "object",
             "title": "Extensions"
+          },
+          "version": {
+            "type": "integer",
+            "title": "Version"
           }
         },
         "type": "object",
@@ -7850,7 +8208,8 @@
           "protein_id",
           "activity_measured",
           "provenance",
-          "extensions"
+          "extensions",
+          "version"
         ],
         "title": "ProteinActivityAssayResponse"
       },
@@ -8130,6 +8489,89 @@
         "type": "object",
         "title": "ProteinNamesBody"
       },
+      "ProteinProductionPatchBody": {
+        "properties": {
+          "status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Status"
+          },
+          "expression_host": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expression Host"
+          },
+          "purity": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Purity"
+          },
+          "condition": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Condition"
+          },
+          "method": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Method"
+          },
+          "provenance": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ProvenanceBody"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "version": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Version"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "ProteinProductionPatchBody"
+      },
       "ProteinProductionResponse": {
         "properties": {
           "id": {
@@ -8197,6 +8639,10 @@
             "additionalProperties": true,
             "type": "object",
             "title": "Extensions"
+          },
+          "version": {
+            "type": "integer",
+            "title": "Version"
           }
         },
         "type": "object",
@@ -8205,7 +8651,8 @@
           "protein_id",
           "status",
           "provenance",
-          "extensions"
+          "extensions",
+          "version"
         ],
         "title": "ProteinProductionResponse"
       },
@@ -8990,6 +9437,99 @@
         ],
         "title": "RenameTagBody"
       },
+      "ResistanceMutationPatchBody": {
+        "properties": {
+          "mutation": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mutation"
+          },
+          "compound": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CompoundRefBody"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "mic_shift": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mic Shift"
+          },
+          "parent_strain": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parent Strain"
+          },
+          "protein_coordinate": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Protein Coordinate"
+          },
+          "method": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Method"
+          },
+          "provenance": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ProvenanceBody"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "version": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Version"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "ResistanceMutationPatchBody"
+      },
       "ResistanceMutationResponse": {
         "properties": {
           "id": {
@@ -9067,6 +9607,10 @@
             "additionalProperties": true,
             "type": "object",
             "title": "Extensions"
+          },
+          "version": {
+            "type": "integer",
+            "title": "Version"
           }
         },
         "type": "object",
@@ -9075,7 +9619,8 @@
           "gene_id",
           "mutation",
           "provenance",
-          "extensions"
+          "extensions",
+          "version"
         ],
         "title": "ResistanceMutationResponse"
       },
@@ -9084,6 +9629,16 @@
           "mutation": {
             "type": "string",
             "title": "Mutation"
+          },
+          "compound": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CompoundRefBody"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "mic_shift": {
             "anyOf": [
@@ -9542,6 +10097,92 @@
         ],
         "title": "TargetType"
       },
+      "UnpublishedStructurePatchBody": {
+        "properties": {
+          "method": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Method"
+          },
+          "resolution": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resolution"
+          },
+          "ligands": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/CompoundRefBody"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ligands"
+          },
+          "is_published": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Is Published"
+          },
+          "is_experimental": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Is Experimental"
+          },
+          "provenance": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ProvenanceBody"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "version": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Version"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "UnpublishedStructurePatchBody"
+      },
       "UnpublishedStructureResponse": {
         "properties": {
           "id": {
@@ -9598,6 +10239,10 @@
             "additionalProperties": true,
             "type": "object",
             "title": "Extensions"
+          },
+          "version": {
+            "type": "integer",
+            "title": "Version"
           }
         },
         "type": "object",
@@ -9608,7 +10253,8 @@
           "is_published",
           "is_experimental",
           "provenance",
-          "extensions"
+          "extensions",
+          "version"
         ],
         "title": "UnpublishedStructureResponse"
       },
@@ -9635,6 +10281,14 @@
               }
             ],
             "title": "Resolution"
+          },
+          "ligands": {
+            "items": {
+              "$ref": "#/components/schemas/CompoundRefBody"
+            },
+            "type": "array",
+            "title": "Ligands",
+            "default": []
           },
           "is_published": {
             "type": "boolean",
@@ -10364,6 +11018,78 @@
         ],
         "title": "VersionResponse"
       },
+      "VulnerabilityPatchBody": {
+        "properties": {
+          "vulnerability_score": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vulnerability Score"
+          },
+          "condition": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Condition"
+          },
+          "method": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Method"
+          },
+          "confidence": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Confidence"
+          },
+          "provenance": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ProvenanceBody"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "version": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Version"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "VulnerabilityPatchBody"
+      },
       "VulnerabilityResponse": {
         "properties": {
           "id": {
@@ -10427,6 +11153,10 @@
             "additionalProperties": true,
             "type": "object",
             "title": "Extensions"
+          },
+          "version": {
+            "type": "integer",
+            "title": "Version"
           }
         },
         "type": "object",
@@ -10434,7 +11164,8 @@
           "id",
           "gene_id",
           "provenance",
-          "extensions"
+          "extensions",
+          "version"
         ],
         "title": "VulnerabilityResponse"
       },

@@ -13,4 +13,5 @@ export interface CrispriStrainResponse {
   target_gene_id: string;
   provenance: ProvenanceResponse;
   extensions: CrispriStrainResponseExtensions;
+  version: number;
 }

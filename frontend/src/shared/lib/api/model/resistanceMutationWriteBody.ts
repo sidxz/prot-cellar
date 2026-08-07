@@ -4,6 +4,7 @@
  * prot-cellar
  * OpenAPI spec version: 0.1.0
  */
+import type { ResistanceMutationWriteBodyCompound } from './resistanceMutationWriteBodyCompound';
 import type { ResistanceMutationWriteBodyMicShift } from './resistanceMutationWriteBodyMicShift';
 import type { ResistanceMutationWriteBodyParentStrain } from './resistanceMutationWriteBodyParentStrain';
 import type { ResistanceMutationWriteBodyProteinCoordinate } from './resistanceMutationWriteBodyProteinCoordinate';
@@ -12,6 +13,7 @@ import type { ProvenanceBody } from './provenanceBody';
 
 export interface ResistanceMutationWriteBody {
   mutation: string;
+  compound?: ResistanceMutationWriteBodyCompound;
   mic_shift?: ResistanceMutationWriteBodyMicShift;
   parent_strain?: ResistanceMutationWriteBodyParentStrain;
   protein_coordinate?: ResistanceMutationWriteBodyProteinCoordinate;

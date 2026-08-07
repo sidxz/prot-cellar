@@ -46,6 +46,7 @@ from protcellar.interface.dependencies._target_biology import (
     DeleteTargetBiologyRecordDep,
     GetGeneTargetBiologyDep,
     GetProteinTargetBiologyDep,
+    SuggestedValuesReaderDep,
     UpdateTargetBiologyRecordDep,
 )
 from protcellar.interface.dependencies._taxonomy import (
@@ -128,6 +129,7 @@ __all__ = [
     "SetPluginEnablementDep",
     "StartImportDep",
     "StoreUploadDep",
+    "SuggestedValuesReaderDep",
     "UnassignTagDep",
     "UoWDep",
     "UpdateGeneDep",

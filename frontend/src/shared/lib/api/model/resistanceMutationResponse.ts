@@ -23,4 +23,5 @@ export interface ResistanceMutationResponse {
   method?: ResistanceMutationResponseMethod;
   provenance: ProvenanceResponse;
   extensions: ResistanceMutationResponseExtensions;
+  version: number;
 }

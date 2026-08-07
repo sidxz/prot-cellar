@@ -5,6 +5,7 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { HypomorphWriteBodyGrowthDefectSeverity } from './hypomorphWriteBodyGrowthDefectSeverity';
+import type { HypomorphWriteBodyKnockdownStrainId } from './hypomorphWriteBodyKnockdownStrainId';
 import type { HypomorphWriteBodyCondition } from './hypomorphWriteBodyCondition';
 import type { HypomorphWriteBodyMethod } from './hypomorphWriteBodyMethod';
 import type { ProvenanceBody } from './provenanceBody';
@@ -12,6 +13,7 @@ import type { ProvenanceBody } from './provenanceBody';
 export interface HypomorphWriteBody {
   growth_defect: boolean;
   growth_defect_severity?: HypomorphWriteBodyGrowthDefectSeverity;
+  knockdown_strain_id?: HypomorphWriteBodyKnockdownStrainId;
   condition?: HypomorphWriteBodyCondition;
   method?: HypomorphWriteBodyMethod;
   provenance: ProvenanceBody;

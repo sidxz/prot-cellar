@@ -39,6 +39,7 @@ from protcellar.interface.dependencies import (
     DeleteTargetBiologyRecordDep,
     GetGeneTargetBiologyDep,
     GetProteinTargetBiologyDep,
+    SuggestedValuesReaderDep,
     UpdateTargetBiologyRecordDep,
 )
 from protcellar.interface.error_handlers import result_to_response
@@ -568,6 +569,24 @@ def _patch_updates(body: BaseModel) -> dict[str, Any]:
 
 
 # --- Endpoints --------------------------------------------------------------
+
+# Registered first (and its literal path is only two segments) so it is never
+# shadowed by the parameterized /target-biology/{kind}/... routes below it.
+
+
+@router.get("/target-biology/schema")
+async def get_target_biology_schema(
+    auth: AuthDep,
+    reader: SuggestedValuesReaderDep,
+) -> dict[str, Any]:
+    """The published write contract: what each record kind accepts, and the values
+    already in use for its vocabulary fields. Requires a caller, so the write surface
+    is not enumerable anonymously."""
+    # Deferred import: target_biology_schema imports the *WriteBody classes from this
+    # module, so importing it back at module level here would be circular.
+    from protcellar.interface.target_biology_schema import describe_write_surface
+
+    return describe_write_surface(await reader.for_all_kinds())
 
 
 @router.get("/genes/{gene_id}/target-biology", response_model=GeneTargetBiologyResponse)

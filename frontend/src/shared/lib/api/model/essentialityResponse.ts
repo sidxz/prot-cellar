@@ -19,4 +19,5 @@ export interface EssentialityResponse {
   confidence?: EssentialityResponseConfidence;
   provenance: ProvenanceResponse;
   extensions: EssentialityResponseExtensions;
+  version: number;
 }

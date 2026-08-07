@@ -21,4 +21,5 @@ export interface ProteinActivityAssayResponse {
   method?: ProteinActivityAssayResponseMethod;
   provenance: ProvenanceResponse;
   extensions: ProteinActivityAssayResponseExtensions;
+  version: number;
 }

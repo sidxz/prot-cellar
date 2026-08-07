@@ -478,3 +478,33 @@ async def test_hypomorph_knockdown_strain_round_trips(
     )
     assert created.status_code == 201, created.text
     assert created.json()["knockdown_strain_id"] == str(strain_id)
+
+
+# --- Published write contract ------------------------------------------------
+
+
+async def test_schema_lists_every_kind_and_seeds_vocabulary(
+    client: AsyncClient, database_url: str
+) -> None:
+    await _save(
+        database_url,
+        SQLAlchemyEssentialityRepository,
+        Essentiality(
+            workspace_id=WS,
+            gene_id=uuid.uuid4(),
+            classification=EssentialityClass.ESSENTIAL,
+            provenance=Provenance(source_type=ProvenanceSourceType.PUBLISHED),
+            condition="cholesterol",
+        ),
+    )
+
+    resp = await client.get("/api/v1/target-biology/schema")
+    assert resp.status_code == 200, resp.text
+    body = resp.json()
+
+    assert len(body["kinds"]) == 8
+    condition = next(
+        f for f in body["kinds"]["essentiality"]["fields"] if f["name"] == "condition"
+    )
+    assert "cholesterol" in condition["suggested_values"]
+    assert next(f["name"] for f in body["provenance"]["fields"]) == "source_type"

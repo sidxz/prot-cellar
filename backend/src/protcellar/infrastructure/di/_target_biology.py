@@ -17,6 +17,7 @@ from protcellar.application.target_biology.get_gene_target_biology import GetGen
 from protcellar.application.target_biology.get_protein_target_biology import (
     GetProteinTargetBiology,
 )
+from protcellar.application.target_biology.suggested_values import SuggestedValuesReader
 from protcellar.infrastructure.messaging.event_dispatcher import EventDispatcher
 from protcellar.infrastructure.persistence.sqlalchemy.target_biology.crispri_strain_repository import (  # noqa: E501
     SQLAlchemyCrispriStrainRepository,
@@ -58,6 +59,12 @@ def _all_repos(uow: AsyncUnitOfWork) -> dict[RecordKind, Any]:
     }
 
 
+def _all_models(uow: AsyncUnitOfWork) -> dict[RecordKind, Any]:
+    """The ORM model class backing each kind — reuses ``_all_repos`` instead of
+    restating which model belongs to which kind a second time."""
+    return {kind: repo.model_class for kind, repo in _all_repos(uow).items()}
+
+
 def register_target_biology(container: Container) -> None:
     def _gene_bundle(c: Container) -> Any:
         uow = AsyncUnitOfWork(c[async_sessionmaker])
@@ -91,8 +98,13 @@ def register_target_biology(container: Container) -> None:
         uow = AsyncUnitOfWork(c[async_sessionmaker])
         return DeleteTargetBiologyRecord(uow, _all_repos(uow))
 
+    def _suggested_values(c: Container) -> Any:
+        uow = AsyncUnitOfWork(c[async_sessionmaker])
+        return SuggestedValuesReader(c[async_sessionmaker], _all_models(uow))
+
     container.define(GetGeneTargetBiology, _gene_bundle)
     container.define(GetProteinTargetBiology, _protein_bundle)
     container.define(CreateTargetBiologyRecord, _create)
     container.define(UpdateTargetBiologyRecord, _update)
     container.define(DeleteTargetBiologyRecord, _delete)
+    container.define(SuggestedValuesReader, _suggested_values)

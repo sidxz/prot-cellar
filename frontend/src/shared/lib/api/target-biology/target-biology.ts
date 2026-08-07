@@ -24,29 +24,133 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
+  CrispriStrainPatchBody,
   CrispriStrainResponse,
   CrispriStrainWriteBody,
+  EssentialityPatchBody,
   EssentialityResponse,
   EssentialityWriteBody,
   GeneTargetBiologyResponse,
+  GetTargetBiologySchemaApiV1TargetBiologySchemaGet200,
   HTTPValidationError,
+  HypomorphPatchBody,
   HypomorphResponse,
   HypomorphWriteBody,
+  ProteinActivityAssayPatchBody,
   ProteinActivityAssayResponse,
   ProteinActivityAssayWriteBody,
+  ProteinProductionPatchBody,
   ProteinProductionResponse,
   ProteinProductionWriteBody,
   ProteinTargetBiologyResponse,
   RecordKind,
+  ResistanceMutationPatchBody,
   ResistanceMutationResponse,
   ResistanceMutationWriteBody,
+  UnpublishedStructurePatchBody,
   UnpublishedStructureResponse,
   UnpublishedStructureWriteBody,
+  VulnerabilityPatchBody,
   VulnerabilityResponse,
   VulnerabilityWriteBody
 } from '.././model';
 
 import { customInstance } from '.././custom-instance';
+
+
+
+
+/**
+ * The published write contract: what each record kind accepts, and the values
+already in use for its vocabulary fields. Requires a caller, so the write surface
+is not enumerable anonymously.
+ * @summary Get Target Biology Schema
+ */
+export const getTargetBiologySchemaApiV1TargetBiologySchemaGet = (
+    
+ signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<GetTargetBiologySchemaApiV1TargetBiologySchemaGet200>(
+      {url: `/api/v1/target-biology/schema`, method: 'GET', signal
+    },
+      );
+    }
+  
+
+
+
+export const getGetTargetBiologySchemaApiV1TargetBiologySchemaGetQueryKey = () => {
+    return [
+    `/api/v1/target-biology/schema`
+    ] as const;
+    }
+
+    
+export const getGetTargetBiologySchemaApiV1TargetBiologySchemaGetQueryOptions = <TData = Awaited<ReturnType<typeof getTargetBiologySchemaApiV1TargetBiologySchemaGet>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getTargetBiologySchemaApiV1TargetBiologySchemaGet>>, TError, TData>>, }
+) => {
+
+const {query: queryOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetTargetBiologySchemaApiV1TargetBiologySchemaGetQueryKey();
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getTargetBiologySchemaApiV1TargetBiologySchemaGet>>> = ({ signal }) => getTargetBiologySchemaApiV1TargetBiologySchemaGet(signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getTargetBiologySchemaApiV1TargetBiologySchemaGet>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetTargetBiologySchemaApiV1TargetBiologySchemaGetQueryResult = NonNullable<Awaited<ReturnType<typeof getTargetBiologySchemaApiV1TargetBiologySchemaGet>>>
+export type GetTargetBiologySchemaApiV1TargetBiologySchemaGetQueryError = unknown
+
+
+export function useGetTargetBiologySchemaApiV1TargetBiologySchemaGet<TData = Awaited<ReturnType<typeof getTargetBiologySchemaApiV1TargetBiologySchemaGet>>, TError = unknown>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getTargetBiologySchemaApiV1TargetBiologySchemaGet>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getTargetBiologySchemaApiV1TargetBiologySchemaGet>>,
+          TError,
+          Awaited<ReturnType<typeof getTargetBiologySchemaApiV1TargetBiologySchemaGet>>
+        > , 'initialData'
+      >, }
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetTargetBiologySchemaApiV1TargetBiologySchemaGet<TData = Awaited<ReturnType<typeof getTargetBiologySchemaApiV1TargetBiologySchemaGet>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getTargetBiologySchemaApiV1TargetBiologySchemaGet>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getTargetBiologySchemaApiV1TargetBiologySchemaGet>>,
+          TError,
+          Awaited<ReturnType<typeof getTargetBiologySchemaApiV1TargetBiologySchemaGet>>
+        > , 'initialData'
+      >, }
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetTargetBiologySchemaApiV1TargetBiologySchemaGet<TData = Awaited<ReturnType<typeof getTargetBiologySchemaApiV1TargetBiologySchemaGet>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getTargetBiologySchemaApiV1TargetBiologySchemaGet>>, TError, TData>>, }
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Get Target Biology Schema
+ */
+
+export function useGetTargetBiologySchemaApiV1TargetBiologySchemaGet<TData = Awaited<ReturnType<typeof getTargetBiologySchemaApiV1TargetBiologySchemaGet>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getTargetBiologySchemaApiV1TargetBiologySchemaGet>>, TError, TData>>, }
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetTargetBiologySchemaApiV1TargetBiologySchemaGetQueryOptions(options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
 
 
 
@@ -305,14 +409,14 @@ export const useCreateEssentialityApiV1GenesGeneIdTargetBiologyEssentialityPost 
  */
 export const updateEssentialityApiV1TargetBiologyEssentialityRecordIdPatch = (
     recordId: string,
-    essentialityWriteBody: EssentialityWriteBody,
+    essentialityPatchBody: EssentialityPatchBody,
  ) => {
       
       
       return customInstance<EssentialityResponse>(
       {url: `/api/v1/target-biology/essentiality/${recordId}`, method: 'PATCH',
       headers: {'Content-Type': 'application/json', },
-      data: essentialityWriteBody
+      data: essentialityPatchBody
     },
       );
     }
@@ -320,8 +424,8 @@ export const updateEssentialityApiV1TargetBiologyEssentialityRecordIdPatch = (
 
 
 export const getUpdateEssentialityApiV1TargetBiologyEssentialityRecordIdPatchMutationOptions = <TError = HTTPValidationError,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateEssentialityApiV1TargetBiologyEssentialityRecordIdPatch>>, TError,{recordId: string;data: EssentialityWriteBody}, TContext>, }
-): UseMutationOptions<Awaited<ReturnType<typeof updateEssentialityApiV1TargetBiologyEssentialityRecordIdPatch>>, TError,{recordId: string;data: EssentialityWriteBody}, TContext> => {
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateEssentialityApiV1TargetBiologyEssentialityRecordIdPatch>>, TError,{recordId: string;data: EssentialityPatchBody}, TContext>, }
+): UseMutationOptions<Awaited<ReturnType<typeof updateEssentialityApiV1TargetBiologyEssentialityRecordIdPatch>>, TError,{recordId: string;data: EssentialityPatchBody}, TContext> => {
 
 const mutationKey = ['updateEssentialityApiV1TargetBiologyEssentialityRecordIdPatch'];
 const {mutation: mutationOptions} = options ?
@@ -333,7 +437,7 @@ const {mutation: mutationOptions} = options ?
       
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateEssentialityApiV1TargetBiologyEssentialityRecordIdPatch>>, {recordId: string;data: EssentialityWriteBody}> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateEssentialityApiV1TargetBiologyEssentialityRecordIdPatch>>, {recordId: string;data: EssentialityPatchBody}> = (props) => {
           const {recordId,data} = props ?? {};
 
           return  updateEssentialityApiV1TargetBiologyEssentialityRecordIdPatch(recordId,data,)
@@ -345,18 +449,18 @@ const {mutation: mutationOptions} = options ?
   return  { mutationFn, ...mutationOptions }}
 
     export type UpdateEssentialityApiV1TargetBiologyEssentialityRecordIdPatchMutationResult = NonNullable<Awaited<ReturnType<typeof updateEssentialityApiV1TargetBiologyEssentialityRecordIdPatch>>>
-    export type UpdateEssentialityApiV1TargetBiologyEssentialityRecordIdPatchMutationBody = EssentialityWriteBody
+    export type UpdateEssentialityApiV1TargetBiologyEssentialityRecordIdPatchMutationBody = EssentialityPatchBody
     export type UpdateEssentialityApiV1TargetBiologyEssentialityRecordIdPatchMutationError = HTTPValidationError
 
     /**
  * @summary Update Essentiality
  */
 export const useUpdateEssentialityApiV1TargetBiologyEssentialityRecordIdPatch = <TError = HTTPValidationError,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateEssentialityApiV1TargetBiologyEssentialityRecordIdPatch>>, TError,{recordId: string;data: EssentialityWriteBody}, TContext>, }
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateEssentialityApiV1TargetBiologyEssentialityRecordIdPatch>>, TError,{recordId: string;data: EssentialityPatchBody}, TContext>, }
  , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof updateEssentialityApiV1TargetBiologyEssentialityRecordIdPatch>>,
         TError,
-        {recordId: string;data: EssentialityWriteBody},
+        {recordId: string;data: EssentialityPatchBody},
         TContext
       > => {
 
@@ -434,14 +538,14 @@ export const useCreateVulnerabilityApiV1GenesGeneIdTargetBiologyVulnerabilityPos
  */
 export const updateVulnerabilityApiV1TargetBiologyVulnerabilityRecordIdPatch = (
     recordId: string,
-    vulnerabilityWriteBody: VulnerabilityWriteBody,
+    vulnerabilityPatchBody: VulnerabilityPatchBody,
  ) => {
       
       
       return customInstance<VulnerabilityResponse>(
       {url: `/api/v1/target-biology/vulnerability/${recordId}`, method: 'PATCH',
       headers: {'Content-Type': 'application/json', },
-      data: vulnerabilityWriteBody
+      data: vulnerabilityPatchBody
     },
       );
     }
@@ -449,8 +553,8 @@ export const updateVulnerabilityApiV1TargetBiologyVulnerabilityRecordIdPatch = (
 
 
 export const getUpdateVulnerabilityApiV1TargetBiologyVulnerabilityRecordIdPatchMutationOptions = <TError = HTTPValidationError,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateVulnerabilityApiV1TargetBiologyVulnerabilityRecordIdPatch>>, TError,{recordId: string;data: VulnerabilityWriteBody}, TContext>, }
-): UseMutationOptions<Awaited<ReturnType<typeof updateVulnerabilityApiV1TargetBiologyVulnerabilityRecordIdPatch>>, TError,{recordId: string;data: VulnerabilityWriteBody}, TContext> => {
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateVulnerabilityApiV1TargetBiologyVulnerabilityRecordIdPatch>>, TError,{recordId: string;data: VulnerabilityPatchBody}, TContext>, }
+): UseMutationOptions<Awaited<ReturnType<typeof updateVulnerabilityApiV1TargetBiologyVulnerabilityRecordIdPatch>>, TError,{recordId: string;data: VulnerabilityPatchBody}, TContext> => {
 
 const mutationKey = ['updateVulnerabilityApiV1TargetBiologyVulnerabilityRecordIdPatch'];
 const {mutation: mutationOptions} = options ?
@@ -462,7 +566,7 @@ const {mutation: mutationOptions} = options ?
       
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateVulnerabilityApiV1TargetBiologyVulnerabilityRecordIdPatch>>, {recordId: string;data: VulnerabilityWriteBody}> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateVulnerabilityApiV1TargetBiologyVulnerabilityRecordIdPatch>>, {recordId: string;data: VulnerabilityPatchBody}> = (props) => {
           const {recordId,data} = props ?? {};
 
           return  updateVulnerabilityApiV1TargetBiologyVulnerabilityRecordIdPatch(recordId,data,)
@@ -474,18 +578,18 @@ const {mutation: mutationOptions} = options ?
   return  { mutationFn, ...mutationOptions }}
 
     export type UpdateVulnerabilityApiV1TargetBiologyVulnerabilityRecordIdPatchMutationResult = NonNullable<Awaited<ReturnType<typeof updateVulnerabilityApiV1TargetBiologyVulnerabilityRecordIdPatch>>>
-    export type UpdateVulnerabilityApiV1TargetBiologyVulnerabilityRecordIdPatchMutationBody = VulnerabilityWriteBody
+    export type UpdateVulnerabilityApiV1TargetBiologyVulnerabilityRecordIdPatchMutationBody = VulnerabilityPatchBody
     export type UpdateVulnerabilityApiV1TargetBiologyVulnerabilityRecordIdPatchMutationError = HTTPValidationError
 
     /**
  * @summary Update Vulnerability
  */
 export const useUpdateVulnerabilityApiV1TargetBiologyVulnerabilityRecordIdPatch = <TError = HTTPValidationError,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateVulnerabilityApiV1TargetBiologyVulnerabilityRecordIdPatch>>, TError,{recordId: string;data: VulnerabilityWriteBody}, TContext>, }
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateVulnerabilityApiV1TargetBiologyVulnerabilityRecordIdPatch>>, TError,{recordId: string;data: VulnerabilityPatchBody}, TContext>, }
  , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof updateVulnerabilityApiV1TargetBiologyVulnerabilityRecordIdPatch>>,
         TError,
-        {recordId: string;data: VulnerabilityWriteBody},
+        {recordId: string;data: VulnerabilityPatchBody},
         TContext
       > => {
 
@@ -563,14 +667,14 @@ export const useCreateHypomorphApiV1GenesGeneIdTargetBiologyHypomorphPost = <TEr
  */
 export const updateHypomorphApiV1TargetBiologyHypomorphRecordIdPatch = (
     recordId: string,
-    hypomorphWriteBody: HypomorphWriteBody,
+    hypomorphPatchBody: HypomorphPatchBody,
  ) => {
       
       
       return customInstance<HypomorphResponse>(
       {url: `/api/v1/target-biology/hypomorph/${recordId}`, method: 'PATCH',
       headers: {'Content-Type': 'application/json', },
-      data: hypomorphWriteBody
+      data: hypomorphPatchBody
     },
       );
     }
@@ -578,8 +682,8 @@ export const updateHypomorphApiV1TargetBiologyHypomorphRecordIdPatch = (
 
 
 export const getUpdateHypomorphApiV1TargetBiologyHypomorphRecordIdPatchMutationOptions = <TError = HTTPValidationError,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateHypomorphApiV1TargetBiologyHypomorphRecordIdPatch>>, TError,{recordId: string;data: HypomorphWriteBody}, TContext>, }
-): UseMutationOptions<Awaited<ReturnType<typeof updateHypomorphApiV1TargetBiologyHypomorphRecordIdPatch>>, TError,{recordId: string;data: HypomorphWriteBody}, TContext> => {
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateHypomorphApiV1TargetBiologyHypomorphRecordIdPatch>>, TError,{recordId: string;data: HypomorphPatchBody}, TContext>, }
+): UseMutationOptions<Awaited<ReturnType<typeof updateHypomorphApiV1TargetBiologyHypomorphRecordIdPatch>>, TError,{recordId: string;data: HypomorphPatchBody}, TContext> => {
 
 const mutationKey = ['updateHypomorphApiV1TargetBiologyHypomorphRecordIdPatch'];
 const {mutation: mutationOptions} = options ?
@@ -591,7 +695,7 @@ const {mutation: mutationOptions} = options ?
       
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateHypomorphApiV1TargetBiologyHypomorphRecordIdPatch>>, {recordId: string;data: HypomorphWriteBody}> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateHypomorphApiV1TargetBiologyHypomorphRecordIdPatch>>, {recordId: string;data: HypomorphPatchBody}> = (props) => {
           const {recordId,data} = props ?? {};
 
           return  updateHypomorphApiV1TargetBiologyHypomorphRecordIdPatch(recordId,data,)
@@ -603,18 +707,18 @@ const {mutation: mutationOptions} = options ?
   return  { mutationFn, ...mutationOptions }}
 
     export type UpdateHypomorphApiV1TargetBiologyHypomorphRecordIdPatchMutationResult = NonNullable<Awaited<ReturnType<typeof updateHypomorphApiV1TargetBiologyHypomorphRecordIdPatch>>>
-    export type UpdateHypomorphApiV1TargetBiologyHypomorphRecordIdPatchMutationBody = HypomorphWriteBody
+    export type UpdateHypomorphApiV1TargetBiologyHypomorphRecordIdPatchMutationBody = HypomorphPatchBody
     export type UpdateHypomorphApiV1TargetBiologyHypomorphRecordIdPatchMutationError = HTTPValidationError
 
     /**
  * @summary Update Hypomorph
  */
 export const useUpdateHypomorphApiV1TargetBiologyHypomorphRecordIdPatch = <TError = HTTPValidationError,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateHypomorphApiV1TargetBiologyHypomorphRecordIdPatch>>, TError,{recordId: string;data: HypomorphWriteBody}, TContext>, }
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateHypomorphApiV1TargetBiologyHypomorphRecordIdPatch>>, TError,{recordId: string;data: HypomorphPatchBody}, TContext>, }
  , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof updateHypomorphApiV1TargetBiologyHypomorphRecordIdPatch>>,
         TError,
-        {recordId: string;data: HypomorphWriteBody},
+        {recordId: string;data: HypomorphPatchBody},
         TContext
       > => {
 
@@ -692,14 +796,14 @@ export const useCreateCrispriStrainApiV1GenesGeneIdTargetBiologyCrispriStrainPos
  */
 export const updateCrispriStrainApiV1TargetBiologyCrispriStrainRecordIdPatch = (
     recordId: string,
-    crispriStrainWriteBody: CrispriStrainWriteBody,
+    crispriStrainPatchBody: CrispriStrainPatchBody,
  ) => {
       
       
       return customInstance<CrispriStrainResponse>(
       {url: `/api/v1/target-biology/crispri_strain/${recordId}`, method: 'PATCH',
       headers: {'Content-Type': 'application/json', },
-      data: crispriStrainWriteBody
+      data: crispriStrainPatchBody
     },
       );
     }
@@ -707,8 +811,8 @@ export const updateCrispriStrainApiV1TargetBiologyCrispriStrainRecordIdPatch = (
 
 
 export const getUpdateCrispriStrainApiV1TargetBiologyCrispriStrainRecordIdPatchMutationOptions = <TError = HTTPValidationError,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateCrispriStrainApiV1TargetBiologyCrispriStrainRecordIdPatch>>, TError,{recordId: string;data: CrispriStrainWriteBody}, TContext>, }
-): UseMutationOptions<Awaited<ReturnType<typeof updateCrispriStrainApiV1TargetBiologyCrispriStrainRecordIdPatch>>, TError,{recordId: string;data: CrispriStrainWriteBody}, TContext> => {
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateCrispriStrainApiV1TargetBiologyCrispriStrainRecordIdPatch>>, TError,{recordId: string;data: CrispriStrainPatchBody}, TContext>, }
+): UseMutationOptions<Awaited<ReturnType<typeof updateCrispriStrainApiV1TargetBiologyCrispriStrainRecordIdPatch>>, TError,{recordId: string;data: CrispriStrainPatchBody}, TContext> => {
 
 const mutationKey = ['updateCrispriStrainApiV1TargetBiologyCrispriStrainRecordIdPatch'];
 const {mutation: mutationOptions} = options ?
@@ -720,7 +824,7 @@ const {mutation: mutationOptions} = options ?
       
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateCrispriStrainApiV1TargetBiologyCrispriStrainRecordIdPatch>>, {recordId: string;data: CrispriStrainWriteBody}> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateCrispriStrainApiV1TargetBiologyCrispriStrainRecordIdPatch>>, {recordId: string;data: CrispriStrainPatchBody}> = (props) => {
           const {recordId,data} = props ?? {};
 
           return  updateCrispriStrainApiV1TargetBiologyCrispriStrainRecordIdPatch(recordId,data,)
@@ -732,18 +836,18 @@ const {mutation: mutationOptions} = options ?
   return  { mutationFn, ...mutationOptions }}
 
     export type UpdateCrispriStrainApiV1TargetBiologyCrispriStrainRecordIdPatchMutationResult = NonNullable<Awaited<ReturnType<typeof updateCrispriStrainApiV1TargetBiologyCrispriStrainRecordIdPatch>>>
-    export type UpdateCrispriStrainApiV1TargetBiologyCrispriStrainRecordIdPatchMutationBody = CrispriStrainWriteBody
+    export type UpdateCrispriStrainApiV1TargetBiologyCrispriStrainRecordIdPatchMutationBody = CrispriStrainPatchBody
     export type UpdateCrispriStrainApiV1TargetBiologyCrispriStrainRecordIdPatchMutationError = HTTPValidationError
 
     /**
  * @summary Update Crispri Strain
  */
 export const useUpdateCrispriStrainApiV1TargetBiologyCrispriStrainRecordIdPatch = <TError = HTTPValidationError,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateCrispriStrainApiV1TargetBiologyCrispriStrainRecordIdPatch>>, TError,{recordId: string;data: CrispriStrainWriteBody}, TContext>, }
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateCrispriStrainApiV1TargetBiologyCrispriStrainRecordIdPatch>>, TError,{recordId: string;data: CrispriStrainPatchBody}, TContext>, }
  , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof updateCrispriStrainApiV1TargetBiologyCrispriStrainRecordIdPatch>>,
         TError,
-        {recordId: string;data: CrispriStrainWriteBody},
+        {recordId: string;data: CrispriStrainPatchBody},
         TContext
       > => {
 
@@ -821,14 +925,14 @@ export const useCreateResistanceMutationApiV1GenesGeneIdTargetBiologyResistanceM
  */
 export const updateResistanceMutationApiV1TargetBiologyResistanceMutationRecordIdPatch = (
     recordId: string,
-    resistanceMutationWriteBody: ResistanceMutationWriteBody,
+    resistanceMutationPatchBody: ResistanceMutationPatchBody,
  ) => {
       
       
       return customInstance<ResistanceMutationResponse>(
       {url: `/api/v1/target-biology/resistance_mutation/${recordId}`, method: 'PATCH',
       headers: {'Content-Type': 'application/json', },
-      data: resistanceMutationWriteBody
+      data: resistanceMutationPatchBody
     },
       );
     }
@@ -836,8 +940,8 @@ export const updateResistanceMutationApiV1TargetBiologyResistanceMutationRecordI
 
 
 export const getUpdateResistanceMutationApiV1TargetBiologyResistanceMutationRecordIdPatchMutationOptions = <TError = HTTPValidationError,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateResistanceMutationApiV1TargetBiologyResistanceMutationRecordIdPatch>>, TError,{recordId: string;data: ResistanceMutationWriteBody}, TContext>, }
-): UseMutationOptions<Awaited<ReturnType<typeof updateResistanceMutationApiV1TargetBiologyResistanceMutationRecordIdPatch>>, TError,{recordId: string;data: ResistanceMutationWriteBody}, TContext> => {
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateResistanceMutationApiV1TargetBiologyResistanceMutationRecordIdPatch>>, TError,{recordId: string;data: ResistanceMutationPatchBody}, TContext>, }
+): UseMutationOptions<Awaited<ReturnType<typeof updateResistanceMutationApiV1TargetBiologyResistanceMutationRecordIdPatch>>, TError,{recordId: string;data: ResistanceMutationPatchBody}, TContext> => {
 
 const mutationKey = ['updateResistanceMutationApiV1TargetBiologyResistanceMutationRecordIdPatch'];
 const {mutation: mutationOptions} = options ?
@@ -849,7 +953,7 @@ const {mutation: mutationOptions} = options ?
       
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateResistanceMutationApiV1TargetBiologyResistanceMutationRecordIdPatch>>, {recordId: string;data: ResistanceMutationWriteBody}> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateResistanceMutationApiV1TargetBiologyResistanceMutationRecordIdPatch>>, {recordId: string;data: ResistanceMutationPatchBody}> = (props) => {
           const {recordId,data} = props ?? {};
 
           return  updateResistanceMutationApiV1TargetBiologyResistanceMutationRecordIdPatch(recordId,data,)
@@ -861,18 +965,18 @@ const {mutation: mutationOptions} = options ?
   return  { mutationFn, ...mutationOptions }}
 
     export type UpdateResistanceMutationApiV1TargetBiologyResistanceMutationRecordIdPatchMutationResult = NonNullable<Awaited<ReturnType<typeof updateResistanceMutationApiV1TargetBiologyResistanceMutationRecordIdPatch>>>
-    export type UpdateResistanceMutationApiV1TargetBiologyResistanceMutationRecordIdPatchMutationBody = ResistanceMutationWriteBody
+    export type UpdateResistanceMutationApiV1TargetBiologyResistanceMutationRecordIdPatchMutationBody = ResistanceMutationPatchBody
     export type UpdateResistanceMutationApiV1TargetBiologyResistanceMutationRecordIdPatchMutationError = HTTPValidationError
 
     /**
  * @summary Update Resistance Mutation
  */
 export const useUpdateResistanceMutationApiV1TargetBiologyResistanceMutationRecordIdPatch = <TError = HTTPValidationError,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateResistanceMutationApiV1TargetBiologyResistanceMutationRecordIdPatch>>, TError,{recordId: string;data: ResistanceMutationWriteBody}, TContext>, }
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateResistanceMutationApiV1TargetBiologyResistanceMutationRecordIdPatch>>, TError,{recordId: string;data: ResistanceMutationPatchBody}, TContext>, }
  , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof updateResistanceMutationApiV1TargetBiologyResistanceMutationRecordIdPatch>>,
         TError,
-        {recordId: string;data: ResistanceMutationWriteBody},
+        {recordId: string;data: ResistanceMutationPatchBody},
         TContext
       > => {
 
@@ -950,14 +1054,14 @@ export const useCreateProteinProductionApiV1ProteinsProteinIdTargetBiologyProtei
  */
 export const updateProteinProductionApiV1TargetBiologyProteinProductionRecordIdPatch = (
     recordId: string,
-    proteinProductionWriteBody: ProteinProductionWriteBody,
+    proteinProductionPatchBody: ProteinProductionPatchBody,
  ) => {
       
       
       return customInstance<ProteinProductionResponse>(
       {url: `/api/v1/target-biology/protein_production/${recordId}`, method: 'PATCH',
       headers: {'Content-Type': 'application/json', },
-      data: proteinProductionWriteBody
+      data: proteinProductionPatchBody
     },
       );
     }
@@ -965,8 +1069,8 @@ export const updateProteinProductionApiV1TargetBiologyProteinProductionRecordIdP
 
 
 export const getUpdateProteinProductionApiV1TargetBiologyProteinProductionRecordIdPatchMutationOptions = <TError = HTTPValidationError,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateProteinProductionApiV1TargetBiologyProteinProductionRecordIdPatch>>, TError,{recordId: string;data: ProteinProductionWriteBody}, TContext>, }
-): UseMutationOptions<Awaited<ReturnType<typeof updateProteinProductionApiV1TargetBiologyProteinProductionRecordIdPatch>>, TError,{recordId: string;data: ProteinProductionWriteBody}, TContext> => {
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateProteinProductionApiV1TargetBiologyProteinProductionRecordIdPatch>>, TError,{recordId: string;data: ProteinProductionPatchBody}, TContext>, }
+): UseMutationOptions<Awaited<ReturnType<typeof updateProteinProductionApiV1TargetBiologyProteinProductionRecordIdPatch>>, TError,{recordId: string;data: ProteinProductionPatchBody}, TContext> => {
 
 const mutationKey = ['updateProteinProductionApiV1TargetBiologyProteinProductionRecordIdPatch'];
 const {mutation: mutationOptions} = options ?
@@ -978,7 +1082,7 @@ const {mutation: mutationOptions} = options ?
       
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateProteinProductionApiV1TargetBiologyProteinProductionRecordIdPatch>>, {recordId: string;data: ProteinProductionWriteBody}> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateProteinProductionApiV1TargetBiologyProteinProductionRecordIdPatch>>, {recordId: string;data: ProteinProductionPatchBody}> = (props) => {
           const {recordId,data} = props ?? {};
 
           return  updateProteinProductionApiV1TargetBiologyProteinProductionRecordIdPatch(recordId,data,)
@@ -990,18 +1094,18 @@ const {mutation: mutationOptions} = options ?
   return  { mutationFn, ...mutationOptions }}
 
     export type UpdateProteinProductionApiV1TargetBiologyProteinProductionRecordIdPatchMutationResult = NonNullable<Awaited<ReturnType<typeof updateProteinProductionApiV1TargetBiologyProteinProductionRecordIdPatch>>>
-    export type UpdateProteinProductionApiV1TargetBiologyProteinProductionRecordIdPatchMutationBody = ProteinProductionWriteBody
+    export type UpdateProteinProductionApiV1TargetBiologyProteinProductionRecordIdPatchMutationBody = ProteinProductionPatchBody
     export type UpdateProteinProductionApiV1TargetBiologyProteinProductionRecordIdPatchMutationError = HTTPValidationError
 
     /**
  * @summary Update Protein Production
  */
 export const useUpdateProteinProductionApiV1TargetBiologyProteinProductionRecordIdPatch = <TError = HTTPValidationError,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateProteinProductionApiV1TargetBiologyProteinProductionRecordIdPatch>>, TError,{recordId: string;data: ProteinProductionWriteBody}, TContext>, }
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateProteinProductionApiV1TargetBiologyProteinProductionRecordIdPatch>>, TError,{recordId: string;data: ProteinProductionPatchBody}, TContext>, }
  , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof updateProteinProductionApiV1TargetBiologyProteinProductionRecordIdPatch>>,
         TError,
-        {recordId: string;data: ProteinProductionWriteBody},
+        {recordId: string;data: ProteinProductionPatchBody},
         TContext
       > => {
 
@@ -1079,14 +1183,14 @@ export const useCreateProteinActivityAssayApiV1ProteinsProteinIdTargetBiologyPro
  */
 export const updateProteinActivityAssayApiV1TargetBiologyProteinActivityAssayRecordIdPatch = (
     recordId: string,
-    proteinActivityAssayWriteBody: ProteinActivityAssayWriteBody,
+    proteinActivityAssayPatchBody: ProteinActivityAssayPatchBody,
  ) => {
       
       
       return customInstance<ProteinActivityAssayResponse>(
       {url: `/api/v1/target-biology/protein_activity_assay/${recordId}`, method: 'PATCH',
       headers: {'Content-Type': 'application/json', },
-      data: proteinActivityAssayWriteBody
+      data: proteinActivityAssayPatchBody
     },
       );
     }
@@ -1094,8 +1198,8 @@ export const updateProteinActivityAssayApiV1TargetBiologyProteinActivityAssayRec
 
 
 export const getUpdateProteinActivityAssayApiV1TargetBiologyProteinActivityAssayRecordIdPatchMutationOptions = <TError = HTTPValidationError,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateProteinActivityAssayApiV1TargetBiologyProteinActivityAssayRecordIdPatch>>, TError,{recordId: string;data: ProteinActivityAssayWriteBody}, TContext>, }
-): UseMutationOptions<Awaited<ReturnType<typeof updateProteinActivityAssayApiV1TargetBiologyProteinActivityAssayRecordIdPatch>>, TError,{recordId: string;data: ProteinActivityAssayWriteBody}, TContext> => {
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateProteinActivityAssayApiV1TargetBiologyProteinActivityAssayRecordIdPatch>>, TError,{recordId: string;data: ProteinActivityAssayPatchBody}, TContext>, }
+): UseMutationOptions<Awaited<ReturnType<typeof updateProteinActivityAssayApiV1TargetBiologyProteinActivityAssayRecordIdPatch>>, TError,{recordId: string;data: ProteinActivityAssayPatchBody}, TContext> => {
 
 const mutationKey = ['updateProteinActivityAssayApiV1TargetBiologyProteinActivityAssayRecordIdPatch'];
 const {mutation: mutationOptions} = options ?
@@ -1107,7 +1211,7 @@ const {mutation: mutationOptions} = options ?
       
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateProteinActivityAssayApiV1TargetBiologyProteinActivityAssayRecordIdPatch>>, {recordId: string;data: ProteinActivityAssayWriteBody}> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateProteinActivityAssayApiV1TargetBiologyProteinActivityAssayRecordIdPatch>>, {recordId: string;data: ProteinActivityAssayPatchBody}> = (props) => {
           const {recordId,data} = props ?? {};
 
           return  updateProteinActivityAssayApiV1TargetBiologyProteinActivityAssayRecordIdPatch(recordId,data,)
@@ -1119,18 +1223,18 @@ const {mutation: mutationOptions} = options ?
   return  { mutationFn, ...mutationOptions }}
 
     export type UpdateProteinActivityAssayApiV1TargetBiologyProteinActivityAssayRecordIdPatchMutationResult = NonNullable<Awaited<ReturnType<typeof updateProteinActivityAssayApiV1TargetBiologyProteinActivityAssayRecordIdPatch>>>
-    export type UpdateProteinActivityAssayApiV1TargetBiologyProteinActivityAssayRecordIdPatchMutationBody = ProteinActivityAssayWriteBody
+    export type UpdateProteinActivityAssayApiV1TargetBiologyProteinActivityAssayRecordIdPatchMutationBody = ProteinActivityAssayPatchBody
     export type UpdateProteinActivityAssayApiV1TargetBiologyProteinActivityAssayRecordIdPatchMutationError = HTTPValidationError
 
     /**
  * @summary Update Protein Activity Assay
  */
 export const useUpdateProteinActivityAssayApiV1TargetBiologyProteinActivityAssayRecordIdPatch = <TError = HTTPValidationError,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateProteinActivityAssayApiV1TargetBiologyProteinActivityAssayRecordIdPatch>>, TError,{recordId: string;data: ProteinActivityAssayWriteBody}, TContext>, }
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateProteinActivityAssayApiV1TargetBiologyProteinActivityAssayRecordIdPatch>>, TError,{recordId: string;data: ProteinActivityAssayPatchBody}, TContext>, }
  , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof updateProteinActivityAssayApiV1TargetBiologyProteinActivityAssayRecordIdPatch>>,
         TError,
-        {recordId: string;data: ProteinActivityAssayWriteBody},
+        {recordId: string;data: ProteinActivityAssayPatchBody},
         TContext
       > => {
 
@@ -1208,14 +1312,14 @@ export const useCreateUnpublishedStructureApiV1ProteinsProteinIdTargetBiologyUnp
  */
 export const updateUnpublishedStructureApiV1TargetBiologyUnpublishedStructureRecordIdPatch = (
     recordId: string,
-    unpublishedStructureWriteBody: UnpublishedStructureWriteBody,
+    unpublishedStructurePatchBody: UnpublishedStructurePatchBody,
  ) => {
       
       
       return customInstance<UnpublishedStructureResponse>(
       {url: `/api/v1/target-biology/unpublished_structure/${recordId}`, method: 'PATCH',
       headers: {'Content-Type': 'application/json', },
-      data: unpublishedStructureWriteBody
+      data: unpublishedStructurePatchBody
     },
       );
     }
@@ -1223,8 +1327,8 @@ export const updateUnpublishedStructureApiV1TargetBiologyUnpublishedStructureRec
 
 
 export const getUpdateUnpublishedStructureApiV1TargetBiologyUnpublishedStructureRecordIdPatchMutationOptions = <TError = HTTPValidationError,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateUnpublishedStructureApiV1TargetBiologyUnpublishedStructureRecordIdPatch>>, TError,{recordId: string;data: UnpublishedStructureWriteBody}, TContext>, }
-): UseMutationOptions<Awaited<ReturnType<typeof updateUnpublishedStructureApiV1TargetBiologyUnpublishedStructureRecordIdPatch>>, TError,{recordId: string;data: UnpublishedStructureWriteBody}, TContext> => {
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateUnpublishedStructureApiV1TargetBiologyUnpublishedStructureRecordIdPatch>>, TError,{recordId: string;data: UnpublishedStructurePatchBody}, TContext>, }
+): UseMutationOptions<Awaited<ReturnType<typeof updateUnpublishedStructureApiV1TargetBiologyUnpublishedStructureRecordIdPatch>>, TError,{recordId: string;data: UnpublishedStructurePatchBody}, TContext> => {
 
 const mutationKey = ['updateUnpublishedStructureApiV1TargetBiologyUnpublishedStructureRecordIdPatch'];
 const {mutation: mutationOptions} = options ?
@@ -1236,7 +1340,7 @@ const {mutation: mutationOptions} = options ?
       
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateUnpublishedStructureApiV1TargetBiologyUnpublishedStructureRecordIdPatch>>, {recordId: string;data: UnpublishedStructureWriteBody}> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateUnpublishedStructureApiV1TargetBiologyUnpublishedStructureRecordIdPatch>>, {recordId: string;data: UnpublishedStructurePatchBody}> = (props) => {
           const {recordId,data} = props ?? {};
 
           return  updateUnpublishedStructureApiV1TargetBiologyUnpublishedStructureRecordIdPatch(recordId,data,)
@@ -1248,18 +1352,18 @@ const {mutation: mutationOptions} = options ?
   return  { mutationFn, ...mutationOptions }}
 
     export type UpdateUnpublishedStructureApiV1TargetBiologyUnpublishedStructureRecordIdPatchMutationResult = NonNullable<Awaited<ReturnType<typeof updateUnpublishedStructureApiV1TargetBiologyUnpublishedStructureRecordIdPatch>>>
-    export type UpdateUnpublishedStructureApiV1TargetBiologyUnpublishedStructureRecordIdPatchMutationBody = UnpublishedStructureWriteBody
+    export type UpdateUnpublishedStructureApiV1TargetBiologyUnpublishedStructureRecordIdPatchMutationBody = UnpublishedStructurePatchBody
     export type UpdateUnpublishedStructureApiV1TargetBiologyUnpublishedStructureRecordIdPatchMutationError = HTTPValidationError
 
     /**
  * @summary Update Unpublished Structure
  */
 export const useUpdateUnpublishedStructureApiV1TargetBiologyUnpublishedStructureRecordIdPatch = <TError = HTTPValidationError,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateUnpublishedStructureApiV1TargetBiologyUnpublishedStructureRecordIdPatch>>, TError,{recordId: string;data: UnpublishedStructureWriteBody}, TContext>, }
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateUnpublishedStructureApiV1TargetBiologyUnpublishedStructureRecordIdPatch>>, TError,{recordId: string;data: UnpublishedStructurePatchBody}, TContext>, }
  , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof updateUnpublishedStructureApiV1TargetBiologyUnpublishedStructureRecordIdPatch>>,
         TError,
-        {recordId: string;data: UnpublishedStructureWriteBody},
+        {recordId: string;data: UnpublishedStructurePatchBody},
         TContext
       > => {
 

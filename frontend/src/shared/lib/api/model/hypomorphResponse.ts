@@ -21,4 +21,5 @@ export interface HypomorphResponse {
   method?: HypomorphResponseMethod;
   provenance: ProvenanceResponse;
   extensions: HypomorphResponseExtensions;
+  version: number;
 }

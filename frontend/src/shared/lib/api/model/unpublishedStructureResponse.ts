@@ -20,4 +20,5 @@ export interface UnpublishedStructureResponse {
   is_experimental: boolean;
   provenance: ProvenanceResponse;
   extensions: UnpublishedStructureResponseExtensions;
+  version: number;
 }
