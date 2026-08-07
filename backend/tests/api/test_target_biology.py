@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import uuid
+from datetime import date
 
 import pytest
 from httpx import AsyncClient
@@ -10,7 +11,12 @@ from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
 from protcellar.domain.shared.compound_ref import CompoundRef
 from protcellar.domain.shared.global_workspace import GLOBAL_WORKSPACE_ID
-from protcellar.domain.shared.provenance import Citation, Provenance, ProvenanceSourceType
+from protcellar.domain.shared.provenance import (
+    Citation,
+    GenerationMethod,
+    Provenance,
+    ProvenanceSourceType,
+)
 from protcellar.domain.target_biology.enums import EssentialityClass
 from protcellar.domain.target_biology.essentiality import Essentiality
 from protcellar.domain.target_biology.resistance_mutation import ResistanceMutation
@@ -52,9 +58,7 @@ async def test_gene_target_biology_bundle(client: AsyncClient, database_url: str
     await _save(
         database_url,
         SQLAlchemyVulnerabilityRepository,
-        Vulnerability(
-            workspace_id=WS, gene_id=gene_id, provenance=prov, vulnerability_score=0.82
-        ),
+        Vulnerability(workspace_id=WS, gene_id=gene_id, provenance=prov, vulnerability_score=0.82),
     )
     await _save(
         database_url,
@@ -196,6 +200,91 @@ async def test_essentiality_writes_require_admin(editor_client: AsyncClient) -> 
         f"/api/v1/genes/{gene_id}/target-biology/essentiality", json=_ESS_BODY
     )
     assert r.status_code == 403
+
+
+async def test_patch_one_field_preserves_provenance_and_other_fields(
+    client: AsyncClient, database_url: str
+) -> None:
+    """Editing `condition` must not touch provenance, generation_method, or siblings."""
+    gene_id = uuid.uuid4()
+    record = Essentiality(
+        workspace_id=WS,
+        gene_id=gene_id,
+        classification=EssentialityClass.ESSENTIAL,
+        provenance=Provenance(
+            source_type=ProvenanceSourceType.PUBLISHED,
+            generation_method=GenerationMethod.AI_EXTRACTED,
+            citations=(Citation(pmid="28096490"), Citation(doi="10.1016/j.cell.2021.02.001")),
+            contributor_researcher="A. Curator",
+            observed_on=date(2021, 3, 1),
+        ),
+        condition="7H9",
+        method="TnSeq",
+        confidence=0.91,
+    )
+    await _save(database_url, SQLAlchemyEssentialityRepository, record)
+
+    resp = await client.patch(
+        f"/api/v1/target-biology/essentiality/{record.id}",
+        json={"condition": "cholesterol"},
+    )
+    assert resp.status_code == 200, resp.text
+    body = resp.json()
+
+    assert body["condition"] == "cholesterol"
+    # Untouched scalars survive.
+    assert body["classification"] == "essential"
+    assert body["method"] == "TnSeq"
+    assert body["confidence"] == 0.91
+    # Provenance survives in full — this is the regression this task exists for.
+    prov = body["provenance"]
+    assert prov["generation_method"] == "ai_extracted"
+    assert len(prov["citations"]) == 2
+    assert prov["citations"][1]["doi"] == "10.1016/j.cell.2021.02.001"
+    assert prov["contributor_researcher"] == "A. Curator"
+    assert prov["observed_on"] == "2021-03-01"
+
+
+async def test_patch_with_provenance_reattributes_to_manual(
+    client: AsyncClient, database_url: str
+) -> None:
+    """Submitting provenance is what re-attributes a record — and only that."""
+    gene_id = uuid.uuid4()
+    record = Essentiality(
+        workspace_id=WS,
+        gene_id=gene_id,
+        classification=EssentialityClass.ESSENTIAL,
+        provenance=Provenance(
+            source_type=ProvenanceSourceType.PUBLISHED,
+            generation_method=GenerationMethod.AI_EXTRACTED,
+        ),
+    )
+    await _save(database_url, SQLAlchemyEssentialityRepository, record)
+
+    resp = await client.patch(
+        f"/api/v1/target-biology/essentiality/{record.id}",
+        json={"provenance": {"source_type": "internal", "citations": []}},
+    )
+    assert resp.status_code == 200, resp.text
+    assert resp.json()["provenance"]["generation_method"] == "manual"
+    assert resp.json()["provenance"]["source_type"] == "internal"
+
+
+async def test_patch_rejects_unknown_field(client: AsyncClient, database_url: str) -> None:
+    gene_id = uuid.uuid4()
+    record = Essentiality(
+        workspace_id=WS,
+        gene_id=gene_id,
+        classification=EssentialityClass.ESSENTIAL,
+        provenance=Provenance(source_type=ProvenanceSourceType.PUBLISHED),
+    )
+    await _save(database_url, SQLAlchemyEssentialityRepository, record)
+
+    resp = await client.patch(
+        f"/api/v1/target-biology/essentiality/{record.id}",
+        json={"nonsense": 1},
+    )
+    assert resp.status_code == 422
 
 
 # --- Other record kinds through the generic CRUD path -----------------------

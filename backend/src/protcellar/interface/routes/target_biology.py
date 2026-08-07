@@ -358,12 +358,32 @@ class EssentialityWriteBody(BaseModel):
     provenance: ProvenanceBody
 
 
+class EssentialityPatchBody(BaseModel):
+    classification: EssentialityClass | None = None
+    condition: str | None = None
+    method: str | None = None
+    confidence: float | None = None
+    provenance: ProvenanceBody | None = None
+
+    model_config = {"extra": "forbid"}
+
+
 class VulnerabilityWriteBody(BaseModel):
     vulnerability_score: float | None = None
     condition: str | None = None
     method: str | None = None
     confidence: float | None = None
     provenance: ProvenanceBody
+
+
+class VulnerabilityPatchBody(BaseModel):
+    vulnerability_score: float | None = None
+    condition: str | None = None
+    method: str | None = None
+    confidence: float | None = None
+    provenance: ProvenanceBody | None = None
+
+    model_config = {"extra": "forbid"}
 
 
 class HypomorphWriteBody(BaseModel):
@@ -374,9 +394,26 @@ class HypomorphWriteBody(BaseModel):
     provenance: ProvenanceBody
 
 
+class HypomorphPatchBody(BaseModel):
+    growth_defect: bool | None = None
+    growth_defect_severity: str | None = None
+    condition: str | None = None
+    method: str | None = None
+    provenance: ProvenanceBody | None = None
+
+    model_config = {"extra": "forbid"}
+
+
 class CrispriStrainWriteBody(BaseModel):
     name: str
     provenance: ProvenanceBody
+
+
+class CrispriStrainPatchBody(BaseModel):
+    name: str | None = None
+    provenance: ProvenanceBody | None = None
+
+    model_config = {"extra": "forbid"}
 
 
 class ResistanceMutationWriteBody(BaseModel):
@@ -388,6 +425,17 @@ class ResistanceMutationWriteBody(BaseModel):
     provenance: ProvenanceBody
 
 
+class ResistanceMutationPatchBody(BaseModel):
+    mutation: str | None = None
+    mic_shift: float | None = None
+    parent_strain: str | None = None
+    protein_coordinate: str | None = None
+    method: str | None = None
+    provenance: ProvenanceBody | None = None
+
+    model_config = {"extra": "forbid"}
+
+
 class ProteinProductionWriteBody(BaseModel):
     status: str
     expression_host: str | None = None
@@ -395,6 +443,17 @@ class ProteinProductionWriteBody(BaseModel):
     condition: str | None = None
     method: str | None = None
     provenance: ProvenanceBody
+
+
+class ProteinProductionPatchBody(BaseModel):
+    status: str | None = None
+    expression_host: str | None = None
+    purity: float | None = None
+    condition: str | None = None
+    method: str | None = None
+    provenance: ProvenanceBody | None = None
+
+    model_config = {"extra": "forbid"}
 
 
 class ProteinActivityAssayWriteBody(BaseModel):
@@ -406,12 +465,58 @@ class ProteinActivityAssayWriteBody(BaseModel):
     provenance: ProvenanceBody
 
 
+class ProteinActivityAssayPatchBody(BaseModel):
+    activity_measured: str | None = None
+    readout: str | None = None
+    throughput: str | None = None
+    condition: str | None = None
+    method: str | None = None
+    provenance: ProvenanceBody | None = None
+
+    model_config = {"extra": "forbid"}
+
+
 class UnpublishedStructureWriteBody(BaseModel):
     method: str | None = None
     resolution: float | None = None
     is_published: bool = False
     is_experimental: bool = True
     provenance: ProvenanceBody
+
+
+class UnpublishedStructurePatchBody(BaseModel):
+    method: str | None = None
+    resolution: float | None = None
+    is_published: bool | None = None
+    is_experimental: bool | None = None
+    provenance: ProvenanceBody | None = None
+
+    model_config = {"extra": "forbid"}
+
+
+# Value-object fields whose patch bodies must be converted to domain objects.
+# model_dump() would leave them as plain dicts, which the aggregates would store verbatim.
+_VALUE_OBJECT_FIELDS = frozenset({"provenance", "compound", "ligands"})
+
+
+def _patch_updates(body: BaseModel) -> dict[str, Any]:
+    """Build the partial-update dict from only the fields the caller actually sent.
+
+    The aggregates already guard every assignment with ``if "x" in fields``, so an
+    absent key means "leave it alone". This is what keeps an edit to one field from
+    re-stamping ``generation_method`` — provenance is only re-attributed when the
+    caller submits it.
+    """
+    updates: dict[str, Any] = body.model_dump(exclude_unset=True)
+    for name in _VALUE_OBJECT_FIELDS & set(updates):
+        value = getattr(body, name)
+        if value is None:
+            updates.pop(name)
+        elif isinstance(value, list):
+            updates[name] = [item.to_domain() for item in value]
+        else:
+            updates[name] = value.to_domain()
+    return updates
 
 
 # --- Endpoints --------------------------------------------------------------
@@ -491,19 +596,12 @@ async def create_essentiality(
 @router.patch("/target-biology/essentiality/{record_id}", response_model=EssentialityResponse)
 async def update_essentiality(
     record_id: uuid.UUID,
-    body: EssentialityWriteBody,
+    body: EssentialityPatchBody,
     auth: AuthDep,
     use_case: UpdateTargetBiologyRecordDep,
 ) -> EssentialityResponse:
-    updates = {
-        "classification": body.classification,
-        "provenance": body.provenance.to_domain(),
-        "condition": body.condition,
-        "method": body.method,
-        "confidence": body.confidence,
-    }
     result = result_to_response(
-        await use_case(RecordKind.ESSENTIALITY, record_id, updates, auth=auth)
+        await use_case(RecordKind.ESSENTIALITY, record_id, _patch_updates(body), auth=auth)
     )
     return EssentialityResponse.from_domain(result)
 
@@ -535,19 +633,12 @@ async def create_vulnerability(
 @router.patch("/target-biology/vulnerability/{record_id}", response_model=VulnerabilityResponse)
 async def update_vulnerability(
     record_id: uuid.UUID,
-    body: VulnerabilityWriteBody,
+    body: VulnerabilityPatchBody,
     auth: AuthDep,
     use_case: UpdateTargetBiologyRecordDep,
 ) -> VulnerabilityResponse:
-    updates = {
-        "provenance": body.provenance.to_domain(),
-        "vulnerability_score": body.vulnerability_score,
-        "condition": body.condition,
-        "method": body.method,
-        "confidence": body.confidence,
-    }
     result = result_to_response(
-        await use_case(RecordKind.VULNERABILITY, record_id, updates, auth=auth)
+        await use_case(RecordKind.VULNERABILITY, record_id, _patch_updates(body), auth=auth)
     )
     return VulnerabilityResponse.from_domain(result)
 
@@ -579,19 +670,12 @@ async def create_hypomorph(
 @router.patch("/target-biology/hypomorph/{record_id}", response_model=HypomorphResponse)
 async def update_hypomorph(
     record_id: uuid.UUID,
-    body: HypomorphWriteBody,
+    body: HypomorphPatchBody,
     auth: AuthDep,
     use_case: UpdateTargetBiologyRecordDep,
 ) -> HypomorphResponse:
-    updates = {
-        "growth_defect": body.growth_defect,
-        "growth_defect_severity": body.growth_defect_severity,
-        "provenance": body.provenance.to_domain(),
-        "condition": body.condition,
-        "method": body.method,
-    }
     result = result_to_response(
-        await use_case(RecordKind.HYPOMORPH, record_id, updates, auth=auth)
+        await use_case(RecordKind.HYPOMORPH, record_id, _patch_updates(body), auth=auth)
     )
     return HypomorphResponse.from_domain(result)
 
@@ -620,13 +704,12 @@ async def create_crispri_strain(
 @router.patch("/target-biology/crispri_strain/{record_id}", response_model=CrispriStrainResponse)
 async def update_crispri_strain(
     record_id: uuid.UUID,
-    body: CrispriStrainWriteBody,
+    body: CrispriStrainPatchBody,
     auth: AuthDep,
     use_case: UpdateTargetBiologyRecordDep,
 ) -> CrispriStrainResponse:
-    updates = {"name": body.name, "provenance": body.provenance.to_domain()}
     result = result_to_response(
-        await use_case(RecordKind.CRISPRI_STRAIN, record_id, updates, auth=auth)
+        await use_case(RecordKind.CRISPRI_STRAIN, record_id, _patch_updates(body), auth=auth)
     )
     return CrispriStrainResponse.from_domain(result)
 
@@ -662,20 +745,12 @@ async def create_resistance_mutation(
 )
 async def update_resistance_mutation(
     record_id: uuid.UUID,
-    body: ResistanceMutationWriteBody,
+    body: ResistanceMutationPatchBody,
     auth: AuthDep,
     use_case: UpdateTargetBiologyRecordDep,
 ) -> ResistanceMutationResponse:
-    updates = {
-        "mutation": body.mutation,
-        "provenance": body.provenance.to_domain(),
-        "mic_shift": body.mic_shift,
-        "parent_strain": body.parent_strain,
-        "protein_coordinate": body.protein_coordinate,
-        "method": body.method,
-    }
     result = result_to_response(
-        await use_case(RecordKind.RESISTANCE_MUTATION, record_id, updates, auth=auth)
+        await use_case(RecordKind.RESISTANCE_MUTATION, record_id, _patch_updates(body), auth=auth)
     )
     return ResistanceMutationResponse.from_domain(result)
 
@@ -711,20 +786,12 @@ async def create_protein_production(
 )
 async def update_protein_production(
     record_id: uuid.UUID,
-    body: ProteinProductionWriteBody,
+    body: ProteinProductionPatchBody,
     auth: AuthDep,
     use_case: UpdateTargetBiologyRecordDep,
 ) -> ProteinProductionResponse:
-    updates = {
-        "status": body.status,
-        "provenance": body.provenance.to_domain(),
-        "expression_host": body.expression_host,
-        "purity": body.purity,
-        "condition": body.condition,
-        "method": body.method,
-    }
     result = result_to_response(
-        await use_case(RecordKind.PROTEIN_PRODUCTION, record_id, updates, auth=auth)
+        await use_case(RecordKind.PROTEIN_PRODUCTION, record_id, _patch_updates(body), auth=auth)
     )
     return ProteinProductionResponse.from_domain(result)
 
@@ -762,20 +829,14 @@ async def create_protein_activity_assay(
 )
 async def update_protein_activity_assay(
     record_id: uuid.UUID,
-    body: ProteinActivityAssayWriteBody,
+    body: ProteinActivityAssayPatchBody,
     auth: AuthDep,
     use_case: UpdateTargetBiologyRecordDep,
 ) -> ProteinActivityAssayResponse:
-    updates = {
-        "activity_measured": body.activity_measured,
-        "provenance": body.provenance.to_domain(),
-        "readout": body.readout,
-        "throughput": body.throughput,
-        "condition": body.condition,
-        "method": body.method,
-    }
     result = result_to_response(
-        await use_case(RecordKind.PROTEIN_ACTIVITY_ASSAY, record_id, updates, auth=auth)
+        await use_case(
+            RecordKind.PROTEIN_ACTIVITY_ASSAY, record_id, _patch_updates(body), auth=auth
+        )
     )
     return ProteinActivityAssayResponse.from_domain(result)
 
@@ -812,19 +873,14 @@ async def create_unpublished_structure(
 )
 async def update_unpublished_structure(
     record_id: uuid.UUID,
-    body: UnpublishedStructureWriteBody,
+    body: UnpublishedStructurePatchBody,
     auth: AuthDep,
     use_case: UpdateTargetBiologyRecordDep,
 ) -> UnpublishedStructureResponse:
-    updates = {
-        "provenance": body.provenance.to_domain(),
-        "method": body.method,
-        "resolution": body.resolution,
-        "is_published": body.is_published,
-        "is_experimental": body.is_experimental,
-    }
     result = result_to_response(
-        await use_case(RecordKind.UNPUBLISHED_STRUCTURE, record_id, updates, auth=auth)
+        await use_case(
+            RecordKind.UNPUBLISHED_STRUCTURE, record_id, _patch_updates(body), auth=auth
+        )
     )
     return UnpublishedStructureResponse.from_domain(result)
 
