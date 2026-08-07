@@ -522,6 +522,7 @@ async def list_proteins(
     q: str | None = None,
     tags: list[uuid.UUID] | None = Query(default=None),
     tag_logic: Literal["any", "all"] = "any",
+    include_total: bool = False,
     cursor: str | None = None,
     limit: int | None = None,
 ) -> PaginatedResponse[ProteinListItemResponse]:
@@ -543,6 +544,7 @@ async def list_proteins(
         search=q.strip() if q and q.strip() else None,
         tag_ids=tuple(tags) if tags else (),
         match_all=tag_logic == "all",
+        include_total=include_total,
     )
     page = result_to_response(await use_case(query, auth=auth))
     return PaginatedResponse(

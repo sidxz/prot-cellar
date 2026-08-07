@@ -178,7 +178,9 @@ async def test_list_item_projects_gene_names_structure_and_chem(client: AsyncCli
     )
     assert created.status_code == 201
 
-    listed = await client.get("/api/v1/proteins", params={"organism_id": org, "limit": 50})
+    listed = await client.get(
+        "/api/v1/proteins", params={"organism_id": org, "limit": 50, "include_total": True}
+    )
     assert listed.status_code == 200
     body = listed.json()
     item = next(p for p in body["items"] if p["primary_accession"] == "P0DZ01")
@@ -198,7 +200,7 @@ async def test_list_item_projects_gene_names_structure_and_chem(client: AsyncCli
     # essentiality / human-ortholog facts live on the gene, not the protein list item
     assert "essential" not in item
     assert "has_human_homolog" not in item
-    # total count is reported for the filtered set
+    # total count is reported for the filtered set when requested
     assert body["total_count"] >= 1
 
 
@@ -328,9 +330,13 @@ async def test_protein_strain_filter_and_response(client: AsyncClient) -> None:
     by_acc = {p["primary_accession"]: p for p in listed["items"]}
     assert by_acc["P0DX01"]["strain_id"] == s1
     assert by_acc["P0DX02"]["strain_id"] == s2
+    # total_count is opt-in: plain listings (bulk data-view pulls) skip the extra COUNT scan.
+    assert listed["total_count"] is None
 
     # Filtering by strain narrows both the page and the matching total.
-    page = (await client.get(f"/api/v1/proteins?strain_id={s1}&limit=200")).json()
+    page = (
+        await client.get(f"/api/v1/proteins?strain_id={s1}&limit=200&include_total=true")
+    ).json()
     accs = {p["primary_accession"] for p in page["items"]}
     assert "P0DX01" in accs
     assert "P0DX02" not in accs

@@ -1699,6 +1699,16 @@
             }
           },
           {
+            "name": "include_total",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false,
+              "title": "Include Total"
+            }
+          },
+          {
             "name": "cursor",
             "in": "query",
             "required": false,

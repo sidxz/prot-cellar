@@ -28,6 +28,9 @@ export function useProteins(filters: ProteinListFilters = {}, cursor?: string) {
     xref_db: filters.hasChembl ? "ChEMBL" : undefined,
     tags: filters.tags ?? undefined,
     tag_logic: filters.tagLogic ?? undefined,
+    // The dashboard header shows "N proteins", so this consumer opts into the COUNT;
+    // bulk data-view pulls (daikon) omit it and skip that scan entirely.
+    include_total: true,
     cursor: cursor ?? undefined,
   });
 }

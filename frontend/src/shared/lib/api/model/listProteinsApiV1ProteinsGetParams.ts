@@ -22,6 +22,7 @@ keyword?: string | null;
 q?: string | null;
 tags?: string[] | null;
 tag_logic?: ListProteinsApiV1ProteinsGetTagLogic;
+include_total?: boolean;
 cursor?: string | null;
 limit?: number | null;
 };

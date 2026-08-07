@@ -49,6 +49,9 @@ class ListProteinsQuery(Query):
     is_enzyme: bool | None = None
     tag_ids: tuple[uuid.UUID, ...] = ()
     match_all: bool = False
+    # Off by default: the total is a second full scan of the filter set per page, and bulk
+    # data-view consumers only read items + next_cursor. Dashboards that show a count opt in.
+    include_total: bool = False
 
 
 class ListProteins:
@@ -104,23 +107,25 @@ class ListProteins:
                 rows = rows[:effective_limit]
                 next_cursor = str(rows[-1].id)
 
-            total_count = await self._repo.count_all(
-                organism_id=input.organism_id,
-                strain_id=input.strain_id,
-                gene_id=input.gene_id,
-                is_reviewed=input.is_reviewed,
-                min_length=input.min_length,
-                max_length=input.max_length,
-                xref_db=input.xref_db,
-                has_structure=input.has_structure,
-                go_terms=go_terms,
-                keyword=input.keyword,
-                search=input.search,
-                is_enzyme=input.is_enzyme,
-                workspace_id=auth.workspace_id,  # type: ignore[union-attr]
-                tag_ids=list(input.tag_ids),
-                match_all=input.match_all,
-            )
+            total_count: int | None = None
+            if input.include_total:
+                total_count = await self._repo.count_all(
+                    organism_id=input.organism_id,
+                    strain_id=input.strain_id,
+                    gene_id=input.gene_id,
+                    is_reviewed=input.is_reviewed,
+                    min_length=input.min_length,
+                    max_length=input.max_length,
+                    xref_db=input.xref_db,
+                    has_structure=input.has_structure,
+                    go_terms=go_terms,
+                    keyword=input.keyword,
+                    search=input.search,
+                    is_enzyme=input.is_enzyme,
+                    workspace_id=auth.workspace_id,  # type: ignore[union-attr]
+                    tag_ids=list(input.tag_ids),
+                    match_all=input.match_all,
+                )
 
             gene_ids = {r.gene_id for r in rows if r.gene_id is not None}
             genes_by_id = {
