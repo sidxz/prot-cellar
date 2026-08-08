@@ -25,7 +25,7 @@ class _FakeGeneRepo:
     def __init__(self, genes: list[Gene]) -> None:
         self._genes = list(genes)
 
-    async def list_by_organism(
+    async def list_owned_by_organism(
         self,
         organism_id: uuid.UUID,
         *,

@@ -116,3 +116,59 @@ async def test_shared_gene_cannot_be_mutated(client: AsyncClient) -> None:
 
     resp = await client.patch(f"/api/v1/genes/{gene_id}", json={"hgnc_id": "HGNC:QA-TEMP"})
     assert resp.status_code == 404, resp.text
+
+
+_ISOLATION_PROTEIN_ACCESSION = "P0DDT9"
+_SHARED_PROTEIN_RECORD = {
+    "primary_accession": _ISOLATION_PROTEIN_ACCESSION,
+    "sequence": "MKTAYIAKQRQISFVKSHFSRQLEERLGLIEVQAPILSRVGDGTQDNLSGAEKAVQVKVKALPDA",
+    "is_reviewed": True,
+    "source": "uniprot",
+    "source_release": "isolation-test",
+    "source_record_id": "workspace-isolation-fixture-protein",
+    "source_record_checksum": "workspace-isolation-fixture-protein-checksum",
+}
+
+
+async def _seed_shared_protein(client: AsyncClient) -> str:
+    """Create (or reuse) one SHARED_WORKSPACE_ID protein via the bulk-import
+    endpoint — same reasoning as ``_seed_shared_organism``: unlike
+    create_gene.py, create_protein.py's plain POST has a primary_accession
+    dedupe check, so calling it twice from different tests would 409;
+    bulk-import is idempotent on checksum instead. Returns the accession
+    (proteins are looked up by accession, not id).
+    """
+    organism_id = await _seed_shared_organism(client)
+    resp = await client.post(
+        "/api/v1/proteins/bulk",
+        json={"records": [{**_SHARED_PROTEIN_RECORD, "organism_id": organism_id}]},
+    )
+    assert resp.status_code == 200, resp.text
+    return _ISOLATION_PROTEIN_ACCESSION
+
+
+async def test_shared_protein_is_readable_by_a_second_workspace(
+    client: AsyncClient, other_workspace_client: AsyncClient
+) -> None:
+    """Same proof as the gene case, on the other protein_catalog aggregate —
+    find_owned_by_accession is a distinct code path from find_by_accession
+    (Protein has no id-based find_readable/find_owned pair the way Gene does),
+    so genes passing this shape says nothing about proteins.
+    """
+    accession = await _seed_shared_protein(client)
+
+    resp = await other_workspace_client.get(f"/api/v1/proteins/{accession}")
+    assert resp.status_code == 200, resp.text
+    assert resp.json()["primary_accession"] == accession
+
+
+async def test_shared_protein_cannot_be_mutated(client: AsyncClient) -> None:
+    """Proteins are reference data too: PATCH 404s unconditionally, admin or
+    not — regression coverage for find_owned_by_accession specifically:
+    reverting update_protein.py to the read-scoped find_by_accession would
+    pass every other test in this file but fail this one.
+    """
+    accession = await _seed_shared_protein(client)
+
+    resp = await client.patch(f"/api/v1/proteins/{accession}", json={"is_reviewed": False})
+    assert resp.status_code == 404, resp.text

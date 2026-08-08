@@ -78,8 +78,13 @@ class BulkEnrichGenes:
             # feeds a load-then-mutate-then-save loop is pinned to SHARED
             # explicitly, same as BulkUpsertGenes/BulkUpsertProteins — genes are
             # reference data and this always enriches the shared catalog.
+            # list_owned_by_organism (not list_by_organism) so the repository
+            # itself refuses a non-shared row, regardless of what workspace_id a
+            # future edit here might pass.
             index = self._build_index(
-                await self._repo.list_by_organism(organism_id, workspace_id=SHARED_WORKSPACE_ID)
+                await self._repo.list_owned_by_organism(
+                    organism_id, workspace_id=SHARED_WORKSPACE_ID
+                )
             )
             for rec in records:
                 gene = index.get(rec.locus_key.upper())

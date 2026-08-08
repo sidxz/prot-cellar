@@ -304,15 +304,20 @@ class SQLAlchemyProteinRepository(SQLAlchemyRepository[Protein, ProteinModel], P
         )
 
     async def find_by_accession(
-        self, accession: str, *, workspace_id: uuid.UUID = SHARED_WORKSPACE_ID
+        self,
+        accession: str,
+        *,
+        # ponytail: defaults to shared because target_biology's per-accession
+        # importers (a sibling context, Task 4/5's scope) call this read-only
+        # with no workspace argument of their own — make required once those
+        # land on auth.workspace_id.
+        workspace_id: uuid.UUID = SHARED_WORKSPACE_ID,
     ) -> Protein | None:
         """Look up a protein for a READ path — scoped with ``readable_by``.
 
-        Defaults to ``SHARED_WORKSPACE_ID``: target-biology's per-accession
-        importers call this with no workspace argument of their own, and
-        proteins are always shared reference data (see
-        ``find_owned_by_accession`` for the mutation path), so the default
-        finds exactly the same rows a real caller workspace would.
+        For the mutation path, use ``find_owned_by_accession`` instead — this
+        default is only safe because every current caller happens to pass
+        SHARED_WORKSPACE_ID, which a mutation path may not rely on.
         """
         return await self._find_by_accession(accession, readable_by(ProteinModel, workspace_id))
 

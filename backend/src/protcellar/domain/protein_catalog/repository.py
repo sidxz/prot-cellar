@@ -59,6 +59,10 @@ class GeneRepository(Protocol):
         batch: int = 1000,
     ) -> list[Gene]: ...
 
+    async def list_owned_by_organism(
+        self, organism_id: uuid.UUID, *, workspace_id: uuid.UUID, batch: int = 1000
+    ) -> list[Gene]: ...
+
     async def find_genomic_neighbors(
         self,
         *,

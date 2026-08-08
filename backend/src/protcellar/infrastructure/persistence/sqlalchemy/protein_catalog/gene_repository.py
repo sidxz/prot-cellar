@@ -6,6 +6,7 @@ import uuid
 from collections.abc import Sequence
 
 from sqlalchemy import select
+from sqlalchemy.sql.elements import ColumnElement
 
 from protcellar.domain.protein_catalog.gene import Gene
 from protcellar.domain.protein_catalog.read_models import GeneSummaryRow
@@ -188,26 +189,45 @@ class SQLAlchemyGeneRepository(SQLAlchemyRepository[Gene, GeneModel], GeneReposi
         self,
         organism_id: uuid.UUID,
         *,
+        # ponytail: defaults to shared because target_biology's bulk importers (a
+        # sibling context, Task 4/5's scope) call this read-only with no workspace
+        # argument of their own — make required once those land on auth.workspace_id.
         workspace_id: uuid.UUID = SHARED_WORKSPACE_ID,
         batch: int = 1000,
     ) -> list[Gene]:
         """Load every gene for an organism, paged by keyset (``id``) in ``batch``-sized chunks.
 
-        Used to build the locus→gene match index for enrichment; the keyset walk
-        keeps memory bounded per query while still returning the full set.
+        Read path only — ``readable_by``. For a caller that loads genes in order to
+        mutate and save them, use ``list_owned_by_organism`` instead: this method's
+        default keeps it *safe only because every current caller happens to pass
+        SHARED_WORKSPACE_ID*, which is not a property a mutation path may rely on.
+        """
+        return await self._list_by_organism(
+            organism_id, readable_by(GeneModel, workspace_id), batch=batch
+        )
 
-        ``workspace_id`` defaults to shared: genes are always reference data, so
-        the target-biology bulk importers that call this to resolve gene ids for
-        their own workspace-owned records — with no gene-side workspace of their
-        own to pass — get exactly the right rows either way.
+    async def list_owned_by_organism(
+        self, organism_id: uuid.UUID, *, workspace_id: uuid.UUID, batch: int = 1000
+    ) -> list[Gene]:
+        """Same load, scoped with ``owned_by`` — the mutation path (``BulkEnrichGenes``,
+        which loads a gene here and later calls ``.save()`` on it). Unlike
+        ``list_by_organism``, safety does not depend on what the caller passes: a
+        shared gene is never found here, no matter which workspace_id is given.
+        """
+        return await self._list_by_organism(
+            organism_id, owned_by(GeneModel, workspace_id), batch=batch
+        )
+
+    async def _list_by_organism(
+        self, organism_id: uuid.UUID, scope: ColumnElement[bool], *, batch: int
+    ) -> list[Gene]:
+        """Keyset walk (``id``) in ``batch``-sized chunks, shared by both public
+        variants above so the pagination logic can't drift between them.
         """
         genes: list[Gene] = []
         cursor: uuid.UUID | None = None
         while True:
-            stmt = select(GeneModel).where(
-                GeneModel.organism_id == organism_id,
-                readable_by(GeneModel, workspace_id),
-            )
+            stmt = select(GeneModel).where(GeneModel.organism_id == organism_id, scope)
             if cursor is not None:
                 stmt = stmt.where(GeneModel.id > cursor)
             stmt = stmt.order_by(GeneModel.id).limit(batch)
