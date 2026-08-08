@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import uuid
 
+from protcellar.domain.shared.global_workspace import SHARED_WORKSPACE_ID
 from protcellar.infrastructure.persistence.sqlalchemy.protein_catalog.gene_repository import (
     SQLAlchemyGeneRepository,
 )
@@ -38,7 +39,7 @@ async def resolve_organism_id(
             return organism_id, count
 
         org_repo = SQLAlchemyOrganismRepository(uow)
-        org = await org_repo.find_by_tax_id(tax_id)
+        org = await org_repo.find_by_tax_id(tax_id, workspace_id=SHARED_WORKSPACE_ID)
         if org is None:
             raise SystemExit(f"No organism found for NCBI tax id {tax_id}.")
 

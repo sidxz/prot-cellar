@@ -28,7 +28,10 @@ class ResolveTaxId:
     ) -> Result[Organism, DomainError]:
         require_authenticated(auth)
         async with self._uow:
-            org = await self._repo.find_by_tax_id(input.tax_id)
+            org = await self._repo.find_by_tax_id(
+                input.tax_id,
+                workspace_id=auth.workspace_id,  # type: ignore[union-attr]
+            )
             if org is None:
                 return Failure(NotFoundError("Organism", str(input.tax_id)))
             if org.is_deleted:

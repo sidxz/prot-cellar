@@ -12,6 +12,7 @@ from protcellar.application.shared.command import Command
 from protcellar.application.shared.event_dispatcher import EventDispatcherProtocol
 from protcellar.application.shared.unit_of_work import UnitOfWork
 from protcellar.domain.shared.errors import DomainError
+from protcellar.domain.shared.global_workspace import SHARED_WORKSPACE_ID
 from protcellar.domain.taxonomy.repository import StrainRepository
 from protcellar.domain.taxonomy.strain import Strain
 
@@ -48,8 +49,13 @@ class CreateStrain:
         require_same_workspace(auth, input.workspace_id)
 
         async with self._uow:
+            # Strains are reference data too (design doc §1.5, same section as
+            # organisms/proteomes): every create writes SHARED regardless of the
+            # caller's own workspace. input.workspace_id is still validated above
+            # (the caller must be who they say they are) — it just no longer
+            # decides where the row lands.
             strain = Strain.create(
-                workspace_id=input.workspace_id,
+                workspace_id=SHARED_WORKSPACE_ID,
                 species_organism_id=input.species_organism_id,
                 name=input.name,
                 ncbi_taxon_id=input.ncbi_taxon_id,

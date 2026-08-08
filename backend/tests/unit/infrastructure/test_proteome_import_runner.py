@@ -19,6 +19,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_asyn
 
 from protcellar.application.protein_catalog.bulk_upsert_genes import BulkUpsertGenes
 from protcellar.application.protein_catalog.bulk_upsert_proteins import BulkUpsertProteins
+from protcellar.domain.shared.global_workspace import SHARED_WORKSPACE_ID
 from protcellar.infrastructure.ingestion.import_runner import ProteomeImportRunner
 from protcellar.infrastructure.persistence.sqlalchemy.protein_catalog.gene_repository import (
     SQLAlchemyGeneRepository,
@@ -294,12 +295,12 @@ async def test_import_resolves_species_and_strain(import_uow: AsyncUnitOfWork) -
 
     async with import_uow:
         org_repo = SQLAlchemyOrganismRepository(import_uow)
-        species = await org_repo.find_by_tax_id(771000)
+        species = await org_repo.find_by_tax_id(771000, workspace_id=SHARED_WORKSPACE_ID)
         assert species is not None
         assert species.rank == "species"  # the species, correctly ranked
         # No separate Organism node is created for the strain taxon — the Strain
         # entity is the sole representation, carrying the taxon id as a scalar.
-        assert await org_repo.find_by_tax_id(771001) is None
+        assert await org_repo.find_by_tax_id(771001, workspace_id=SHARED_WORKSPACE_ID) is None
 
         strain_repo = SQLAlchemyStrainRepository(import_uow)
         strains = await strain_repo.find_by_species(auth.workspace_id, species.id)
@@ -344,7 +345,7 @@ async def test_import_species_level_proteome_creates_no_strain(
 
     async with import_uow:
         org_repo = SQLAlchemyOrganismRepository(import_uow)
-        org = await org_repo.find_by_tax_id(772000)
+        org = await org_repo.find_by_tax_id(772000, workspace_id=SHARED_WORKSPACE_ID)
         assert org is not None
         strain_repo = SQLAlchemyStrainRepository(import_uow)
         assert await strain_repo.find_by_species(auth.workspace_id, org.id) == []

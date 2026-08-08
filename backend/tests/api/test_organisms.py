@@ -29,60 +29,13 @@ async def test_search_by_name(client: AsyncClient) -> None:
     assert any(o["scientific_name"] == "Escherichia coli" for o in resp.json()["items"])
 
 
-@pytest.mark.asyncio
-async def test_reference_strain_must_belong_to_organism(client: AsyncClient) -> None:
-    # The column has no FK — the use case validates at the boundary. A strain id
-    # that doesn't exist (nor belongs to this species) must be rejected, not stored.
-    resp = await client.post(
-        "/api/v1/organisms",
-        json={"ncbi_tax_id": 424242, "rank": "species", "scientific_name": "Testus organismus"},
-    )
-    assert resp.status_code == 201
-    organism_id = resp.json()["id"]
-
-    patch_resp = await client.patch(
-        f"/api/v1/organisms/{organism_id}",
-        json={"reference_strain_id": "00000000-0000-0000-0000-000000000001"},
-    )
-    assert patch_resp.status_code == 422
-
-
-@pytest.mark.asyncio
-async def test_update_organism_preserves_names(client: AsyncClient) -> None:
-    # Step 1: Create an organism (use a different tax_id to avoid conflict with other tests)
-    resp = await client.post(
-        "/api/v1/organisms",
-        json={"ncbi_tax_id": 10090, "rank": "species", "scientific_name": "Mus musculus"},
-    )
-    assert resp.status_code == 201
-    body = resp.json()
-    organism_id = body["id"]
-    assert body["version"] == 1
-    # The scientific_name row must be present in names
-    assert any(n["name_class"] == "scientific_name" for n in body["names"])
-
-    # Step 2: PATCH a scalar field
-    patch_resp = await client.patch(
-        f"/api/v1/organisms/{organism_id}",
-        json={"scientific_name": "Mus musculus L."},
-    )
-    assert patch_resp.status_code == 200
-    patched = patch_resp.json()
-    assert patched["scientific_name"] == "Mus musculus L."
-    assert patched["version"] == 2
-    # Names collection must NOT be empty or duplicated after update
-    names = patched["names"]
-    assert len(names) > 0, "names array must not be empty after PATCH"
-    scientific_names = [n for n in names if n["name_class"] == "scientific_name"]
-    assert len(scientific_names) >= 1, "scientific_name entry must survive PATCH"
-
-    # Step 3: GET the organism and confirm names are still intact
-    get_resp = await client.get(f"/api/v1/organisms/{organism_id}")
-    assert get_resp.status_code == 200
-    gotten = get_resp.json()
-    assert gotten["scientific_name"] == "Mus musculus L."
-    assert gotten["version"] == 2
-    assert len(gotten["names"]) > 0, "names array must not be empty after GET post-PATCH"
-    assert any(n["name_class"] == "scientific_name" for n in gotten["names"]), (
-        "scientific_name entry must be present after GET post-PATCH"
-    )
+# test_reference_strain_must_belong_to_organism and test_update_organism_preserves_names
+# were removed here: both created an organism then PATCHed it in the same call, which
+# organisms (reference data, design doc §1.5) can no longer do — every organism now
+# lives in SHARED_WORKSPACE_ID regardless of who creates it, and PATCH is owned-only, so
+# it 404s unconditionally. That invariant is asserted once, honestly, in
+# test_workspace_isolation.py::test_shared_organism_cannot_be_mutated. Re-asserting it
+# here under names that promised strain validation / name preservation would be
+# misleading — those code paths in update_organism.py still exist and are still
+# correct, they are just unreachable through the API now that no tenant can own an
+# organism to trigger them.

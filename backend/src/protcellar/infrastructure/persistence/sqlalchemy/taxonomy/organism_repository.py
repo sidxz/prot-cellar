@@ -132,8 +132,11 @@ class SQLAlchemyOrganismRepository(
         model = (await self._session.execute(stmt)).scalar_one_or_none()
         return self._to_domain_tracked(model) if model else None
 
-    async def find_by_tax_id(self, tax_id: int) -> Organism | None:
-        stmt = select(OrganismModel).where(OrganismModel.ncbi_tax_id == tax_id)
+    async def find_by_tax_id(self, tax_id: int, *, workspace_id: uuid.UUID) -> Organism | None:
+        stmt = select(OrganismModel).where(
+            OrganismModel.ncbi_tax_id == tax_id,
+            readable_by(OrganismModel, workspace_id),
+        )
         model = (await self._session.execute(stmt)).scalar_one_or_none()
         return self._to_domain_tracked(model) if model else None
 

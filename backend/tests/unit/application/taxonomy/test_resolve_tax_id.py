@@ -79,7 +79,7 @@ class FakeOrganismRepository:
             return None
         return org
 
-    async def find_by_tax_id(self, tax_id: int) -> Organism | None:
+    async def find_by_tax_id(self, tax_id: int, *, workspace_id: uuid.UUID) -> Organism | None:
         return self._by_tax_id.get(tax_id)
 
     async def find_children(self, parent_id: uuid.UUID) -> list[Organism]:

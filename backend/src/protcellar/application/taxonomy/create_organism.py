@@ -11,6 +11,7 @@ from protcellar.application.shared.command import Command
 from protcellar.application.shared.event_dispatcher import EventDispatcherProtocol
 from protcellar.application.shared.unit_of_work import UnitOfWork
 from protcellar.domain.shared.errors import ConflictError, DomainError
+from protcellar.domain.shared.global_workspace import SHARED_WORKSPACE_ID
 from protcellar.domain.taxonomy.enums import OrganismSource
 from protcellar.domain.taxonomy.organism import Organism
 from protcellar.domain.taxonomy.repository import OrganismRepository
@@ -38,13 +39,18 @@ class CreateOrganism:
         require_admin(auth)
         async with self._uow:
             if input.ncbi_tax_id is not None:
-                existing = await self._repo.find_by_tax_id(input.ncbi_tax_id)
+                existing = await self._repo.find_by_tax_id(
+                    input.ncbi_tax_id, workspace_id=SHARED_WORKSPACE_ID
+                )
                 if existing is not None:
                     return Failure(
                         ConflictError(f"Organism with tax_id {input.ncbi_tax_id} already exists")
                     )
+            # Organisms are reference data (design doc §1.5): every create writes
+            # SHARED regardless of caller, so no tenant can ever own — and thus
+            # mutate — one through the API.
             org = Organism.create(
-                workspace_id=auth.workspace_id,  # type: ignore[union-attr]
+                workspace_id=SHARED_WORKSPACE_ID,
                 ncbi_tax_id=input.ncbi_tax_id,
                 rank=input.rank,
                 scientific_name=input.scientific_name,

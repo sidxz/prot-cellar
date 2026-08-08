@@ -240,7 +240,7 @@ class ProteomeImportRunner:
         async with self._uow:
             repo = SQLAlchemyOrganismRepository(self._uow)
             if tax_id is not None:
-                existing = await repo.find_by_tax_id(tax_id)
+                existing = await repo.find_by_tax_id(tax_id, workspace_id=SHARED_WORKSPACE_ID)
                 if existing is not None:
                     # Correct a previously mis-ranked node — e.g. a strain taxon an
                     # older import created as rank "species".

@@ -12,6 +12,7 @@ from protcellar.application.shared.command import Command
 from protcellar.application.shared.event_dispatcher import EventDispatcherProtocol
 from protcellar.application.shared.unit_of_work import UnitOfWork
 from protcellar.domain.shared.errors import ConflictError, DomainError
+from protcellar.domain.shared.global_workspace import SHARED_WORKSPACE_ID
 from protcellar.domain.taxonomy.enums import ProteomeType
 from protcellar.domain.taxonomy.proteome import Proteome
 from protcellar.domain.taxonomy.repository import ProteomeRepository
@@ -44,8 +45,9 @@ class CreateProteome:
                 return Failure(
                     ConflictError(f"Proteome with id {input.uniprot_proteome_id} already exists")
                 )
+            # Proteomes are reference data (design doc §1.5), same as organisms.
             proteome = Proteome.create(
-                workspace_id=auth.workspace_id,  # type: ignore[union-attr]
+                workspace_id=SHARED_WORKSPACE_ID,
                 uniprot_proteome_id=input.uniprot_proteome_id,
                 organism_id=input.organism_id,
                 proteome_type=input.proteome_type,
