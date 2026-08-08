@@ -6,7 +6,6 @@ import uuid
 from datetime import datetime
 
 from sqlalchemy import (
-    JSON,
     Boolean,
     DateTime,
     ForeignKey,
@@ -16,6 +15,7 @@ from sqlalchemy import (
     UniqueConstraint,
     Uuid,
 )
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from protcellar.infrastructure.persistence.sqlalchemy.base import (
@@ -77,7 +77,7 @@ class StrainModel(Base, EntityModelMixin, WorkspaceIdMixin, VersionMixin):
     host_organism_id: Mapped[uuid.UUID | None] = mapped_column(
         ForeignKey("organisms.id"), nullable=True
     )
-    strain_metadata: Mapped[dict[str, object] | None] = mapped_column(JSON, nullable=True)
+    strain_metadata: Mapped[dict[str, object] | None] = mapped_column(JSONB, nullable=True)
 
 
 class OrganismNameModel(Base, EntityModelMixin):

@@ -10,7 +10,8 @@ from __future__ import annotations
 
 import uuid
 
-from sqlalchemy import JSON, Boolean, Float, String, Uuid
+from sqlalchemy import Boolean, Float, String, Uuid
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
 from protcellar.infrastructure.persistence.sqlalchemy.base import (
@@ -29,10 +30,12 @@ class EssentialityRecordModel(Base, EntityModelMixin, WorkspaceIdMixin, VersionM
     condition: Mapped[str | None] = mapped_column(String(128), nullable=True)
     method: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True)
     confidence: Mapped[float | None] = mapped_column(Float, nullable=True)
-    provenance: Mapped[dict[str, object]] = mapped_column(JSON, nullable=False)
-    # ponytail: JSON (not JSONB) to match existing columns; promote to JSONB when
-    # the deferred extensions registry makes this queryable.
-    extensions: Mapped[dict[str, object] | None] = mapped_column(JSON, nullable=True)
+    provenance: Mapped[dict[str, object]] = mapped_column(JSONB, nullable=False)
+    # ponytail: a free-form bag with no schema and no index. JSONB, so containment,
+    # key existence and GROUP BY inside it all work — but each is a sequential scan.
+    # Add a targeted GIN index (CREATE INDEX CONCURRENTLY, no lock) when a real
+    # query turns up, and a per-org field registry when the keys need validating.
+    extensions: Mapped[dict[str, object] | None] = mapped_column(JSONB, nullable=True)
 
 
 class CrispriStrainModel(Base, EntityModelMixin, WorkspaceIdMixin, VersionMixin):
@@ -40,8 +43,8 @@ class CrispriStrainModel(Base, EntityModelMixin, WorkspaceIdMixin, VersionMixin)
 
     name: Mapped[str] = mapped_column(String(256), nullable=False, index=True)
     target_gene_id: Mapped[uuid.UUID] = mapped_column(Uuid, nullable=False, index=True)
-    provenance: Mapped[dict[str, object]] = mapped_column(JSON, nullable=False)
-    extensions: Mapped[dict[str, object] | None] = mapped_column(JSON, nullable=True)
+    provenance: Mapped[dict[str, object]] = mapped_column(JSONB, nullable=False)
+    extensions: Mapped[dict[str, object] | None] = mapped_column(JSONB, nullable=True)
 
 
 class VulnerabilityRecordModel(Base, EntityModelMixin, WorkspaceIdMixin, VersionMixin):
@@ -52,8 +55,8 @@ class VulnerabilityRecordModel(Base, EntityModelMixin, WorkspaceIdMixin, Version
     method: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True)
     vulnerability_score: Mapped[float | None] = mapped_column(Float, nullable=True, index=True)
     confidence: Mapped[float | None] = mapped_column(Float, nullable=True)
-    provenance: Mapped[dict[str, object]] = mapped_column(JSON, nullable=False)
-    extensions: Mapped[dict[str, object] | None] = mapped_column(JSON, nullable=True)
+    provenance: Mapped[dict[str, object]] = mapped_column(JSONB, nullable=False)
+    extensions: Mapped[dict[str, object] | None] = mapped_column(JSONB, nullable=True)
 
 
 class HypomorphModel(Base, EntityModelMixin, WorkspaceIdMixin, VersionMixin):
@@ -65,8 +68,8 @@ class HypomorphModel(Base, EntityModelMixin, WorkspaceIdMixin, VersionMixin):
     growth_defect_severity: Mapped[str | None] = mapped_column(String(64), nullable=True)
     condition: Mapped[str | None] = mapped_column(String(128), nullable=True)
     method: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True)
-    provenance: Mapped[dict[str, object]] = mapped_column(JSON, nullable=False)
-    extensions: Mapped[dict[str, object] | None] = mapped_column(JSON, nullable=True)
+    provenance: Mapped[dict[str, object]] = mapped_column(JSONB, nullable=False)
+    extensions: Mapped[dict[str, object] | None] = mapped_column(JSONB, nullable=True)
 
 
 class ResistanceMutationModel(Base, EntityModelMixin, WorkspaceIdMixin, VersionMixin):
@@ -74,13 +77,13 @@ class ResistanceMutationModel(Base, EntityModelMixin, WorkspaceIdMixin, VersionM
 
     gene_id: Mapped[uuid.UUID] = mapped_column(Uuid, nullable=False, index=True)
     mutation: Mapped[str] = mapped_column(String(128), nullable=False, index=True)
-    compound: Mapped[dict[str, object] | None] = mapped_column(JSON, nullable=True)
+    compound: Mapped[dict[str, object] | None] = mapped_column(JSONB, nullable=True)
     mic_shift: Mapped[float | None] = mapped_column(Float, nullable=True)
     parent_strain: Mapped[str | None] = mapped_column(String(128), nullable=True)
     protein_coordinate: Mapped[str | None] = mapped_column(String(64), nullable=True)
     method: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True)
-    provenance: Mapped[dict[str, object]] = mapped_column(JSON, nullable=False)
-    extensions: Mapped[dict[str, object] | None] = mapped_column(JSON, nullable=True)
+    provenance: Mapped[dict[str, object]] = mapped_column(JSONB, nullable=False)
+    extensions: Mapped[dict[str, object] | None] = mapped_column(JSONB, nullable=True)
 
 
 class ProteinProductionModel(Base, EntityModelMixin, WorkspaceIdMixin, VersionMixin):
@@ -92,8 +95,8 @@ class ProteinProductionModel(Base, EntityModelMixin, WorkspaceIdMixin, VersionMi
     purity: Mapped[float | None] = mapped_column(Float, nullable=True)
     condition: Mapped[str | None] = mapped_column(String(128), nullable=True)
     method: Mapped[str | None] = mapped_column(String(64), nullable=True)
-    provenance: Mapped[dict[str, object]] = mapped_column(JSON, nullable=False)
-    extensions: Mapped[dict[str, object] | None] = mapped_column(JSON, nullable=True)
+    provenance: Mapped[dict[str, object]] = mapped_column(JSONB, nullable=False)
+    extensions: Mapped[dict[str, object] | None] = mapped_column(JSONB, nullable=True)
 
 
 class ProteinActivityAssayModel(Base, EntityModelMixin, WorkspaceIdMixin, VersionMixin):
@@ -105,8 +108,8 @@ class ProteinActivityAssayModel(Base, EntityModelMixin, WorkspaceIdMixin, Versio
     throughput: Mapped[str | None] = mapped_column(String(64), nullable=True)
     condition: Mapped[str | None] = mapped_column(String(128), nullable=True)
     method: Mapped[str | None] = mapped_column(String(64), nullable=True)
-    provenance: Mapped[dict[str, object]] = mapped_column(JSON, nullable=False)
-    extensions: Mapped[dict[str, object] | None] = mapped_column(JSON, nullable=True)
+    provenance: Mapped[dict[str, object]] = mapped_column(JSONB, nullable=False)
+    extensions: Mapped[dict[str, object] | None] = mapped_column(JSONB, nullable=True)
 
 
 class UnpublishedStructureModel(Base, EntityModelMixin, WorkspaceIdMixin, VersionMixin):
@@ -115,8 +118,8 @@ class UnpublishedStructureModel(Base, EntityModelMixin, WorkspaceIdMixin, Versio
     protein_id: Mapped[uuid.UUID] = mapped_column(Uuid, nullable=False, index=True)
     method: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True)
     resolution: Mapped[float | None] = mapped_column(Float, nullable=True)
-    ligands: Mapped[list[dict[str, object]] | None] = mapped_column(JSON, nullable=True)
+    ligands: Mapped[list[dict[str, object]] | None] = mapped_column(JSONB, nullable=True)
     is_published: Mapped[bool] = mapped_column(Boolean, nullable=False)
     is_experimental: Mapped[bool] = mapped_column(Boolean, nullable=False)
-    provenance: Mapped[dict[str, object]] = mapped_column(JSON, nullable=False)
-    extensions: Mapped[dict[str, object] | None] = mapped_column(JSON, nullable=True)
+    provenance: Mapped[dict[str, object]] = mapped_column(JSONB, nullable=False)
+    extensions: Mapped[dict[str, object] | None] = mapped_column(JSONB, nullable=True)

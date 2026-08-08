@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import uuid
 
-from sqlalchemy import JSON, Boolean, ForeignKey, Index, Integer, String, Text
-from sqlalchemy.dialects.postgresql import ARRAY
+from sqlalchemy import Boolean, ForeignKey, Index, Integer, String, Text
+from sqlalchemy.dialects.postgresql import ARRAY, JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from protcellar.infrastructure.persistence.sqlalchemy.base import (
@@ -36,13 +36,13 @@ class GeneModel(Base, EntityModelMixin, WorkspaceIdMixin, VersionMixin, Provenan
     ncbi_gene_id: Mapped[str | None] = mapped_column(String(32), nullable=True, index=True)
     ensembl_gene_id: Mapped[str | None] = mapped_column(String(32), nullable=True, index=True)
     hgnc_id: Mapped[str | None] = mapped_column(String(32), nullable=True)
-    cross_references: Mapped[list[dict[str, object]] | None] = mapped_column(JSON, nullable=True)
+    cross_references: Mapped[list[dict[str, object]] | None] = mapped_column(JSONB, nullable=True)
     genomic_accession: Mapped[str | None] = mapped_column(String(64), nullable=True)
     genomic_start: Mapped[int | None] = mapped_column(Integer, nullable=True)
     genomic_end: Mapped[int | None] = mapped_column(Integer, nullable=True)
     genomic_strand: Mapped[str | None] = mapped_column(String(1), nullable=True)
     assembly: Mapped[str | None] = mapped_column(String(64), nullable=True)
-    annotations: Mapped[list[dict[str, object]] | None] = mapped_column(JSON, nullable=True)
+    annotations: Mapped[list[dict[str, object]] | None] = mapped_column(JSONB, nullable=True)
 
 
 class ProteinModel(Base, EntityModelMixin, WorkspaceIdMixin, VersionMixin, ProvenanceMixin):
@@ -60,7 +60,7 @@ class ProteinModel(Base, EntityModelMixin, WorkspaceIdMixin, VersionMixin, Prove
     secondary_accessions: Mapped[list[str] | None] = mapped_column(ARRAY(String), nullable=True)
     entry_name: Mapped[str | None] = mapped_column(String(32), nullable=True, index=True)
     is_reviewed: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False, index=True)
-    protein_names: Mapped[dict[str, object] | None] = mapped_column(JSON, nullable=True)
+    protein_names: Mapped[dict[str, object] | None] = mapped_column(JSONB, nullable=True)
     organism_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("organisms.id"), nullable=False, index=True
     )
@@ -134,9 +134,9 @@ class ProteinFeatureModel(Base, EntityModelMixin):
     end_modifier: Mapped[str | None] = mapped_column(String(32), nullable=True)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
     feature_id: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True)
-    ligand: Mapped[dict[str, object] | None] = mapped_column(JSON, nullable=True)
+    ligand: Mapped[dict[str, object] | None] = mapped_column(JSONB, nullable=True)
     alternative_sequence: Mapped[str | None] = mapped_column(Text, nullable=True)
-    evidence: Mapped[list[dict[str, object]] | None] = mapped_column(JSON, nullable=True)
+    evidence: Mapped[list[dict[str, object]] | None] = mapped_column(JSONB, nullable=True)
 
 
 class ProteinCommentModel(Base, EntityModelMixin):
@@ -149,8 +149,8 @@ class ProteinCommentModel(Base, EntityModelMixin):
     )
     comment_type: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
     text: Mapped[str | None] = mapped_column(Text, nullable=True)
-    payload: Mapped[dict[str, object] | None] = mapped_column(JSON, nullable=True)
-    evidence: Mapped[list[dict[str, object]] | None] = mapped_column(JSON, nullable=True)
+    payload: Mapped[dict[str, object] | None] = mapped_column(JSONB, nullable=True)
+    evidence: Mapped[list[dict[str, object]] | None] = mapped_column(JSONB, nullable=True)
 
 
 class ProteinIsoformModel(Base, EntityModelMixin):
@@ -193,13 +193,15 @@ class ProteinCitationModel(Base, EntityModelMixin):
     citation_type: Mapped[str | None] = mapped_column(String(64), nullable=True)
     title: Mapped[str | None] = mapped_column(Text, nullable=True)
     journal: Mapped[str | None] = mapped_column(String(512), nullable=True)
-    authors: Mapped[list[str] | None] = mapped_column(JSON, nullable=True)
+    authors: Mapped[list[str] | None] = mapped_column(JSONB, nullable=True)
     publication_date: Mapped[str | None] = mapped_column(String(32), nullable=True)
     pubmed_id: Mapped[str | None] = mapped_column(String(32), nullable=True, index=True)
     doi: Mapped[str | None] = mapped_column(String(128), nullable=True, index=True)
     reference_number: Mapped[int | None] = mapped_column(Integer, nullable=True)
-    positions: Mapped[list[str] | None] = mapped_column(JSON, nullable=True)
-    reference_comments: Mapped[list[dict[str, object]] | None] = mapped_column(JSON, nullable=True)
+    positions: Mapped[list[str] | None] = mapped_column(JSONB, nullable=True)
+    reference_comments: Mapped[list[dict[str, object]] | None] = mapped_column(
+        JSONB, nullable=True
+    )
 
 
 class ProteinCrossReferenceModel(Base, EntityModelMixin):
@@ -213,5 +215,5 @@ class ProteinCrossReferenceModel(Base, EntityModelMixin):
     )
     database: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
     accession: Mapped[str] = mapped_column(String(128), nullable=False)
-    properties: Mapped[dict[str, str] | None] = mapped_column(JSON, nullable=True)
+    properties: Mapped[dict[str, str] | None] = mapped_column(JSONB, nullable=True)
     evidence: Mapped[str | None] = mapped_column(String(64), nullable=True)

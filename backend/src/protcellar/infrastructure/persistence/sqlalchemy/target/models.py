@@ -4,7 +4,8 @@ from __future__ import annotations
 
 import uuid
 
-from sqlalchemy import JSON, ForeignKey, Integer, String
+from sqlalchemy import ForeignKey, Integer, String
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from protcellar.infrastructure.persistence.sqlalchemy.base import (
@@ -25,7 +26,7 @@ class TargetModel(Base, EntityModelMixin, WorkspaceIdMixin, VersionMixin):
     )
     chembl_id: Mapped[str | None] = mapped_column(String(32), nullable=True, index=True)
     pharmacological_class: Mapped[str | None] = mapped_column(String(256), nullable=True)
-    cross_references: Mapped[list[dict[str, object]] | None] = mapped_column(JSON, nullable=True)
+    cross_references: Mapped[list[dict[str, object]] | None] = mapped_column(JSONB, nullable=True)
 
     components: Mapped[list[TargetComponentModel]] = relationship(
         cascade="all, delete-orphan",
