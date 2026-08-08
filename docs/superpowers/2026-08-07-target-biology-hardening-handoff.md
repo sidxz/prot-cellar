@@ -4,14 +4,34 @@
 **Branch:** `feat/target-biology-hardening` — 8 commits, branched from `main` @ `b5d4e0a`, **not pushed**
 **For:** a fresh session running the **final whole-branch review**, then deciding how to land it.
 
-## Your job
+## Status — the final review has since been done
 
-Everything is built, task-reviewed, and live-QA'd. One thing is owed: the **final whole-branch
-review** — the only pass that looks at all 8 commits together rather than task by task. After it,
-`superpowers:finishing-a-development-branch` decides how this lands.
+**This section supersedes the rest of the document where they disagree.** When written, the final
+whole-branch review was still owed. It has since been run in a separate session and its findings
+applied in `10735a1`, which found two real defects that the per-task reviews and the live QA both
+missed:
 
-Do **not** re-run the per-task reviews. They happened, they found real defects, and the outcomes are
-in the ledger.
+- `PATCH {"classification": null}` and `{"growth_defect": null}` **500'd** instead of 422ing. Making
+  every patch-body field optional (Task 1) removed the guard that the required write body used to
+  provide, and nothing downstream replaced it.
+- `PATCH {"compound": null}` silently returned 200 with the compound intact instead of clearing it.
+  `_patch_updates` treats null as "not sent" uniformly — correct for `provenance`, wrong for a
+  nullable reference.
+
+It also fixed two of the deferred minors: an untouched provenance-dialog save is now a no-op (so a
+misclick cannot re-attribute an imported record to manual), and the `ligands` PATCH path is now
+pinned by a test.
+
+Branch is green at that commit: unit + import-linter clean, 106 API tests passing against the two
+known pre-existing order-dependent failures, frontend clean.
+
+**What is left:** decide how this lands, via `superpowers:finishing-a-development-branch`. Do not
+re-run the per-task reviews or the final review — both happened and their outcomes are in the ledger
+and in `10735a1`.
+
+Note also that `feat/target-biology-hardening` has since acquired a **second, unrelated body of
+work**: the `json`→`jsonb` migration (`117f290`) and the design for workspace scoping
+(`c649ebd`, `6f042a7`). Consider whether those want their own branch before merge.
 
 ## Read first, in this order
 
