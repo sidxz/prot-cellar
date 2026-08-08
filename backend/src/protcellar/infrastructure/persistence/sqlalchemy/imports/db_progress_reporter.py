@@ -45,7 +45,7 @@ class ImportRunProgressReporter:
         """Persist a phase-name change immediately (not throttled)."""
         async with AsyncUnitOfWork(self._session_factory) as uow:
             repo = SQLAlchemyImportRunRepository(uow)
-            run = await repo.get(self._import_run_id)
+            run = await repo.get_owned(self._import_run_id)
             if run is None:
                 return
             run.record_progress(phase=label)
@@ -64,7 +64,7 @@ class ImportRunProgressReporter:
             return
         async with AsyncUnitOfWork(self._session_factory) as uow:
             repo = SQLAlchemyImportRunRepository(uow)
-            run = await repo.get(self._import_run_id)
+            run = await repo.get_owned(self._import_run_id)
             if run is None:
                 return
             run.record_progress(processed=processed, total=total)
@@ -76,7 +76,7 @@ class ImportRunProgressReporter:
         """Persist the source version string immediately (not throttled)."""
         async with AsyncUnitOfWork(self._session_factory) as uow:
             repo = SQLAlchemyImportRunRepository(uow)
-            run = await repo.get(self._import_run_id)
+            run = await repo.get_owned(self._import_run_id)
             if run is None:
                 return
             run.set_source_version(version)
