@@ -34,10 +34,15 @@ invisibility shape.
 
 from __future__ import annotations
 
+import importlib.util
 import uuid
+from pathlib import Path
 
+from alembic.operations import Operations
+from alembic.runtime.migration import MigrationContext
 from fastapi import FastAPI
 from httpx import AsyncClient
+from sqlalchemy import insert, select
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
 from protcellar.application.imports.job_enqueuer import JobEnqueuer
@@ -48,6 +53,10 @@ from protcellar.domain.target_biology.essentiality import Essentiality
 from protcellar.infrastructure.persistence.sqlalchemy.target_biology.essentiality_repository import (  # noqa: E501
     SQLAlchemyEssentialityRepository,
 )
+from protcellar.infrastructure.persistence.sqlalchemy.target_biology.models import (
+    EssentialityRecordModel,
+)
+from protcellar.infrastructure.persistence.sqlalchemy.workspace_scope import readable_by
 from protcellar.infrastructure.persistence.unit_of_work import AsyncUnitOfWork
 
 # other_workspace_client (a second API client under a distinct workspace) lives
@@ -442,3 +451,97 @@ async def test_workspace_import_run_is_invisible_to_a_second_workspace(
 
     got = await other_workspace_client.get(f"/api/v1/imports/{run_id}")
     assert got.status_code == 404, got.text
+
+
+# --- Migration B: the reclassification is what makes any of the above real ---
+
+_RECLASSIFY_MIGRATION_PATH = (
+    Path(__file__).resolve().parents[2] / "alembic/versions/d2b5f9c8e314_reclassify_workspaces.py"
+)
+
+
+def _load_reclassify_migration() -> object:
+    """Import Migration B by file path, the same way Alembic itself loads
+    version files (they are not a package). Loading the real module — rather
+    than a copy of its SQL — is what makes this a regression test for the
+    migration and not just for the ``readable_by`` predicate Task 1 already
+    covers.
+    """
+    spec = importlib.util.spec_from_file_location(
+        "_migration_d2b5f9c8e314", _RECLASSIFY_MIGRATION_PATH
+    )
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+async def test_migration_reclassifies_private_provenance_but_not_published(
+    database_url: str, _run_migrations: None
+) -> None:
+    """The property Migration B exists for: once it runs, a private-provenance
+    record is no longer readable by a workspace that isn't its new owner,
+    while a published one stays readable by everyone — mirroring the one real
+    row (a ``private_comm`` vulnerability) this migration moves in production.
+
+    Runs the actual migration module inside a transaction rolled back at the
+    end. `_run_migrations` (requested explicitly — this test has no other
+    fixture that would pull the schema in, unlike every other test in this
+    file) already applied it once, session-wide, before any row existed to
+    reclassify; calling `upgrade()` unscoped a second time against the live
+    session database would sweep every other test's SHARED-workspace row too
+    (e.g. test_target_biology.py's INTERNAL-provenance UnpublishedStructure) —
+    the rollback is what keeps this test from disturbing them, not test file
+    ordering.
+    """
+    migration = _load_reclassify_migration()
+    other_workspace = uuid.uuid4()
+    published_id, published_gene = uuid.uuid4(), uuid.uuid4()
+    private_id, private_gene = uuid.uuid4(), uuid.uuid4()
+
+    engine = create_async_engine(database_url)
+    async with engine.connect() as conn:
+        trans = await conn.begin()
+        try:
+            await conn.execute(
+                insert(EssentialityRecordModel),
+                [
+                    {
+                        "id": published_id,
+                        "workspace_id": SHARED_WORKSPACE_ID,
+                        "gene_id": published_gene,
+                        "classification": "essential",
+                        "provenance": {"source_type": "published", "citations": []},
+                        "version": 1,
+                    },
+                    {
+                        "id": private_id,
+                        "workspace_id": SHARED_WORKSPACE_ID,
+                        "gene_id": private_gene,
+                        "classification": "essential",
+                        "provenance": {"source_type": "internal", "citations": []},
+                        "version": 1,
+                    },
+                ],
+            )
+
+            def _run_upgrade(sync_conn):  # type: ignore[no-untyped-def]
+                ctx = MigrationContext.configure(sync_conn)
+                with Operations.context(ctx):
+                    migration.upgrade()  # type: ignore[attr-defined]
+
+            await conn.run_sync(_run_upgrade)
+
+            visible = await conn.execute(
+                select(EssentialityRecordModel.id).where(
+                    EssentialityRecordModel.id.in_([published_id, private_id]),
+                    readable_by(EssentialityRecordModel, other_workspace),
+                )
+            )
+            visible_ids = {row[0] for row in visible}
+        finally:
+            await trans.rollback()
+    await engine.dispose()
+
+    assert published_id in visible_ids
+    assert private_id not in visible_ids

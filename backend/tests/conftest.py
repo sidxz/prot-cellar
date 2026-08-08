@@ -20,6 +20,13 @@ from testcontainers.postgres import PostgresContainer
 from protcellar.infrastructure.persistence.unit_of_work import AsyncUnitOfWork
 from tests.fakes.fake_auth import FakeAuth
 
+# Migration d2b5f9c8e314 requires this with no default (see that file) so a
+# deployment can't silently guess who inherits reclassified data. Tests spin up
+# a fresh, empty container per session, so which id owns the (zero) rows it
+# reclassifies at session start is immaterial — it just has to be set, or
+# _run_migrations below fails for every test that touches the database.
+os.environ.setdefault("MIGRATION_TARGET_WORKSPACE_ID", "99999999-9999-9999-9999-999999999999")
+
 # ---------------------------------------------------------------------------
 # Markers — allow separating fast unit tests from slow integration tests
 # ---------------------------------------------------------------------------
