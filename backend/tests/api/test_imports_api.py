@@ -19,7 +19,7 @@ class _FakeEnqueuer:
     def __init__(self) -> None:
         self.enqueued = []
 
-    async def enqueue_import(self, import_run_id) -> None:
+    async def enqueue_import(self, import_run_id, workspace_id) -> None:
         self.enqueued.append(import_run_id)
 
     async def aclose(self) -> None:

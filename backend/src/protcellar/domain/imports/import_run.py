@@ -13,7 +13,6 @@ from protcellar.domain.imports.events import (
 )
 from protcellar.domain.shared.entity import AggregateRoot
 from protcellar.domain.shared.errors import ConflictError
-from protcellar.domain.shared.global_workspace import SHARED_WORKSPACE_ID
 
 _AGG = "ImportRun"
 
@@ -23,6 +22,7 @@ class ImportRun(AggregateRoot):
         self,
         *,
         id: uuid.UUID | None = None,
+        workspace_id: uuid.UUID,
         import_type: ImportType,
         params: dict[str, Any] | None = None,
         target_key: str,
@@ -42,7 +42,7 @@ class ImportRun(AggregateRoot):
         version: int = 1,
     ) -> None:
         super().__init__(id=id, created_at=created_at, updated_at=updated_at, version=version)
-        self.workspace_id = SHARED_WORKSPACE_ID
+        self.workspace_id = workspace_id
         self.import_type = import_type
         self.params = params or {}
         self.target_key = target_key
@@ -62,6 +62,7 @@ class ImportRun(AggregateRoot):
     def create(
         cls,
         *,
+        workspace_id: uuid.UUID,
         import_type: ImportType,
         params: dict[str, Any],
         target_key: str,
@@ -69,6 +70,7 @@ class ImportRun(AggregateRoot):
         upload_ref: uuid.UUID | None = None,
     ) -> ImportRun:
         run = cls(
+            workspace_id=workspace_id,
             import_type=import_type,
             params=params,
             target_key=target_key,

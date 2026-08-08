@@ -20,20 +20,27 @@ observations this whole design exists to protect (``source_type`` has
 Structure`` is a whole record type). Its cases demonstrate the full shape —
 invisibility, not just non-mutability — for the first time.
 
-Tagging (Task 5) is the second and last: tags are workspace-owned
-configuration, not reference data (§1.5) — unlike every other entity this
-file tags against, a tag is never created under ``SHARED_WORKSPACE_ID``, so
-its cases below use the same invisibility shape target_biology established
-rather than the read-only-shared-row shape taxonomy/protein_catalog use.
+Tagging (Task 5) is the second: tags are workspace-owned configuration, not
+reference data (§1.5) — unlike every other entity this file tags against, a
+tag is never created under ``SHARED_WORKSPACE_ID``, so its cases below use
+the same invisibility shape target_biology established rather than the
+read-only-shared-row shape taxonomy/protein_catalog use.
+
+Imports (Task 6) is the third and last: an import run is a workspace
+artifact, not reference data (§1.6's Migration B) — like tags, it is never
+created under ``SHARED_WORKSPACE_ID``, so its case also uses the
+invisibility shape.
 """
 
 from __future__ import annotations
 
 import uuid
 
+from fastapi import FastAPI
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
+from protcellar.application.imports.job_enqueuer import JobEnqueuer
 from protcellar.domain.shared.global_workspace import SHARED_WORKSPACE_ID
 from protcellar.domain.shared.provenance import Provenance, ProvenanceSourceType
 from protcellar.domain.target_biology.enums import EssentialityClass
@@ -385,3 +392,53 @@ async def test_workspace_tag_cannot_be_renamed_merged_or_deleted_by_a_second_wor
 
     deleted = await other_workspace_client.delete(f"/api/v1/tags/{tag_id}")
     assert deleted.status_code == 404, deleted.text
+
+
+# --- imports: the third (and last) context with genuinely tenant-owned rows -
+
+
+class _NoopEnqueuer:
+    """Satisfies JobEnqueuer without touching Redis. These tests only care
+    about DB-level visibility, not job execution — same reasoning as
+    ``test_imports_api.py``'s ``fake_enqueuer`` fixture, which every test
+    that calls ``POST /imports`` in this codebase uses for the same reason.
+    """
+
+    async def enqueue_import(self, import_run_id: uuid.UUID, workspace_id: uuid.UUID) -> None:
+        return None
+
+    async def aclose(self) -> None:
+        return None
+
+
+def _skip_real_enqueue(app: FastAPI) -> None:
+    """Swap JobEnqueuer for a no-op on ``app``'s container, in place."""
+    cloned = app.state.container.clone()
+    cloned.define(JobEnqueuer, lambda c: _NoopEnqueuer())
+    app.state.container = cloned
+
+
+async def test_workspace_import_run_is_invisible_to_a_second_workspace(
+    client: AsyncClient, other_workspace_client: AsyncClient, api_app: FastAPI
+) -> None:
+    """An import run started by workspace A lands in the caller's own
+    workspace, never SHARED — import runs are workspace artifacts (who ran
+    what), not reference data, unlike the genes/proteins/organisms an import
+    ultimately writes. Workspace B must not see it, by listing or by
+    fetching it directly.
+    """
+    _skip_real_enqueue(api_app)
+    proteome_id = f"UP{uuid.uuid4().hex[:9].upper()}"
+    created = await client.post(
+        "/api/v1/imports",
+        json={"import_type": "proteome", "params": {"proteome_id": proteome_id}},
+    )
+    assert created.status_code == 202, created.text
+    run_id = created.json()["id"]
+
+    listed = await other_workspace_client.get("/api/v1/imports")
+    assert listed.status_code == 200, listed.text
+    assert run_id not in {r["id"] for r in listed.json()["items"]}
+
+    got = await other_workspace_client.get(f"/api/v1/imports/{run_id}")
+    assert got.status_code == 404, got.text

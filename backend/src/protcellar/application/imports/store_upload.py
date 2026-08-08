@@ -38,6 +38,7 @@ class StoreUpload:
         require_admin(auth)
 
         upload = ImportUpload.create(
+            workspace_id=auth.workspace_id,  # type: ignore[union-attr]
             filename=filename,
             content_type=content_type,
             data=data,
@@ -69,7 +70,10 @@ class GetUpload:
         require_authenticated(auth)
 
         async with self._uow:
-            upload = await self._repo.get(upload_id)
+            upload = await self._repo.get(
+                auth.workspace_id,  # type: ignore[union-attr]
+                upload_id,
+            )
 
         if upload is None:
             return Failure(NotFoundError("ImportUpload", str(upload_id)))

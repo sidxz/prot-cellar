@@ -27,10 +27,10 @@ class _FakeRunRepo:
     async def find_active(self, import_type, target_key):
         return self._active
 
-    async def get(self, id):  # unused here
+    async def get(self, workspace_id, id):  # unused here
         return None
 
-    async def list(self, *, cursor=None, limit=50):
+    async def list(self, *, workspace_id, cursor=None, limit=50):
         return []
 
 
@@ -38,7 +38,7 @@ class _FakeEnqueuer:
     def __init__(self) -> None:
         self.enqueued: list[uuid.UUID] = []
 
-    async def enqueue_import(self, import_run_id: uuid.UUID) -> None:
+    async def enqueue_import(self, import_run_id: uuid.UUID, workspace_id: uuid.UUID) -> None:
         self.enqueued.append(import_run_id)
 
 
@@ -84,6 +84,7 @@ async def test_start_import_persists_queued_and_enqueues() -> None:
 
 async def test_start_import_rejects_duplicate_active_run() -> None:
     existing = ImportRun.create(
+        workspace_id=uuid.uuid4(),
         import_type=ImportType.PROTEOME,
         params={"proteome_id": "UP000001584"},
         target_key="UP000001584",

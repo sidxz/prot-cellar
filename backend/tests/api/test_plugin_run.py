@@ -79,6 +79,7 @@ async def test_dejesus_plugin_run_creates_essentiality(
 
         # Seed a PLUGIN run and drive the worker.
         run = ImportRun.create(
+            workspace_id=admin.workspace_id,
             import_type=ImportType.PLUGIN,
             params={
                 "plugin_id": "dejesus_essentiality",
@@ -94,10 +95,10 @@ async def test_dejesus_plugin_run_creates_essentiality(
             await SQLAlchemyImportRunRepository(uow).save(run)
             await uow.commit()
 
-        await worker_mod.run_import(_ctx(factory), str(run.id))
+        await worker_mod.run_import(_ctx(factory), str(run.id), str(run.workspace_id))
 
         async with AsyncUnitOfWork(factory) as uow:
-            reloaded = await SQLAlchemyImportRunRepository(uow).get(run.id)
+            reloaded = await SQLAlchemyImportRunRepository(uow).get(run.workspace_id, run.id)
             assert reloaded.status is ImportStatus.SUCCEEDED
             assert reloaded.summary["created"] == 1
 

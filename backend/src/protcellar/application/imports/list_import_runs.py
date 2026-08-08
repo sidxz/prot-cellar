@@ -41,6 +41,7 @@ class ListImportRuns:
 
         async with self._uow:
             runs = await self._run_repo.list(
+                workspace_id=auth.workspace_id,  # type: ignore[union-attr]
                 cursor=parsed_cursor,
                 limit=effective_limit + 1,
             )

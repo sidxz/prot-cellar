@@ -13,11 +13,13 @@ from protcellar.domain.imports.events import (
 )
 from protcellar.domain.imports.import_run import ImportRun
 from protcellar.domain.shared.errors import ConflictError
-from protcellar.domain.shared.global_workspace import SHARED_WORKSPACE_ID
+
+_WORKSPACE_ID = uuid.uuid4()
 
 
 def _run() -> ImportRun:
     return ImportRun.create(
+        workspace_id=_WORKSPACE_ID,
         import_type=ImportType.PROTEOME,
         params={"proteome_id": "UP000001584"},
         target_key="UP000001584",
@@ -25,10 +27,10 @@ def _run() -> ImportRun:
     )
 
 
-def test_create_is_queued_and_global_and_emits_queued() -> None:
+def test_create_is_queued_in_the_callers_workspace_and_emits_queued() -> None:
     run = _run()
     assert run.status is ImportStatus.QUEUED
-    assert run.workspace_id == SHARED_WORKSPACE_ID
+    assert run.workspace_id == _WORKSPACE_ID
     assert run.target_key == "UP000001584"
     events = run.collect_events()
     assert any(isinstance(e, ImportRunQueued) for e in events)

@@ -21,6 +21,7 @@ from protcellar.infrastructure.persistence.sqlalchemy.audit_compliance.models im
     AuditOperationModel,
     ElectronicSignatureModel,
 )
+from protcellar.infrastructure.persistence.sqlalchemy.workspace_scope import readable_by
 
 
 class SQLAlchemyAuditRepository:
@@ -126,11 +127,14 @@ class SQLAlchemyAuditRepository:
     ) -> list[AuditOperation]:
         """Retrieve audit operations with optional filters.
 
-        Ordered by id for stable cursor paging.
+        Ordered by id for stable cursor paging. Scoped with ``readable_by``, not
+        plain equality: an operation recorded against a SHARED-workspace mutation
+        (e.g. a bulk import writing reference data) must stay visible to every
+        tenant, the same as the reference data it describes.
         """
         stmt = (
             select(AuditOperationModel)
-            .where(AuditOperationModel.workspace_id == workspace_id)
+            .where(readable_by(AuditOperationModel, workspace_id))
             .options(
                 selectinload(AuditOperationModel.entries),
                 selectinload(AuditOperationModel.signature),

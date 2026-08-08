@@ -24,10 +24,12 @@ def _ctx(factory) -> dict:
     return {"session_factory": factory, "dispatcher": EventDispatcher()}
 
 
-async def _seed_queued(factory) -> uuid.UUID:
+async def _seed_queued(factory) -> tuple[uuid.UUID, uuid.UUID]:
+    """Returns (run_id, workspace_id) — the caller needs both to drive the worker."""
     async with AsyncUnitOfWork(factory) as uow:
         repo = SQLAlchemyImportRunRepository(uow)
         run = ImportRun.create(
+            workspace_id=uuid.uuid4(),
             import_type=ImportType.GO_ONTOLOGY,
             params={"force": False},
             target_key="go",
@@ -35,7 +37,7 @@ async def _seed_queued(factory) -> uuid.UUID:
         )
         await repo.save(run)
         await uow.commit()
-        return run.id
+        return run.id, run.workspace_id
 
 
 async def test_worker_drives_queued_to_succeeded(
@@ -44,7 +46,7 @@ async def test_worker_drives_queued_to_succeeded(
     engine = create_async_engine(database_url)
     factory = async_sessionmaker(engine, expire_on_commit=False)
     try:
-        run_id = await _seed_queued(factory)
+        run_id, workspace_id = await _seed_queued(factory)
 
         class _StubAdapter:
             import_type = ImportType.GO_ONTOLOGY
@@ -54,10 +56,10 @@ async def test_worker_drives_queued_to_succeeded(
                 return {"terms_upserted": 5, "edges": 9}
 
         monkeypatch.setitem(worker_mod.IMPORT_ADAPTERS, ImportType.GO_ONTOLOGY, _StubAdapter())
-        await worker_mod.run_import(_ctx(factory), str(run_id))
+        await worker_mod.run_import(_ctx(factory), str(run_id), str(workspace_id))
 
         async with AsyncUnitOfWork(factory) as uow:
-            run = await SQLAlchemyImportRunRepository(uow).get(run_id)
+            run = await SQLAlchemyImportRunRepository(uow).get(workspace_id, run_id)
             assert run.status is ImportStatus.SUCCEEDED
             assert run.summary["terms_upserted"] == 5
     finally:
@@ -70,7 +72,7 @@ async def test_worker_marks_failed_on_adapter_error(
     engine = create_async_engine(database_url)
     factory = async_sessionmaker(engine, expire_on_commit=False)
     try:
-        run_id = await _seed_queued(factory)
+        run_id, workspace_id = await _seed_queued(factory)
 
         class _BoomAdapter:
             import_type = ImportType.GO_ONTOLOGY
@@ -80,10 +82,10 @@ async def test_worker_marks_failed_on_adapter_error(
 
         monkeypatch.setitem(worker_mod.IMPORT_ADAPTERS, ImportType.GO_ONTOLOGY, _BoomAdapter())
         with pytest.raises(RuntimeError):
-            await worker_mod.run_import(_ctx(factory), str(run_id))
+            await worker_mod.run_import(_ctx(factory), str(run_id), str(workspace_id))
 
         async with AsyncUnitOfWork(factory) as uow:
-            run = await SQLAlchemyImportRunRepository(uow).get(run_id)
+            run = await SQLAlchemyImportRunRepository(uow).get(workspace_id, run_id)
             assert run.status is ImportStatus.FAILED
             assert "kaboom" in run.error
     finally:
@@ -97,7 +99,7 @@ async def test_worker_marks_failed_on_system_exit(
     engine = create_async_engine(database_url)
     factory = async_sessionmaker(engine, expire_on_commit=False)
     try:
-        run_id = await _seed_queued(factory)
+        run_id, workspace_id = await _seed_queued(factory)
 
         class _SystemExitAdapter:
             import_type = ImportType.GO_ONTOLOGY
@@ -109,10 +111,10 @@ async def test_worker_marks_failed_on_system_exit(
             worker_mod.IMPORT_ADAPTERS, ImportType.GO_ONTOLOGY, _SystemExitAdapter()
         )
         with pytest.raises(SystemExit):
-            await worker_mod.run_import(_ctx(factory), str(run_id))
+            await worker_mod.run_import(_ctx(factory), str(run_id), str(workspace_id))
 
         async with AsyncUnitOfWork(factory) as uow:
-            run = await SQLAlchemyImportRunRepository(uow).get(run_id)
+            run = await SQLAlchemyImportRunRepository(uow).get(workspace_id, run_id)
             assert run.status is ImportStatus.FAILED
             assert "no organism" in run.error
     finally:

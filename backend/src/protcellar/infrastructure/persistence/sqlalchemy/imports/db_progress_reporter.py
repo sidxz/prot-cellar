@@ -28,6 +28,10 @@ class ImportRunProgressReporter:
     ----------
     import_run_id:
         The UUID of an already-created ImportRun (must exist in the DB).
+    workspace_id:
+        The workspace that owns the run — the worker already knows this by the
+        time it constructs a reporter (it loaded the run to start it), so it is
+        passed in rather than re-derived here.
     session_factory:
         An ``async_sessionmaker`` used to open short-lived UoW transactions.
     """
@@ -35,9 +39,11 @@ class ImportRunProgressReporter:
     def __init__(
         self,
         import_run_id: uuid.UUID,
+        workspace_id: uuid.UUID,
         session_factory: async_sessionmaker[AsyncSession],
     ) -> None:
         self._import_run_id = import_run_id
+        self._workspace_id = workspace_id
         self._session_factory = session_factory
         self._last_advance_write: float = 0.0
 
@@ -45,7 +51,7 @@ class ImportRunProgressReporter:
         """Persist a phase-name change immediately (not throttled)."""
         async with AsyncUnitOfWork(self._session_factory) as uow:
             repo = SQLAlchemyImportRunRepository(uow)
-            run = await repo.get_owned(self._import_run_id)
+            run = await repo.get_owned(self._workspace_id, self._import_run_id)
             if run is None:
                 return
             run.record_progress(phase=label)
@@ -64,7 +70,7 @@ class ImportRunProgressReporter:
             return
         async with AsyncUnitOfWork(self._session_factory) as uow:
             repo = SQLAlchemyImportRunRepository(uow)
-            run = await repo.get_owned(self._import_run_id)
+            run = await repo.get_owned(self._workspace_id, self._import_run_id)
             if run is None:
                 return
             run.record_progress(processed=processed, total=total)
@@ -76,7 +82,7 @@ class ImportRunProgressReporter:
         """Persist the source version string immediately (not throttled)."""
         async with AsyncUnitOfWork(self._session_factory) as uow:
             repo = SQLAlchemyImportRunRepository(uow)
-            run = await repo.get_owned(self._import_run_id)
+            run = await repo.get_owned(self._workspace_id, self._import_run_id)
             if run is None:
                 return
             run.set_source_version(version)

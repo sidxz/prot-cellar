@@ -31,7 +31,10 @@ class GetImportRun:
         require_authenticated(auth)
 
         async with self._uow:
-            run = await self._run_repo.get(input.import_run_id)
+            run = await self._run_repo.get(
+                auth.workspace_id,  # type: ignore[union-attr]
+                input.import_run_id,
+            )
         if run is None:
             return Failure(NotFoundError("ImportRun", str(input.import_run_id)))
         return Success(run)

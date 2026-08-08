@@ -42,7 +42,7 @@ from protcellar.infrastructure.persistence.sqlalchemy.imports.import_upload_repo
 from protcellar.infrastructure.persistence.unit_of_work import AsyncUnitOfWork
 
 
-async def run_import(ctx: dict[str, Any], import_run_id: str) -> None:
+async def run_import(ctx: dict[str, Any], import_run_id: str, workspace_id: str) -> None:
     """Execute a queued import run.
 
     Called by arq with ``ctx`` containing:
@@ -55,6 +55,16 @@ async def run_import(ctx: dict[str, Any], import_run_id: str) -> None:
     3. Builds an :class:`ImportRuntime` and runs the adapter.
     4. Marks the run SUCCEEDED (or FAILED on error) and saves.
 
+    ``workspace_id`` is the workspace that owns the run — supplied by
+    :class:`~protcellar.application.imports.start_import.StartImport` at enqueue
+    time (it already knows it, having just created the run under
+    ``auth.workspace_id``) and threaded through the arq job payload because the
+    worker has no per-request auth context of its own to derive it from. Every
+    load-modify-save cycle below goes through ``get_owned``, which needs a real
+    workspace to scope by now that runs are no longer stored under a shared
+    sentinel — passing the wrong one wouldn't leak across tenants (``owned_by``
+    would just never match), it would make the run unfindable.
+
     **Exception handling:** catches ``(Exception, SystemExit)`` so that
     ``SystemExit`` raised by ``resolve_organism_id`` (when a tax_id resolves to
     no organism) is captured and stored as a FAILED run rather than crashing the
@@ -65,11 +75,12 @@ async def run_import(ctx: dict[str, Any], import_run_id: str) -> None:
     dispatcher: EventDispatcher = ctx["dispatcher"]
 
     run_id = uuid.UUID(import_run_id)
+    wsid = uuid.UUID(workspace_id)
 
     # --- 1. Load run and transition to RUNNING ---
     async with AsyncUnitOfWork(session_factory) as uow:
         repo = SQLAlchemyImportRunRepository(uow)
-        run = await repo.get_owned(run_id)
+        run = await repo.get_owned(wsid, run_id)
         if run is None:
             raise RuntimeError(f"ImportRun {run_id} not found")
         run.start()
@@ -84,7 +95,7 @@ async def run_import(ctx: dict[str, Any], import_run_id: str) -> None:
     async def _load_upload(upload_id: uuid.UUID) -> bytes:
         async with AsyncUnitOfWork(session_factory) as _uow:
             upload_repo = SQLAlchemyImportUploadRepository(_uow)
-            upload = await upload_repo.get(upload_id)
+            upload = await upload_repo.get(run.workspace_id, upload_id)
             if upload is None:
                 raise RuntimeError(f"ImportUpload {upload_id} not found")
             return upload.data
@@ -93,7 +104,7 @@ async def run_import(ctx: dict[str, Any], import_run_id: str) -> None:
     rt = ImportRuntime(
         session_factory=session_factory,
         dispatcher=dispatcher,
-        reporter=ImportRunProgressReporter(run.id, session_factory),
+        reporter=ImportRunProgressReporter(run.id, run.workspace_id, session_factory),
         params=run.params,
         auth=ServiceAuth(),
         load_upload=_load_upload,
@@ -109,7 +120,7 @@ async def run_import(ctx: dict[str, Any], import_run_id: str) -> None:
             fail_events: list[Any] = []
             async with AsyncUnitOfWork(session_factory) as uow:
                 repo = SQLAlchemyImportRunRepository(uow)
-                failed_run = await repo.get_owned(run_id)
+                failed_run = await repo.get_owned(run.workspace_id, run_id)
                 if failed_run is not None:
                     failed_run.fail(repr(exc))
                     await repo.save(failed_run)
@@ -122,7 +133,7 @@ async def run_import(ctx: dict[str, Any], import_run_id: str) -> None:
     # --- 6. Reload and mark SUCCEEDED ---
     async with AsyncUnitOfWork(session_factory) as uow:
         repo = SQLAlchemyImportRunRepository(uow)
-        done_run = await repo.get_owned(run_id)
+        done_run = await repo.get_owned(run.workspace_id, run_id)
         if done_run is None:
             raise RuntimeError(f"ImportRun {run_id} vanished after adapter finished")
         done_run.succeed(summary)

@@ -62,6 +62,7 @@ class StartImport:
                 )
 
             run = ImportRun.create(
+                workspace_id=auth.workspace_id,  # type: ignore[union-attr]
                 import_type=cmd.import_type,
                 params=params,
                 target_key=tkey,
@@ -72,6 +73,6 @@ class StartImport:
             events = await self._uow.commit()
 
         await self._dispatcher.dispatch_all(events)
-        await self._enqueuer.enqueue_import(run.id)
+        await self._enqueuer.enqueue_import(run.id, run.workspace_id)
 
         return Success(run)

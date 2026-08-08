@@ -10,9 +10,9 @@ from sqlalchemy import select, tuple_
 from protcellar.domain.imports.enums import ImportStatus, ImportType
 from protcellar.domain.imports.import_run import ImportRun
 from protcellar.domain.imports.repository import ImportRunRepository
-from protcellar.domain.shared.global_workspace import SHARED_WORKSPACE_ID
 from protcellar.infrastructure.persistence.sqlalchemy.base_repository import SQLAlchemyRepository
 from protcellar.infrastructure.persistence.sqlalchemy.imports.models import ImportRunModel
+from protcellar.infrastructure.persistence.sqlalchemy.workspace_scope import readable_by
 
 
 class SQLAlchemyImportRunRepository(
@@ -23,6 +23,7 @@ class SQLAlchemyImportRunRepository(
     def _to_domain(self, model: ImportRunModel) -> ImportRun:
         return ImportRun(
             id=model.id,
+            workspace_id=model.workspace_id,
             import_type=ImportType(model.import_type),
             params=dict(model.params) if model.params else {},
             target_key=model.target_key,
@@ -79,22 +80,28 @@ class SQLAlchemyImportRunRepository(
         model.started_at = aggregate.started_at
         model.finished_at = aggregate.finished_at
 
-    async def get(self, id: uuid.UUID) -> ImportRun | None:
+    async def get(self, workspace_id: uuid.UUID, id: uuid.UUID) -> ImportRun | None:
         """Load for a read-only caller (e.g. GetImportRun). Own workspace or shared."""
-        return await self.find_readable(SHARED_WORKSPACE_ID, id)
+        return await self.find_readable(workspace_id, id)
 
-    async def get_owned(self, id: uuid.UUID) -> ImportRun | None:
+    async def get_owned(self, workspace_id: uuid.UUID, id: uuid.UUID) -> ImportRun | None:
         """Load for a caller that will mutate and save — the arq worker's
         load -> transition -> save cycle. Own workspace only: a shared run
         must not be loadable for a write, even though `.get()` can read it.
         """
-        return await self.find_owned(SHARED_WORKSPACE_ID, id)
+        return await self.find_owned(workspace_id, id)
 
     async def list(
-        self, *, cursor: tuple[datetime, uuid.UUID] | None = None, limit: int = 50
+        self,
+        *,
+        workspace_id: uuid.UUID,
+        cursor: tuple[datetime, uuid.UUID] | None = None,
+        limit: int = 50,
     ) -> list[ImportRun]:
-        stmt = select(ImportRunModel).order_by(
-            ImportRunModel.created_at.desc(), ImportRunModel.id.desc()
+        stmt = (
+            select(ImportRunModel)
+            .where(readable_by(ImportRunModel, workspace_id))
+            .order_by(ImportRunModel.created_at.desc(), ImportRunModel.id.desc())
         )
         if cursor is not None:  # cursor = (created_at, id)
             ts, cid = cursor

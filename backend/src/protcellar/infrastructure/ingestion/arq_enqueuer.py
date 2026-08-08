@@ -41,10 +41,10 @@ class ArqJobEnqueuer:
                     self._pool = await arq.create_pool(redis_settings_from_env())
         return self._pool
 
-    async def enqueue_import(self, import_run_id: uuid.UUID) -> None:
+    async def enqueue_import(self, import_run_id: uuid.UUID, workspace_id: uuid.UUID) -> None:
         """Enqueue a ``run_import`` job for the given import run ID."""
         pool = await self._get_pool()
-        await pool.enqueue_job("run_import", str(import_run_id))
+        await pool.enqueue_job("run_import", str(import_run_id), str(workspace_id))
 
     async def aclose(self) -> None:
         """Close the Redis pool if it was created."""
