@@ -63,7 +63,7 @@ The only deployment is `saclab-dev`, and its data is reproducible — the catalo
 NCBI and Mycobrowser imports, and the target-biology records from the DeJesus dataset plus a handful
 of manual rows. **A botched migration is recoverable by re-importing.**
 
-That does not change the design — the two-migration split in §1.5 exists because the constant and its
+That does not change the design — the two-migration split in §1.6 exists because the constant and its
 stored value are only correct together, and because reclassifying before reads filter is a no-op that
 *looks* like success. Both are correctness arguments, not data-safety ones.
 
@@ -71,6 +71,8 @@ It does change how much ceremony the implementation needs: write `downgrade()` b
 and it documents intent, but do not build elaborate rollback tooling, do not stage the migration
 across releases, and do not let fear of the data slow the work down. Live QA may be destructive;
 clean up after.
+
+## 1. Tenancy backbone
 
 ### 1.1 A distinct shared workspace id
 
@@ -141,7 +143,43 @@ no `workspace_id`:
   workspace-scoped parent query.*
 - **`go_terms` / `go_edges`** — an external ontology. Nobody owns a private GO term.
 
-### 1.5 Data migration — two migrations, not one
+### 1.5 Consequence: reference data becomes read-only through the API
+
+This follows directly from §1.2 and §the "imports only" decision, and it is a real capability
+removal, so it is stated here rather than discovered during implementation.
+
+Mutations use `owned_by`. Reference data is owned by `SHARED`. Therefore **no API caller can mutate
+a shared row** — not a workspace admin, not anyone. That covers:
+
+- the 4,019 target-biology records with published/preprint provenance
+- every gene, protein, organism, strain and proteome, all of which have PATCH routes today
+
+Reference data becomes import-managed, full stop. Changing it means re-importing, which is also the
+only way to keep it consistent with UniProt/NCBI/Mycobrowser in the first place.
+
+**This is the correct outcome, not a limitation to work around.** Sentinel exposes only
+per-workspace roles (`workspace_role`), so "let admins edit shared data" would mean *any tenant's
+admin can rewrite reference data for every other tenant*. There is no realm-admin concept to gate it
+with. Import paths run as system and remain the only writer.
+
+**But it must not ship as dead buttons.** The record tables render edit, provenance and delete
+controls on every row unconditionally; after this change those would fail on 4,019 of them.
+
+The fix is one field. Every workspace-scoped response gains:
+
+```python
+is_shared: bool   # True when this row belongs to SHARED — reference data, not editable here
+```
+
+Not `editable`: whether a caller may edit also depends on their role, which the client already
+knows. `is_shared` supplies the half the client cannot compute. And because reads only ever return
+the caller's own rows plus shared ones, those two cases are exhaustive — there is no third state to
+represent.
+
+The frontend hides mutate controls when `is_shared` is true and says why, rather than offering a
+control that 404s.
+
+### 1.6 Data migration — two migrations, not one
 
 Splitting this is what makes each half safe on its own. A single migration would have to change the
 sentinel's *value* and reclassify rows at the same time, and the value change must land together with
@@ -240,6 +278,27 @@ Deliberately a 404 rather than a 403 for the not-visible case — a 403 confirms
 
 Steps 1 and 2 are each independently shippable and leave the service working. Step 3 is the only one
 that changes what anyone can see, and it changes it for one row.
+
+## 6. Implementation discipline: this branch has concurrent history
+
+`feat/target-biology-hardening` received an independent fix wave in **`10735a1`**, from a separate
+session's whole-branch review, after the work this spec builds on. It changed files this spec's
+tasks also touch:
+
+- `interface/routes/target_biology.py` — `_patch_updates`'s null branch now keeps `compound` (so a
+  null **clears** the reference) while `provenance` and `ligands` keep null-means-leave-alone
+- `domain/target_biology/essentiality.py` — `update()` rejects an explicitly-null `classification`
+- `domain/target_biology/hypomorph.py` — `_validate` rejects an explicitly-null `growth_defect`
+
+Those are corrections to real defects — a 500 where a 422 belonged, and a silently-ignored clear.
+
+**Therefore: task briefs for this spec specify changes as deltas against HEAD and never reproduce a
+surrounding function.** An implementer told to "write `_patch_updates` as follows" would delete the
+`compound` guard and nobody would notice, because no test of *this* spec covers it. Read the file,
+change the lines you own, leave the rest.
+
+The same caution applies to `provenance-dialog.tsx`, which that commit also changed (an untouched
+save is now a no-op).
 
 ## Deliberately out of scope
 
