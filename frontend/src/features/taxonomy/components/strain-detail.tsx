@@ -94,15 +94,21 @@ export function StrainDetailPage({ strainId }: StrainDetailPageProps) {
       <header className="flex flex-col gap-2">
         <div className="flex flex-wrap items-center gap-3">
           <h1 className="text-2xl font-bold tracking-tight text-foreground">{strain.name}</h1>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            className="ml-auto"
-            onClick={() => setEditOpen(true)}
-          >
-            Edit
-          </Button>
+          {strain.is_shared ? (
+            <span className="ml-auto text-xs italic text-muted-foreground">
+              Reference data — managed by import
+            </span>
+          ) : (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="ml-auto"
+              onClick={() => setEditOpen(true)}
+            >
+              Edit
+            </Button>
+          )}
         </div>
       </header>
 
