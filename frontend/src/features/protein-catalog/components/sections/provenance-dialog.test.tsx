@@ -109,6 +109,22 @@ describe("ProvenanceDialog", () => {
     expect(onSave.mock.calls[0][0].citations).toHaveLength(3);
   });
 
+  it("clears a populated date instead of resending the stale value", () => {
+    const onSave = vi.fn();
+    render(
+      <ProvenanceDialog
+        open
+        fields={SCHEMA_FIELDS}
+        value={EXISTING}
+        onSave={onSave}
+        onClose={vi.fn()}
+      />,
+    );
+    fireEvent.change(screen.getByLabelText(/observed on/i), { target: { value: "" } });
+    fireEvent.click(screen.getByRole("button", { name: /save/i }));
+    expect(onSave.mock.calls[0][0].observed_on).toBeNull();
+  });
+
   it("has an explicit cancel alongside save", () => {
     render(
       <ProvenanceDialog

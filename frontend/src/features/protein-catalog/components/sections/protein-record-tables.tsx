@@ -27,6 +27,7 @@ import { useTargetBiologySchema } from "../../hooks/use-target-biology-schema";
 import {
   type Column,
   EditableRecordTable,
+  defaultProvenance,
   isAiGenerated,
   numOrNull,
   provColumns,
@@ -90,6 +91,7 @@ export function ProteinProductionTable({
 }) {
   const onSuccess = useInvalidateProteinTargetBiology(proteinId);
   const { data: schema } = useTargetBiologySchema();
+  const provenanceFields = schema?.provenance.fields ?? [];
   const create = useCreateProteinProductionApiV1ProteinsProteinIdTargetBiologyProteinProductionPost(
     { mutation: { onSuccess } },
   );
@@ -107,7 +109,7 @@ export function ProteinProductionTable({
       isAiRow={(r) => isAiGenerated(r.provenance.generation_method)}
       columns={PROD_COLUMNS}
       emptyDraft={PROD_EMPTY}
-      provenanceFields={schema?.provenance.fields ?? []}
+      provenanceFields={provenanceFields}
       toDraft={(p) => ({
         status: p.status,
         expression_host: p.expression_host ?? "",
@@ -125,7 +127,13 @@ export function ProteinProductionTable({
         version: d.version,
       })}
       onCreate={(body) =>
-        create.mutateAsync({ proteinId, data: body as ProteinProductionWriteBody })
+        create.mutateAsync({
+          proteinId,
+          data: {
+            ...(body as Omit<ProteinProductionWriteBody, "provenance">),
+            provenance: defaultProvenance(provenanceFields),
+          },
+        })
       }
       onUpdate={(id, body) =>
         update.mutateAsync({ recordId: id, data: body as ProteinProductionPatchBody })
@@ -189,6 +197,7 @@ export function ProteinActivityAssayTable({
 }) {
   const onSuccess = useInvalidateProteinTargetBiology(proteinId);
   const { data: schema } = useTargetBiologySchema();
+  const provenanceFields = schema?.provenance.fields ?? [];
   const create =
     useCreateProteinActivityAssayApiV1ProteinsProteinIdTargetBiologyProteinActivityAssayPost({
       mutation: { onSuccess },
@@ -207,7 +216,7 @@ export function ProteinActivityAssayTable({
       isAiRow={(r) => isAiGenerated(r.provenance.generation_method)}
       columns={ASSAY_COLUMNS}
       emptyDraft={ASSAY_EMPTY}
-      provenanceFields={schema?.provenance.fields ?? []}
+      provenanceFields={provenanceFields}
       toDraft={(a) => ({
         activity_measured: a.activity_measured,
         readout: a.readout ?? "",
@@ -225,7 +234,13 @@ export function ProteinActivityAssayTable({
         version: d.version,
       })}
       onCreate={(body) =>
-        create.mutateAsync({ proteinId, data: body as ProteinActivityAssayWriteBody })
+        create.mutateAsync({
+          proteinId,
+          data: {
+            ...(body as Omit<ProteinActivityAssayWriteBody, "provenance">),
+            provenance: defaultProvenance(provenanceFields),
+          },
+        })
       }
       onUpdate={(id, body) =>
         update.mutateAsync({ recordId: id, data: body as ProteinActivityAssayPatchBody })
@@ -313,6 +328,7 @@ export function UnpublishedStructureTable({
 }) {
   const onSuccess = useInvalidateProteinTargetBiology(proteinId);
   const { data: schema } = useTargetBiologySchema();
+  const provenanceFields = schema?.provenance.fields ?? [];
   const create =
     useCreateUnpublishedStructureApiV1ProteinsProteinIdTargetBiologyUnpublishedStructurePost({
       mutation: { onSuccess },
@@ -331,7 +347,7 @@ export function UnpublishedStructureTable({
       isAiRow={(r) => isAiGenerated(r.provenance.generation_method)}
       columns={STRUCT_COLUMNS}
       emptyDraft={STRUCT_EMPTY}
-      provenanceFields={schema?.provenance.fields ?? []}
+      provenanceFields={provenanceFields}
       toDraft={(s) => ({
         method: s.method ?? "",
         resolution: s.resolution != null ? String(s.resolution) : "",
@@ -347,7 +363,13 @@ export function UnpublishedStructureTable({
         version: d.version,
       })}
       onCreate={(body) =>
-        create.mutateAsync({ proteinId, data: body as UnpublishedStructureWriteBody })
+        create.mutateAsync({
+          proteinId,
+          data: {
+            ...(body as Omit<UnpublishedStructureWriteBody, "provenance">),
+            provenance: defaultProvenance(provenanceFields),
+          },
+        })
       }
       onUpdate={(id, body) =>
         update.mutateAsync({ recordId: id, data: body as UnpublishedStructurePatchBody })

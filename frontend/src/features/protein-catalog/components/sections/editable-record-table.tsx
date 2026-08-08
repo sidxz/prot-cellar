@@ -16,6 +16,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/shared/components/ui/tooltip";
+import type { ProvenanceBody, ProvenanceSourceType } from "@/shared/lib/api/model";
 import { showError, showSuccess } from "@/shared/lib/toast";
 import { cn } from "@/shared/lib/utils";
 import { BookOpen, Check, Loader2, Pencil, Plus, Trash2, X } from "lucide-react";
@@ -26,6 +27,16 @@ import type { FieldDescriptor } from "../../hooks/use-target-biology-schema";
 import { ProvenanceDialog } from "./provenance-dialog";
 
 export const humanize = (s: string) => s.replace(/_/g, " ");
+
+/** The only provenance a brand-new record can carry at create time: `source_type` is the
+ * one field `*WriteBody.provenance` requires, and the curator sets the rest — citations,
+ * contributor, observed date — through the Provenance… dialog right after creating. Reads
+ * the descriptor's own first offered `source_type` rather than a hard-coded literal, so this
+ * tracks the backend's enum instead of drifting from it if it's ever reordered or renamed. */
+export function defaultProvenance(provenanceFields: FieldDescriptor[]): ProvenanceBody {
+  const sourceType = provenanceFields.find((f) => f.name === "source_type")?.options?.[0];
+  return { source_type: (sourceType ?? "published") as ProvenanceSourceType };
+}
 
 type BadgeVariant = NonNullable<ComponentProps<typeof Badge>["variant"]>;
 

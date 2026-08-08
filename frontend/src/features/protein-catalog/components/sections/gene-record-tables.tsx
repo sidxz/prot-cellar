@@ -44,6 +44,7 @@ import { essentialityBadgeVariant } from "./axis-annotations-section";
 import {
   type Column,
   EditableRecordTable,
+  defaultProvenance,
   humanize,
   isAiGenerated,
   numOrNull,
@@ -104,6 +105,7 @@ export function EssentialityTable({
 }) {
   const onSuccess = useInvalidateGeneTargetBiology(geneId);
   const { data: schema } = useTargetBiologySchema();
+  const provenanceFields = schema?.provenance.fields ?? [];
   const create = useCreateEssentialityApiV1GenesGeneIdTargetBiologyEssentialityPost({
     mutation: { onSuccess },
   });
@@ -122,7 +124,7 @@ export function EssentialityTable({
       isAiRow={(r) => isAiGenerated(r.provenance.generation_method)}
       columns={ESS_COLUMNS}
       emptyDraft={ESS_EMPTY}
-      provenanceFields={schema?.provenance.fields ?? []}
+      provenanceFields={provenanceFields}
       toDraft={(e) => ({
         classification: e.classification,
         condition: e.condition ?? "",
@@ -137,7 +139,15 @@ export function EssentialityTable({
         confidence: numOrNull(d.confidence),
         version: d.version,
       })}
-      onCreate={(body) => create.mutateAsync({ geneId, data: body as EssentialityWriteBody })}
+      onCreate={(body) =>
+        create.mutateAsync({
+          geneId,
+          data: {
+            ...(body as Omit<EssentialityWriteBody, "provenance">),
+            provenance: defaultProvenance(provenanceFields),
+          },
+        })
+      }
       onUpdate={(id, body) =>
         update.mutateAsync({ recordId: id, data: body as EssentialityPatchBody })
       }
@@ -191,6 +201,7 @@ export function VulnerabilityTable({
 }) {
   const onSuccess = useInvalidateGeneTargetBiology(geneId);
   const { data: schema } = useTargetBiologySchema();
+  const provenanceFields = schema?.provenance.fields ?? [];
   const create = useCreateVulnerabilityApiV1GenesGeneIdTargetBiologyVulnerabilityPost({
     mutation: { onSuccess },
   });
@@ -209,7 +220,7 @@ export function VulnerabilityTable({
       isAiRow={(r) => isAiGenerated(r.provenance.generation_method)}
       columns={VULN_COLUMNS}
       emptyDraft={VULN_EMPTY}
-      provenanceFields={schema?.provenance.fields ?? []}
+      provenanceFields={provenanceFields}
       toDraft={(v) => ({
         vulnerability_score: v.vulnerability_score != null ? String(v.vulnerability_score) : "",
         condition: v.condition ?? "",
@@ -224,7 +235,15 @@ export function VulnerabilityTable({
         confidence: numOrNull(d.confidence),
         version: d.version,
       })}
-      onCreate={(body) => create.mutateAsync({ geneId, data: body as VulnerabilityWriteBody })}
+      onCreate={(body) =>
+        create.mutateAsync({
+          geneId,
+          data: {
+            ...(body as Omit<VulnerabilityWriteBody, "provenance">),
+            provenance: defaultProvenance(provenanceFields),
+          },
+        })
+      }
       onUpdate={(id, body) =>
         update.mutateAsync({ recordId: id, data: body as VulnerabilityPatchBody })
       }
@@ -280,6 +299,7 @@ export function HypomorphTable({
 }) {
   const onSuccess = useInvalidateGeneTargetBiology(geneId);
   const { data: schema } = useTargetBiologySchema();
+  const provenanceFields = schema?.provenance.fields ?? [];
   const create = useCreateHypomorphApiV1GenesGeneIdTargetBiologyHypomorphPost({
     mutation: { onSuccess },
   });
@@ -297,7 +317,7 @@ export function HypomorphTable({
       isAiRow={(r) => isAiGenerated(r.provenance.generation_method)}
       columns={HYPO_COLUMNS}
       emptyDraft={HYPO_EMPTY}
-      provenanceFields={schema?.provenance.fields ?? []}
+      provenanceFields={provenanceFields}
       toDraft={(h) => ({
         growth_defect: h.growth_defect,
         growth_defect_severity: h.growth_defect_severity ?? "",
@@ -312,7 +332,15 @@ export function HypomorphTable({
         method: strOrNull(d.method),
         version: d.version,
       })}
-      onCreate={(body) => create.mutateAsync({ geneId, data: body as HypomorphWriteBody })}
+      onCreate={(body) =>
+        create.mutateAsync({
+          geneId,
+          data: {
+            ...(body as Omit<HypomorphWriteBody, "provenance">),
+            provenance: defaultProvenance(provenanceFields),
+          },
+        })
+      }
       onUpdate={(id, body) =>
         update.mutateAsync({ recordId: id, data: body as HypomorphPatchBody })
       }
@@ -349,6 +377,7 @@ export function CrispriStrainTable({
 }) {
   const onSuccess = useInvalidateGeneTargetBiology(geneId);
   const { data: schema } = useTargetBiologySchema();
+  const provenanceFields = schema?.provenance.fields ?? [];
   const create = useCreateCrispriStrainApiV1GenesGeneIdTargetBiologyCrispriStrainPost({
     mutation: { onSuccess },
   });
@@ -366,10 +395,18 @@ export function CrispriStrainTable({
       isAiRow={(r) => isAiGenerated(r.provenance.generation_method)}
       columns={CRISPRI_COLUMNS}
       emptyDraft={CRISPRI_EMPTY}
-      provenanceFields={schema?.provenance.fields ?? []}
+      provenanceFields={provenanceFields}
       toDraft={(s) => ({ name: s.name, version: s.version })}
       toBody={(d): CrispriStrainPatchBody => ({ name: d.name, version: d.version })}
-      onCreate={(body) => create.mutateAsync({ geneId, data: body as CrispriStrainWriteBody })}
+      onCreate={(body) =>
+        create.mutateAsync({
+          geneId,
+          data: {
+            ...(body as Omit<CrispriStrainWriteBody, "provenance">),
+            provenance: defaultProvenance(provenanceFields),
+          },
+        })
+      }
       onUpdate={(id, body) =>
         update.mutateAsync({ recordId: id, data: body as CrispriStrainPatchBody })
       }
@@ -447,6 +484,7 @@ export function ResistanceMutationTable({
 }) {
   const onSuccess = useInvalidateGeneTargetBiology(geneId);
   const { data: schema } = useTargetBiologySchema();
+  const provenanceFields = schema?.provenance.fields ?? [];
   const create = useCreateResistanceMutationApiV1GenesGeneIdTargetBiologyResistanceMutationPost({
     mutation: { onSuccess },
   });
@@ -465,7 +503,7 @@ export function ResistanceMutationTable({
       isAiRow={(r) => isAiGenerated(r.provenance.generation_method)}
       columns={RES_COLUMNS}
       emptyDraft={RES_EMPTY}
-      provenanceFields={schema?.provenance.fields ?? []}
+      provenanceFields={provenanceFields}
       toDraft={(m) => ({
         mutation: m.mutation,
         mic_shift: m.mic_shift != null ? String(m.mic_shift) : "",
@@ -482,7 +520,15 @@ export function ResistanceMutationTable({
         method: strOrNull(d.method),
         version: d.version,
       })}
-      onCreate={(body) => create.mutateAsync({ geneId, data: body as ResistanceMutationWriteBody })}
+      onCreate={(body) =>
+        create.mutateAsync({
+          geneId,
+          data: {
+            ...(body as Omit<ResistanceMutationWriteBody, "provenance">),
+            provenance: defaultProvenance(provenanceFields),
+          },
+        })
+      }
       onUpdate={(id, body) =>
         update.mutateAsync({ recordId: id, data: body as ResistanceMutationPatchBody })
       }

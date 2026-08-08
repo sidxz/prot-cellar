@@ -97,7 +97,7 @@ export function ProvenanceDialog({ open, fields, value, onSave, onClose }: Prove
         body[f.name] = rowsOf(f).map((row) =>
           Object.fromEntries(itemFields.map((sf) => [sf.name, subFieldOrNull(row[sf.name])])),
         );
-      } else if (f.type === "string" || f.type === "text") {
+      } else if (f.type === "string" || f.type === "text" || f.type === "date") {
         body[f.name] = subFieldOrNull(draft[f.name]);
       } else {
         body[f.name] = draft[f.name];

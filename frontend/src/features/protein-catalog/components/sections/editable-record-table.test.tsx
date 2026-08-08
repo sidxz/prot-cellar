@@ -7,6 +7,7 @@ import {
   type Column,
   EditableRecordTable,
   ProvenanceLegend,
+  defaultProvenance,
   generationMethodBadgeVariant,
   isAiGenerated,
 } from "./editable-record-table";
@@ -194,6 +195,25 @@ describe("isAiGenerated", () => {
     expect(isAiGenerated("imported")).toBe(false);
     expect(isAiGenerated("manual")).toBe(false);
     expect(isAiGenerated(null)).toBe(false);
+  });
+});
+
+describe("defaultProvenance", () => {
+  it("picks the descriptor's first offered source_type", () => {
+    const fields = [
+      {
+        name: "source_type",
+        label: "Source type",
+        type: "enum",
+        required: true,
+        options: ["published", "preprint"],
+      },
+    ];
+    expect(defaultProvenance(fields)).toEqual({ source_type: "published" });
+  });
+
+  it("falls back to a valid literal when the descriptor hasn't loaded yet", () => {
+    expect(defaultProvenance([])).toEqual({ source_type: "published" });
   });
 });
 
