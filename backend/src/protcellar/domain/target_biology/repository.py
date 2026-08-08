@@ -150,6 +150,10 @@ class SuggestedValuesReader(Protocol):
     """Distinct values already stored for each free-text vocabulary field, across all
     eight record kinds. Keyed by ``(kind, field)`` using their plain string names —
     the domain layer does not know about the application-level ``RecordKind`` enum.
+
+    Scoped to the caller's workspace (its own values plus shared reference data) —
+    these are the same records the rest of this context protects, so a vocabulary
+    hint must not leak a value off a private row to a different tenant.
     """
 
-    async def for_all_kinds(self) -> dict[tuple[str, str], list[str]]: ...
+    async def for_all_kinds(self, workspace_id: uuid.UUID) -> dict[tuple[str, str], list[str]]: ...

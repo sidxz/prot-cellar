@@ -286,3 +286,32 @@ async def test_shared_essentiality_cannot_be_mutated(
 
     deleted = await client.delete(f"/api/v1/target-biology/essentiality/{record_id}")
     assert deleted.status_code == 404, deleted.text
+
+
+async def test_workspace_essentiality_condition_does_not_leak_into_another_workspaces_schema(
+    client: AsyncClient, other_workspace_client: AsyncClient
+) -> None:
+    """GET /target-biology/schema surfaces suggested free-text values via a
+    process-wide singleton cache (SQLAlchemySuggestedValuesReader) — scoping
+    its query alone is not enough, since a cache keyed by nothing would still
+    hand workspace A's distinctive value to workspace B for the rest of the
+    TTL window. ``internal`` provenance is exactly the private-observation
+    case this whole plan protects.
+    """
+    distinctive_condition = f"isolation-condition-{uuid.uuid4()}"
+    created = await client.post(
+        f"/api/v1/genes/{uuid.uuid4()}/target-biology/essentiality",
+        json={
+            "classification": "essential",
+            "condition": distinctive_condition,
+            "provenance": {"source_type": "internal", "citations": []},
+        },
+    )
+    assert created.status_code == 201, created.text
+
+    schema = await other_workspace_client.get("/api/v1/target-biology/schema")
+    assert schema.status_code == 200, schema.text
+    condition_field = next(
+        f for f in schema.json()["kinds"]["essentiality"]["fields"] if f["name"] == "condition"
+    )
+    assert distinctive_condition not in condition_field["suggested_values"]

@@ -2,15 +2,17 @@
 
 ponytail: N unindexed ``SELECT DISTINCT`` scans per cache miss (one per (kind, field)
 pair, 18 today) — ``LIMIT 200`` bounds the result, not the scan. Fronted by a short
-in-process TTL cache so the common case (one process serving many form-opens in a row)
-pays that cost roughly once a minute rather than on every request. Add indexes on the
-scanned columns, or a materialized/curated vocabulary table refreshed on write, if the
-cache-miss cost or the staleness window ever becomes a real problem.
+in-process TTL cache, keyed per workspace, so the common case (one process serving
+many form-opens in a row from the same tenant) pays that cost roughly once a minute
+rather than on every request. Add indexes on the scanned columns, or a
+materialized/curated vocabulary table refreshed on write, if the cache-miss cost or
+the staleness window ever becomes a real problem.
 """
 
 from __future__ import annotations
 
 import time
+import uuid
 from collections.abc import Callable
 
 from sqlalchemy import distinct, select
@@ -29,6 +31,7 @@ from protcellar.infrastructure.persistence.sqlalchemy.target_biology.models impo
     UnpublishedStructureModel,
     VulnerabilityRecordModel,
 )
+from protcellar.infrastructure.persistence.sqlalchemy.workspace_scope import readable_by
 
 _LIMIT = 200
 
@@ -69,11 +72,18 @@ _VOCABULARY_COLUMNS: dict[RecordKind, tuple[str, ...]] = {
 
 
 class SQLAlchemySuggestedValuesReader(SuggestedValuesReader):
-    """Reads the distinct values already stored for each vocabulary field.
+    """Reads the distinct values already stored for each vocabulary field, scoped to
+    a workspace's own records plus shared reference data (``readable_by``).
 
     Holds no per-request state (unlike the UoW-based repositories) — every call opens
     its own session — so it is safe, and for the cache below to do anything it is
     necessary, to register this as a singleton rather than build one per request.
+
+    The cache is a dict keyed by workspace_id, not one shared blob: a workspace-scoped
+    query alone is not enough once the result is cached process-wide — the *next*
+    caller, in any other workspace, would be served the first caller's cached values
+    for up to the TTL window. Keying by workspace_id is what makes a singleton reader
+    safe to share across tenants.
     """
 
     def __init__(
@@ -86,17 +96,18 @@ class SQLAlchemySuggestedValuesReader(SuggestedValuesReader):
         self._session_factory = session_factory
         self._ttl_seconds = ttl_seconds
         self._clock = clock
-        self._cache: tuple[float, dict[tuple[str, str], list[str]]] | None = None
+        self._cache: dict[uuid.UUID, tuple[float, dict[tuple[str, str], list[str]]]] = {}
 
-    async def for_all_kinds(self) -> dict[tuple[str, str], list[str]]:
+    async def for_all_kinds(self, workspace_id: uuid.UUID) -> dict[tuple[str, str], list[str]]:
         now = self._clock()
-        if self._cache is not None and now - self._cache[0] < self._ttl_seconds:
-            return self._cache[1]
-        out = await self._fetch()
-        self._cache = (now, out)
+        cached = self._cache.get(workspace_id)
+        if cached is not None and now - cached[0] < self._ttl_seconds:
+            return cached[1]
+        out = await self._fetch(workspace_id)
+        self._cache[workspace_id] = (now, out)
         return out
 
-    async def _fetch(self) -> dict[tuple[str, str], list[str]]:
+    async def _fetch(self, workspace_id: uuid.UUID) -> dict[tuple[str, str], list[str]]:
         out: dict[tuple[str, str], list[str]] = {}
         async with self._session_factory() as session:
             for kind, fields in _VOCABULARY_COLUMNS.items():
@@ -105,7 +116,7 @@ class SQLAlchemySuggestedValuesReader(SuggestedValuesReader):
                     column = getattr(model, field)
                     rows = await session.execute(
                         select(distinct(column))
-                        .where(column.is_not(None))
+                        .where(column.is_not(None), readable_by(model, workspace_id))
                         .order_by(column)
                         .limit(_LIMIT)
                     )

@@ -588,7 +588,7 @@ async def get_target_biology_schema(
     # module, so importing it back at module level here would be circular.
     from protcellar.interface.target_biology_schema import describe_write_surface
 
-    return describe_write_surface(await reader.for_all_kinds())
+    return describe_write_surface(await reader.for_all_kinds(auth.workspace_id))
 
 
 @router.get("/genes/{gene_id}/target-biology", response_model=GeneTargetBiologyResponse)
