@@ -6,7 +6,7 @@ import uuid
 from datetime import date
 from typing import Any
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Query
 from pydantic import BaseModel
 
 from protcellar.application.target_biology.crud import RecordKind
@@ -16,6 +16,7 @@ from protcellar.application.target_biology.get_gene_target_biology import (
 from protcellar.application.target_biology.get_protein_target_biology import (
     GetProteinTargetBiologyQuery,
 )
+from protcellar.application.target_biology.list_records import ListTargetBiologyRecordsQuery
 from protcellar.domain.shared.compound_ref import CompoundRef
 from protcellar.domain.shared.global_workspace import SHARED_WORKSPACE_ID
 from protcellar.domain.shared.provenance import (
@@ -39,10 +40,17 @@ from protcellar.interface.dependencies import (
     DeleteTargetBiologyRecordDep,
     GetGeneTargetBiologyDep,
     GetProteinTargetBiologyDep,
+    ListTargetBiologyRecordsDep,
     SuggestedValuesReaderDep,
     UpdateTargetBiologyRecordDep,
 )
 from protcellar.interface.error_handlers import result_to_response
+from protcellar.interface.pagination import (
+    BULK_PAGE_SIZE,
+    PaginatedResponse,
+    clamp_limit,
+    parse_cursor,
+)
 
 router = APIRouter(prefix="/api/v1", tags=["target-biology"])
 
@@ -344,6 +352,20 @@ class ProteinTargetBiologyResponse(BaseModel):
     unpublished_structure: list[UnpublishedStructureResponse]
 
 
+# The bulk list route (``GET /target-biology/{kind}``) returns one of these eight
+# per item, depending on ``kind`` — see ``_to_list_item`` below.
+TargetBiologyListItem = (
+    EssentialityResponse
+    | VulnerabilityResponse
+    | HypomorphResponse
+    | CrispriStrainResponse
+    | ResistanceMutationResponse
+    | ProteinProductionResponse
+    | ProteinActivityAssayResponse
+    | UnpublishedStructureResponse
+)
+
+
 # --- Inbound write bodies ---------------------------------------------------
 
 
@@ -606,6 +628,66 @@ async def get_target_biology_schema(
     from protcellar.interface.target_biology_schema import describe_write_surface
 
     return describe_write_surface(await reader.for_all_kinds(auth.workspace_id))
+
+
+def _to_list_item(kind: RecordKind, record: Any) -> TargetBiologyListItem:
+    """Dispatch a bulk-list row to its per-kind response — the ``kind`` path
+    param fixes which of the eight domain types ``record`` actually is.
+    """
+    match kind:
+        case RecordKind.ESSENTIALITY:
+            return EssentialityResponse.from_domain(record)
+        case RecordKind.VULNERABILITY:
+            return VulnerabilityResponse.from_domain(record)
+        case RecordKind.HYPOMORPH:
+            return HypomorphResponse.from_domain(record)
+        case RecordKind.CRISPRI_STRAIN:
+            return CrispriStrainResponse.from_domain(record)
+        case RecordKind.RESISTANCE_MUTATION:
+            return ResistanceMutationResponse.from_domain(record)
+        case RecordKind.PROTEIN_PRODUCTION:
+            return ProteinProductionResponse.from_domain(record)
+        case RecordKind.PROTEIN_ACTIVITY_ASSAY:
+            return ProteinActivityAssayResponse.from_domain(record)
+        case RecordKind.UNPUBLISHED_STRUCTURE:
+            return UnpublishedStructureResponse.from_domain(record)
+        case _:  # pragma: no cover — RecordKind's 8 members are all matched above
+            raise AssertionError(f"unhandled RecordKind: {kind!r}")
+
+
+# Registered after /target-biology/schema (above) and before the parameterized
+# write routes (below): {kind} would otherwise shadow the literal "schema" path
+# segment, since both are two-segment GETs under /target-biology/.
+@router.get("/target-biology/{kind}", response_model=PaginatedResponse[TargetBiologyListItem])
+async def list_target_biology(
+    kind: RecordKind,
+    auth: AuthDep,
+    use_case: ListTargetBiologyRecordsDep,
+    organism_id: uuid.UUID | None = None,
+    strain_id: uuid.UUID | None = None,
+    gene_id: list[uuid.UUID] | None = Query(default=None),
+    protein_id: list[uuid.UUID] | None = Query(default=None),
+    cursor: str | None = None,
+    limit: int | None = None,
+) -> PaginatedResponse[TargetBiologyListItem]:
+    """Every record of one kind, across genes/proteins — not just one gene's
+    bundle. ``kind`` is validated against ``RecordKind`` by FastAPI before this
+    body runs, so an unknown kind 422s with no database round trip.
+    """
+    query = ListTargetBiologyRecordsQuery(
+        kind=kind,
+        cursor_id=parse_cursor(cursor),
+        limit=clamp_limit(limit, max_size=BULK_PAGE_SIZE),
+        gene_ids=tuple(gene_id) if gene_id else (),
+        protein_ids=tuple(protein_id) if protein_id else (),
+        organism_id=organism_id,
+        strain_id=strain_id,
+    )
+    page = result_to_response(await use_case(query, auth=auth))
+    return PaginatedResponse(
+        items=[_to_list_item(kind, record) for record in page.items],
+        next_cursor=page.next_cursor,
+    )
 
 
 @router.get("/genes/{gene_id}/target-biology", response_model=GeneTargetBiologyResponse)

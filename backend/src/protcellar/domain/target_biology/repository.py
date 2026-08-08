@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import uuid
+from collections.abc import Sequence
 from typing import Protocol, runtime_checkable
 
 from protcellar.domain.target_biology.crispri_strain import CrispriStrain
@@ -27,6 +28,18 @@ class EssentialityRepository(Protocol):
         self, workspace_id: uuid.UUID, gene_id: uuid.UUID
     ) -> list[Essentiality]: ...
 
+    async def list_paginated(
+        self,
+        workspace_id: uuid.UUID,
+        *,
+        gene_ids: Sequence[uuid.UUID] = (),
+        protein_ids: Sequence[uuid.UUID] = (),
+        organism_id: uuid.UUID | None = None,
+        strain_id: uuid.UUID | None = None,
+        cursor_id: uuid.UUID | None = None,
+        limit: int | None = None,
+    ) -> list[Essentiality]: ...
+
     async def save(self, aggregate: Essentiality) -> None: ...
 
     async def delete(self, workspace_id: uuid.UUID, id: uuid.UUID) -> None: ...
@@ -44,6 +57,18 @@ class CrispriStrainRepository(Protocol):
         self, workspace_id: uuid.UUID, target_gene_id: uuid.UUID
     ) -> list[CrispriStrain]: ...
 
+    async def list_paginated(
+        self,
+        workspace_id: uuid.UUID,
+        *,
+        gene_ids: Sequence[uuid.UUID] = (),
+        protein_ids: Sequence[uuid.UUID] = (),
+        organism_id: uuid.UUID | None = None,
+        strain_id: uuid.UUID | None = None,
+        cursor_id: uuid.UUID | None = None,
+        limit: int | None = None,
+    ) -> list[CrispriStrain]: ...
+
     async def save(self, aggregate: CrispriStrain) -> None: ...
 
 
@@ -59,6 +84,18 @@ class VulnerabilityRepository(Protocol):
         self, workspace_id: uuid.UUID, gene_id: uuid.UUID
     ) -> list[Vulnerability]: ...
 
+    async def list_paginated(
+        self,
+        workspace_id: uuid.UUID,
+        *,
+        gene_ids: Sequence[uuid.UUID] = (),
+        protein_ids: Sequence[uuid.UUID] = (),
+        organism_id: uuid.UUID | None = None,
+        strain_id: uuid.UUID | None = None,
+        cursor_id: uuid.UUID | None = None,
+        limit: int | None = None,
+    ) -> list[Vulnerability]: ...
+
     async def save(self, aggregate: Vulnerability) -> None: ...
 
 
@@ -72,6 +109,18 @@ class HypomorphRepository(Protocol):
 
     async def find_owned_by_gene(
         self, workspace_id: uuid.UUID, gene_id: uuid.UUID
+    ) -> list[Hypomorph]: ...
+
+    async def list_paginated(
+        self,
+        workspace_id: uuid.UUID,
+        *,
+        gene_ids: Sequence[uuid.UUID] = (),
+        protein_ids: Sequence[uuid.UUID] = (),
+        organism_id: uuid.UUID | None = None,
+        strain_id: uuid.UUID | None = None,
+        cursor_id: uuid.UUID | None = None,
+        limit: int | None = None,
     ) -> list[Hypomorph]: ...
 
     async def save(self, aggregate: Hypomorph) -> None: ...
@@ -91,6 +140,18 @@ class ResistanceMutationRepository(Protocol):
         self, workspace_id: uuid.UUID, gene_id: uuid.UUID
     ) -> list[ResistanceMutation]: ...
 
+    async def list_paginated(
+        self,
+        workspace_id: uuid.UUID,
+        *,
+        gene_ids: Sequence[uuid.UUID] = (),
+        protein_ids: Sequence[uuid.UUID] = (),
+        organism_id: uuid.UUID | None = None,
+        strain_id: uuid.UUID | None = None,
+        cursor_id: uuid.UUID | None = None,
+        limit: int | None = None,
+    ) -> list[ResistanceMutation]: ...
+
     async def save(self, aggregate: ResistanceMutation) -> None: ...
 
 
@@ -106,6 +167,18 @@ class ProteinProductionRepository(Protocol):
 
     async def find_owned_by_protein(
         self, workspace_id: uuid.UUID, protein_id: uuid.UUID
+    ) -> list[ProteinProduction]: ...
+
+    async def list_paginated(
+        self,
+        workspace_id: uuid.UUID,
+        *,
+        gene_ids: Sequence[uuid.UUID] = (),
+        protein_ids: Sequence[uuid.UUID] = (),
+        organism_id: uuid.UUID | None = None,
+        strain_id: uuid.UUID | None = None,
+        cursor_id: uuid.UUID | None = None,
+        limit: int | None = None,
     ) -> list[ProteinProduction]: ...
 
     async def save(self, aggregate: ProteinProduction) -> None: ...
@@ -125,6 +198,18 @@ class ProteinActivityAssayRepository(Protocol):
         self, workspace_id: uuid.UUID, protein_id: uuid.UUID
     ) -> list[ProteinActivityAssay]: ...
 
+    async def list_paginated(
+        self,
+        workspace_id: uuid.UUID,
+        *,
+        gene_ids: Sequence[uuid.UUID] = (),
+        protein_ids: Sequence[uuid.UUID] = (),
+        organism_id: uuid.UUID | None = None,
+        strain_id: uuid.UUID | None = None,
+        cursor_id: uuid.UUID | None = None,
+        limit: int | None = None,
+    ) -> list[ProteinActivityAssay]: ...
+
     async def save(self, aggregate: ProteinActivityAssay) -> None: ...
 
 
@@ -140,6 +225,18 @@ class UnpublishedStructureRepository(Protocol):
 
     async def find_owned_by_protein(
         self, workspace_id: uuid.UUID, protein_id: uuid.UUID
+    ) -> list[UnpublishedStructure]: ...
+
+    async def list_paginated(
+        self,
+        workspace_id: uuid.UUID,
+        *,
+        gene_ids: Sequence[uuid.UUID] = (),
+        protein_ids: Sequence[uuid.UUID] = (),
+        organism_id: uuid.UUID | None = None,
+        strain_id: uuid.UUID | None = None,
+        cursor_id: uuid.UUID | None = None,
+        limit: int | None = None,
     ) -> list[UnpublishedStructure]: ...
 
     async def save(self, aggregate: UnpublishedStructure) -> None: ...

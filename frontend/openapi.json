@@ -2550,6 +2550,154 @@
         }
       }
     },
+    "/api/v1/target-biology/{kind}": {
+      "get": {
+        "tags": [
+          "target-biology"
+        ],
+        "summary": "List Target Biology",
+        "description": "Every record of one kind, across genes/proteins \u2014 not just one gene's\nbundle. ``kind`` is validated against ``RecordKind`` by FastAPI before this\nbody runs, so an unknown kind 422s with no database round trip.",
+        "operationId": "list_target_biology_api_v1_target_biology__kind__get",
+        "parameters": [
+          {
+            "name": "kind",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/RecordKind"
+            }
+          },
+          {
+            "name": "organism_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Organism Id"
+            }
+          },
+          {
+            "name": "strain_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Strain Id"
+            }
+          },
+          {
+            "name": "gene_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "format": "uuid"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Gene Id"
+            }
+          },
+          {
+            "name": "protein_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "format": "uuid"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Protein Id"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedResponse_Union_EssentialityResponse__VulnerabilityResponse__HypomorphResponse__CrispriStrainResponse__ResistanceMutationResponse__ProteinProductionResponse__ProteinActivityAssayResponse__UnpublishedStructureResponse__"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/genes/{gene_id}/target-biology": {
       "get": {
         "tags": [
@@ -7942,6 +8090,69 @@
           "items"
         ],
         "title": "PaginatedResponse[TargetResponse]"
+      },
+      "PaginatedResponse_Union_EssentialityResponse__VulnerabilityResponse__HypomorphResponse__CrispriStrainResponse__ResistanceMutationResponse__ProteinProductionResponse__ProteinActivityAssayResponse__UnpublishedStructureResponse__": {
+        "properties": {
+          "items": {
+            "items": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/EssentialityResponse"
+                },
+                {
+                  "$ref": "#/components/schemas/VulnerabilityResponse"
+                },
+                {
+                  "$ref": "#/components/schemas/HypomorphResponse"
+                },
+                {
+                  "$ref": "#/components/schemas/CrispriStrainResponse"
+                },
+                {
+                  "$ref": "#/components/schemas/ResistanceMutationResponse"
+                },
+                {
+                  "$ref": "#/components/schemas/ProteinProductionResponse"
+                },
+                {
+                  "$ref": "#/components/schemas/ProteinActivityAssayResponse"
+                },
+                {
+                  "$ref": "#/components/schemas/UnpublishedStructureResponse"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Cursor"
+          },
+          "total_count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Total Count"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items"
+        ],
+        "title": "PaginatedResponse[Union[EssentialityResponse, VulnerabilityResponse, HypomorphResponse, CrispriStrainResponse, ResistanceMutationResponse, ProteinProductionResponse, ProteinActivityAssayResponse, UnpublishedStructureResponse]]"
       },
       "ParamFieldResponse": {
         "properties": {

@@ -46,6 +46,7 @@ from protcellar.interface.dependencies._target_biology import (
     DeleteTargetBiologyRecordDep,
     GetGeneTargetBiologyDep,
     GetProteinTargetBiologyDep,
+    ListTargetBiologyRecordsDep,
     SuggestedValuesReaderDep,
     UpdateTargetBiologyRecordDep,
 )
@@ -120,6 +121,7 @@ __all__ = [
     "ListStrainsDep",
     "ListTagEntitiesDep",
     "ListTagsDep",
+    "ListTargetBiologyRecordsDep",
     "ListTargetsDep",
     "MergeTagsDep",
     "RenameTagDep",

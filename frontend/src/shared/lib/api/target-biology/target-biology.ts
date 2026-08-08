@@ -36,6 +36,8 @@ import type {
   HypomorphPatchBody,
   HypomorphResponse,
   HypomorphWriteBody,
+  ListTargetBiologyApiV1TargetBiologyKindGetParams,
+  PaginatedResponseUnionEssentialityResponseVulnerabilityResponseHypomorphResponseCrispriStrainResponseResistanceMutationResponseProteinProductionResponseProteinActivityAssayResponseUnpublishedStructureResponse,
   ProteinActivityAssayPatchBody,
   ProteinActivityAssayResponse,
   ProteinActivityAssayWriteBody,
@@ -144,6 +146,109 @@ export function useGetTargetBiologySchemaApiV1TargetBiologySchemaGet<TData = Awa
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
   const queryOptions = getGetTargetBiologySchemaApiV1TargetBiologySchemaGetQueryOptions(options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
+/**
+ * Every record of one kind, across genes/proteins — not just one gene's
+bundle. ``kind`` is validated against ``RecordKind`` by FastAPI before this
+body runs, so an unknown kind 422s with no database round trip.
+ * @summary List Target Biology
+ */
+export const listTargetBiologyApiV1TargetBiologyKindGet = (
+    kind: RecordKind,
+    params?: ListTargetBiologyApiV1TargetBiologyKindGetParams,
+ signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<PaginatedResponseUnionEssentialityResponseVulnerabilityResponseHypomorphResponseCrispriStrainResponseResistanceMutationResponseProteinProductionResponseProteinActivityAssayResponseUnpublishedStructureResponse>(
+      {url: `/api/v1/target-biology/${kind}`, method: 'GET',
+        params, signal
+    },
+      );
+    }
+  
+
+
+
+export const getListTargetBiologyApiV1TargetBiologyKindGetQueryKey = (kind?: RecordKind,
+    params?: ListTargetBiologyApiV1TargetBiologyKindGetParams,) => {
+    return [
+    `/api/v1/target-biology/${kind}`, ...(params ? [params]: [])
+    ] as const;
+    }
+
+    
+export const getListTargetBiologyApiV1TargetBiologyKindGetQueryOptions = <TData = Awaited<ReturnType<typeof listTargetBiologyApiV1TargetBiologyKindGet>>, TError = HTTPValidationError>(kind: RecordKind,
+    params?: ListTargetBiologyApiV1TargetBiologyKindGetParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listTargetBiologyApiV1TargetBiologyKindGet>>, TError, TData>>, }
+) => {
+
+const {query: queryOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListTargetBiologyApiV1TargetBiologyKindGetQueryKey(kind,params);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listTargetBiologyApiV1TargetBiologyKindGet>>> = ({ signal }) => listTargetBiologyApiV1TargetBiologyKindGet(kind,params, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(kind), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listTargetBiologyApiV1TargetBiologyKindGet>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type ListTargetBiologyApiV1TargetBiologyKindGetQueryResult = NonNullable<Awaited<ReturnType<typeof listTargetBiologyApiV1TargetBiologyKindGet>>>
+export type ListTargetBiologyApiV1TargetBiologyKindGetQueryError = HTTPValidationError
+
+
+export function useListTargetBiologyApiV1TargetBiologyKindGet<TData = Awaited<ReturnType<typeof listTargetBiologyApiV1TargetBiologyKindGet>>, TError = HTTPValidationError>(
+ kind: RecordKind,
+    params: undefined |  ListTargetBiologyApiV1TargetBiologyKindGetParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof listTargetBiologyApiV1TargetBiologyKindGet>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listTargetBiologyApiV1TargetBiologyKindGet>>,
+          TError,
+          Awaited<ReturnType<typeof listTargetBiologyApiV1TargetBiologyKindGet>>
+        > , 'initialData'
+      >, }
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListTargetBiologyApiV1TargetBiologyKindGet<TData = Awaited<ReturnType<typeof listTargetBiologyApiV1TargetBiologyKindGet>>, TError = HTTPValidationError>(
+ kind: RecordKind,
+    params?: ListTargetBiologyApiV1TargetBiologyKindGetParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listTargetBiologyApiV1TargetBiologyKindGet>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listTargetBiologyApiV1TargetBiologyKindGet>>,
+          TError,
+          Awaited<ReturnType<typeof listTargetBiologyApiV1TargetBiologyKindGet>>
+        > , 'initialData'
+      >, }
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListTargetBiologyApiV1TargetBiologyKindGet<TData = Awaited<ReturnType<typeof listTargetBiologyApiV1TargetBiologyKindGet>>, TError = HTTPValidationError>(
+ kind: RecordKind,
+    params?: ListTargetBiologyApiV1TargetBiologyKindGetParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listTargetBiologyApiV1TargetBiologyKindGet>>, TError, TData>>, }
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary List Target Biology
+ */
+
+export function useListTargetBiologyApiV1TargetBiologyKindGet<TData = Awaited<ReturnType<typeof listTargetBiologyApiV1TargetBiologyKindGet>>, TError = HTTPValidationError>(
+ kind: RecordKind,
+    params?: ListTargetBiologyApiV1TargetBiologyKindGetParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listTargetBiologyApiV1TargetBiologyKindGet>>, TError, TData>>, }
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getListTargetBiologyApiV1TargetBiologyKindGetQueryOptions(kind,params,options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 

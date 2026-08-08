@@ -15,6 +15,7 @@ from protcellar.application.target_biology.get_gene_target_biology import GetGen
 from protcellar.application.target_biology.get_protein_target_biology import (
     GetProteinTargetBiology,
 )
+from protcellar.application.target_biology.list_records import ListTargetBiologyRecords
 from protcellar.domain.target_biology.repository import SuggestedValuesReader
 
 from ._core import _get_use_case
@@ -24,6 +25,7 @@ __all__ = [
     "DeleteTargetBiologyRecordDep",
     "GetGeneTargetBiologyDep",
     "GetProteinTargetBiologyDep",
+    "ListTargetBiologyRecordsDep",
     "SuggestedValuesReaderDep",
     "UpdateTargetBiologyRecordDep",
 ]
@@ -42,6 +44,9 @@ UpdateTargetBiologyRecordDep = Annotated[
 ]
 DeleteTargetBiologyRecordDep = Annotated[
     DeleteTargetBiologyRecord, Depends(_get_use_case(DeleteTargetBiologyRecord))
+]
+ListTargetBiologyRecordsDep = Annotated[
+    ListTargetBiologyRecords, Depends(_get_use_case(ListTargetBiologyRecords))
 ]
 SuggestedValuesReaderDep = Annotated[
     SuggestedValuesReader, Depends(_get_use_case(SuggestedValuesReader))

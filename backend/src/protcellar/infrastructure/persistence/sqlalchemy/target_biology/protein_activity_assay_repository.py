@@ -3,12 +3,15 @@
 from __future__ import annotations
 
 import uuid
+from collections.abc import Sequence
 
 from sqlalchemy import select
 
 from protcellar.domain.target_biology.protein_activity_assay import ProteinActivityAssay
 from protcellar.domain.target_biology.repository import ProteinActivityAssayRepository
 from protcellar.infrastructure.persistence.sqlalchemy.base_repository import SQLAlchemyRepository
+from protcellar.infrastructure.persistence.sqlalchemy.protein_catalog.models import ProteinModel
+from protcellar.infrastructure.persistence.sqlalchemy.target_biology._bulk_query import query_page
 from protcellar.infrastructure.persistence.sqlalchemy.target_biology._provenance_json import (
     provenance_from_json,
     provenance_to_json,
@@ -86,6 +89,37 @@ class SQLAlchemyProteinActivityAssayRepository(
         )
         result = await self._session.execute(stmt)
         return [self._to_domain_tracked(m) for m in result.scalars()]
+
+    async def list_paginated(
+        self,
+        workspace_id: uuid.UUID,
+        *,
+        gene_ids: Sequence[uuid.UUID] = (),
+        protein_ids: Sequence[uuid.UUID] = (),
+        organism_id: uuid.UUID | None = None,
+        strain_id: uuid.UUID | None = None,
+        cursor_id: uuid.UUID | None = None,
+        limit: int | None = None,
+    ) -> list[ProteinActivityAssay]:
+        """Bulk, cursor-paginated read across every protein — ``GET /target-biology/{kind}``.
+
+        ``gene_ids`` is accepted but unused: every kind's ``list_paginated``
+        shares one call shape so the ``RecordKind``-keyed dispatch in the bulk-list
+        use case can call it uniformly.
+        """
+        models = await query_page(
+            self._session,
+            ProteinActivityAssayModel,
+            ProteinActivityAssayModel.protein_id,
+            parent=ProteinModel,
+            workspace_id=workspace_id,
+            parent_ids=protein_ids,
+            organism_id=organism_id,
+            strain_id=strain_id,
+            cursor_id=cursor_id,
+            limit=limit,
+        )
+        return [self._to_domain_tracked(m) for m in models]
 
     async def find_owned_by_protein(
         self, workspace_id: uuid.UUID, protein_id: uuid.UUID

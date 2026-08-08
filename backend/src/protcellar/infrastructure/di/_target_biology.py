@@ -17,6 +17,7 @@ from protcellar.application.target_biology.get_gene_target_biology import GetGen
 from protcellar.application.target_biology.get_protein_target_biology import (
     GetProteinTargetBiology,
 )
+from protcellar.application.target_biology.list_records import ListTargetBiologyRecords
 from protcellar.domain.target_biology.repository import SuggestedValuesReader
 from protcellar.infrastructure.messaging.event_dispatcher import EventDispatcher
 from protcellar.infrastructure.persistence.sqlalchemy.target_biology.crispri_strain_repository import (  # noqa: E501
@@ -95,6 +96,10 @@ def register_target_biology(container: Container) -> None:
         uow = AsyncUnitOfWork(c[async_sessionmaker])
         return DeleteTargetBiologyRecord(uow, _all_repos(uow))
 
+    def _list(c: Container) -> Any:
+        uow = AsyncUnitOfWork(c[async_sessionmaker])
+        return ListTargetBiologyRecords(uow, _all_repos(uow))
+
     def _suggested_values() -> Any:
         # No UoW: this reader holds no per-request state (each call opens its own
         # session), so it is registered as a singleton — which is also what lets its
@@ -107,6 +112,7 @@ def register_target_biology(container: Container) -> None:
     container.define(CreateTargetBiologyRecord, _create)
     container.define(UpdateTargetBiologyRecord, _update)
     container.define(DeleteTargetBiologyRecord, _delete)
+    container.define(ListTargetBiologyRecords, _list)
     # Protocol key + Singleton value: mypy wants a concrete type here (see the
     # identical `di/imports.py::JobEnqueuer` precedent for the same ignore).
     container.define(

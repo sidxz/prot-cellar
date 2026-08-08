@@ -9,6 +9,7 @@ import pytest
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
+from protcellar.domain.protein_catalog.gene import Gene
 from protcellar.domain.shared.compound_ref import CompoundRef
 from protcellar.domain.shared.global_workspace import SHARED_WORKSPACE_ID
 from protcellar.domain.shared.provenance import (
@@ -19,11 +20,18 @@ from protcellar.domain.shared.provenance import (
 )
 from protcellar.domain.target_biology.enums import EssentialityClass
 from protcellar.domain.target_biology.essentiality import Essentiality
+from protcellar.domain.target_biology.protein_production import ProteinProduction
 from protcellar.domain.target_biology.resistance_mutation import ResistanceMutation
 from protcellar.domain.target_biology.unpublished_structure import UnpublishedStructure
 from protcellar.domain.target_biology.vulnerability import Vulnerability
+from protcellar.infrastructure.persistence.sqlalchemy.protein_catalog.gene_repository import (
+    SQLAlchemyGeneRepository,
+)
 from protcellar.infrastructure.persistence.sqlalchemy.target_biology.essentiality_repository import (  # noqa: E501
     SQLAlchemyEssentialityRepository,
+)
+from protcellar.infrastructure.persistence.sqlalchemy.target_biology.protein_production_repository import (  # noqa: E501
+    SQLAlchemyProteinProductionRepository,
 )
 from protcellar.infrastructure.persistence.sqlalchemy.target_biology.resistance_mutation_repository import (  # noqa: E501
     SQLAlchemyResistanceMutationRepository,
@@ -579,3 +587,195 @@ async def test_schema_lists_every_kind_and_seeds_vocabulary(
     )
     assert "cholesterol" in condition["suggested_values"]
     assert next(f["name"] for f in body["provenance"]["fields"]) == "source_type"
+
+
+# --- Bulk list route (GET /target-biology/{kind}) ----------------------------
+
+
+async def test_bulk_list_is_cursor_paginated_and_workspace_filtered(
+    client: AsyncClient, database_url: str
+) -> None:
+    gene_id = uuid.uuid4()
+    prov = Provenance(source_type=ProvenanceSourceType.PUBLISHED)
+    for condition in ("7H9", "cholesterol", "glycerol"):
+        await _save(
+            database_url,
+            SQLAlchemyEssentialityRepository,
+            Essentiality(
+                workspace_id=WS,
+                gene_id=gene_id,
+                classification=EssentialityClass.ESSENTIAL,
+                provenance=prov,
+                condition=condition,
+            ),
+        )
+
+    resp = await client.get(f"/api/v1/target-biology/essentiality?gene_id={gene_id}")
+    assert resp.status_code == 200, resp.text
+    items = resp.json()["items"]
+    assert len(items) == 3
+    # WS is SHARED_WORKSPACE_ID — is_shared (Task 8) should come through unprompted.
+    assert all(item["is_shared"] for item in items)
+
+
+async def test_bulk_list_rejects_an_unknown_kind(client: AsyncClient) -> None:
+    resp = await client.get("/api/v1/target-biology/nonsense")
+    assert resp.status_code == 422
+
+
+async def test_bulk_list_walks_pages_via_cursor(client: AsyncClient, database_url: str) -> None:
+    """limit=2 over 5 records must take 3 pages, visiting every record exactly once."""
+    prov = Provenance(source_type=ProvenanceSourceType.INTERNAL)
+    gene_ids = [uuid.uuid4() for _ in range(5)]
+    for gid in gene_ids:
+        await _save(
+            database_url,
+            SQLAlchemyEssentialityRepository,
+            Essentiality(
+                workspace_id=WS,
+                gene_id=gid,
+                classification=EssentialityClass.ESSENTIAL,
+                provenance=prov,
+            ),
+        )
+    gene_qs = "&".join(f"gene_id={gid}" for gid in gene_ids)
+
+    seen: set[str] = set()
+    cursor: str | None = None
+    pages = 0
+    while True:
+        url = f"/api/v1/target-biology/essentiality?{gene_qs}&limit=2"
+        if cursor is not None:
+            url += f"&cursor={cursor}"
+        resp = await client.get(url)
+        assert resp.status_code == 200, resp.text
+        body = resp.json()
+        assert len(body["items"]) <= 2
+        seen.update(item["id"] for item in body["items"])
+        pages += 1
+        cursor = body["next_cursor"]
+        if cursor is None:
+            break
+        assert pages < 10  # generous bound so a broken cursor can't hang the test
+
+    assert pages == 3
+    assert len(seen) == 5
+
+
+async def _make_organism(client: AsyncClient, tax_id: int, name: str) -> str:
+    resp = await client.post(
+        "/api/v1/organisms",
+        json={"ncbi_tax_id": tax_id, "rank": "species", "scientific_name": name},
+    )
+    if resp.status_code == 409:
+        # Already created by an earlier test in this session — resolve instead.
+        resolved = await client.get(f"/api/v1/organisms/resolve/{tax_id}")
+        assert resolved.status_code == 200, resolved.text
+        return resolved.json()["id"]
+    assert resp.status_code == 201, resp.text
+    return resp.json()["id"]
+
+
+async def _make_strain(client: AsyncClient, species_organism_id: str, name: str) -> str:
+    resp = await client.post(
+        "/api/v1/strains",
+        json={"species_organism_id": species_organism_id, "name": name},
+    )
+    assert resp.status_code == 201, resp.text
+    return resp.json()["id"]
+
+
+async def test_bulk_list_filters_by_organism_and_strain(
+    client: AsyncClient, database_url: str
+) -> None:
+    """organism_id/strain_id reach a target-biology record via a join to its
+    gene (records carry no organism_id/strain_id of their own) — the risk
+    surface this route adds beyond the existing gene_id/protein_id filters.
+    """
+    organism_id = await _make_organism(client, 941001, "Joinus testus")
+    strain_id = await _make_strain(client, organism_id, "Strain J")
+
+    gene_in_strain = Gene.create(
+        workspace_id=WS,
+        primary_name="geneInStrain",
+        organism_id=uuid.UUID(organism_id),
+        strain_id=uuid.UUID(strain_id),
+    )
+    gene_in_organism_only = Gene.create(
+        workspace_id=WS, primary_name="geneInOrganismOnly", organism_id=uuid.UUID(organism_id)
+    )
+    await _save(database_url, SQLAlchemyGeneRepository, gene_in_strain)
+    await _save(database_url, SQLAlchemyGeneRepository, gene_in_organism_only)
+
+    prov = Provenance(source_type=ProvenanceSourceType.INTERNAL)
+    await _save(
+        database_url,
+        SQLAlchemyEssentialityRepository,
+        Essentiality(
+            workspace_id=WS,
+            gene_id=gene_in_strain.id,
+            classification=EssentialityClass.ESSENTIAL,
+            provenance=prov,
+        ),
+    )
+    await _save(
+        database_url,
+        SQLAlchemyEssentialityRepository,
+        Essentiality(
+            workspace_id=WS,
+            gene_id=gene_in_organism_only.id,
+            classification=EssentialityClass.ESSENTIAL,
+            provenance=prov,
+        ),
+    )
+
+    by_organism = await client.get(
+        f"/api/v1/target-biology/essentiality?organism_id={organism_id}"
+    )
+    assert by_organism.status_code == 200, by_organism.text
+    assert {i["gene_id"] for i in by_organism.json()["items"]} == {
+        str(gene_in_strain.id),
+        str(gene_in_organism_only.id),
+    }
+
+    by_strain = await client.get(
+        f"/api/v1/target-biology/essentiality?organism_id={organism_id}&strain_id={strain_id}"
+    )
+    assert by_strain.status_code == 200, by_strain.text
+    assert {i["gene_id"] for i in by_strain.json()["items"]} == {str(gene_in_strain.id)}
+
+
+async def test_bulk_list_covers_a_protein_side_kind(
+    client: AsyncClient, database_url: str
+) -> None:
+    """The generic route also dispatches to the three protein-side repositories
+    (parent=ProteinModel), not just the five gene-side ones exercised above.
+    """
+    protein_id = uuid.uuid4()
+    await _save(
+        database_url,
+        SQLAlchemyProteinProductionRepository,
+        ProteinProduction(
+            workspace_id=WS,
+            protein_id=protein_id,
+            status="purified",
+            provenance=Provenance(source_type=ProvenanceSourceType.INTERNAL),
+        ),
+    )
+
+    resp = await client.get(f"/api/v1/target-biology/protein_production?protein_id={protein_id}")
+    assert resp.status_code == 200, resp.text
+    items = resp.json()["items"]
+    assert len(items) == 1
+    assert items[0]["status"] == "purified"
+    assert items[0]["protein_id"] == str(protein_id)
+
+
+async def test_schema_route_is_not_shadowed_by_the_bulk_list_route(client: AsyncClient) -> None:
+    """Regression for route-registration order: /target-biology/{kind} must not
+    be registered ahead of the literal /target-biology/schema path, or "schema"
+    gets parsed as a (rejected) RecordKind and this 422s instead of 200ing.
+    """
+    resp = await client.get("/api/v1/target-biology/schema")
+    assert resp.status_code == 200, resp.text
+    assert "kinds" in resp.json()

@@ -240,6 +240,27 @@ async def test_workspace_essentiality_is_invisible_to_a_second_workspace(
     assert bundle.json()["essentiality"] == []
 
 
+async def test_workspace_essentiality_is_invisible_to_a_second_workspaces_bulk_list(
+    client: AsyncClient, other_workspace_client: AsyncClient
+) -> None:
+    """Same property as the bundle case above, for the bulk list route (Task 9):
+    a record workspace A creates must not appear when workspace B lists the
+    same kind in bulk, even filtered to the exact gene id.
+    """
+    gene_id = uuid.uuid4()
+    created = await client.post(
+        f"/api/v1/genes/{gene_id}/target-biology/essentiality",
+        json=_ISOLATION_ESSENTIALITY_BODY,
+    )
+    assert created.status_code == 201, created.text
+
+    listed = await other_workspace_client.get(
+        f"/api/v1/target-biology/essentiality?gene_id={gene_id}"
+    )
+    assert listed.status_code == 200, listed.text
+    assert listed.json()["items"] == []
+
+
 async def test_workspace_essentiality_cannot_be_mutated_by_a_second_workspace(
     client: AsyncClient, other_workspace_client: AsyncClient
 ) -> None:
