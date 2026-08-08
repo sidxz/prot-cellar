@@ -4,9 +4,9 @@ from __future__ import annotations
 
 import uuid
 from datetime import date
-from typing import Any
+from typing import Annotated, Any
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel
 
 from protcellar.application.target_biology.crud import RecordKind
@@ -18,6 +18,7 @@ from protcellar.application.target_biology.get_protein_target_biology import (
 )
 from protcellar.application.target_biology.list_records import ListTargetBiologyRecordsQuery
 from protcellar.domain.shared.compound_ref import CompoundRef
+from protcellar.domain.shared.errors import NotFoundError
 from protcellar.domain.shared.global_workspace import SHARED_WORKSPACE_ID
 from protcellar.domain.shared.provenance import (
     Citation,
@@ -34,6 +35,12 @@ from protcellar.domain.target_biology.protein_production import ProteinProductio
 from protcellar.domain.target_biology.resistance_mutation import ResistanceMutation
 from protcellar.domain.target_biology.unpublished_structure import UnpublishedStructure
 from protcellar.domain.target_biology.vulnerability import Vulnerability
+from protcellar.infrastructure.persistence.sqlalchemy.protein_catalog.gene_repository import (
+    SQLAlchemyGeneRepository,
+)
+from protcellar.infrastructure.persistence.sqlalchemy.protein_catalog.protein_repository import (
+    SQLAlchemyProteinRepository,
+)
 from protcellar.interface.dependencies import (
     AuthDep,
     CreateTargetBiologyRecordDep,
@@ -42,6 +49,7 @@ from protcellar.interface.dependencies import (
     GetProteinTargetBiologyDep,
     ListTargetBiologyRecordsDep,
     SuggestedValuesReaderDep,
+    UoWDep,
     UpdateTargetBiologyRecordDep,
 )
 from protcellar.interface.error_handlers import result_to_response
@@ -737,6 +745,32 @@ async def get_protein_target_biology(
 # single generic delete covers every record kind.
 
 
+async def _require_readable_gene(gene_id: uuid.UUID, auth: AuthDep, uow: UoWDep) -> None:
+    """Parent-validation guard for the five gene-side creates below: 404s
+    (never 403s) when ``gene_id`` doesn't exist or belongs to a workspace the
+    caller cannot see. A 403 would confirm the row exists to a caller who may
+    not see it — precisely the cross-tenant probe this guard closes.
+    """
+    async with uow:
+        gene = await SQLAlchemyGeneRepository(uow).find_readable(auth.workspace_id, gene_id)
+    if gene is None:
+        raise NotFoundError("Gene", str(gene_id))
+
+
+async def _require_readable_protein(protein_id: uuid.UUID, auth: AuthDep, uow: UoWDep) -> None:
+    """Same guard, for the three protein-side creates below."""
+    async with uow:
+        protein = await SQLAlchemyProteinRepository(uow).find_readable(
+            auth.workspace_id, protein_id
+        )
+    if protein is None:
+        raise NotFoundError("Protein", str(protein_id))
+
+
+ExistingGeneDep = Annotated[None, Depends(_require_readable_gene)]
+ExistingProteinDep = Annotated[None, Depends(_require_readable_protein)]
+
+
 @router.post(
     "/genes/{gene_id}/target-biology/essentiality",
     response_model=EssentialityResponse,
@@ -747,6 +781,7 @@ async def create_essentiality(
     body: EssentialityWriteBody,
     auth: AuthDep,
     use_case: CreateTargetBiologyRecordDep,
+    _gene: ExistingGeneDep,
 ) -> EssentialityResponse:
     record = Essentiality.create(
         workspace_id=auth.workspace_id,
@@ -790,6 +825,7 @@ async def create_vulnerability(
     body: VulnerabilityWriteBody,
     auth: AuthDep,
     use_case: CreateTargetBiologyRecordDep,
+    _gene: ExistingGeneDep,
 ) -> VulnerabilityResponse:
     record = Vulnerability.create(
         workspace_id=auth.workspace_id,
@@ -833,6 +869,7 @@ async def create_hypomorph(
     body: HypomorphWriteBody,
     auth: AuthDep,
     use_case: CreateTargetBiologyRecordDep,
+    _gene: ExistingGeneDep,
 ) -> HypomorphResponse:
     record = Hypomorph.create(
         workspace_id=auth.workspace_id,
@@ -877,6 +914,7 @@ async def create_crispri_strain(
     body: CrispriStrainWriteBody,
     auth: AuthDep,
     use_case: CreateTargetBiologyRecordDep,
+    _gene: ExistingGeneDep,
 ) -> CrispriStrainResponse:
     record = CrispriStrain.create(
         workspace_id=auth.workspace_id,
@@ -917,6 +955,7 @@ async def create_resistance_mutation(
     body: ResistanceMutationWriteBody,
     auth: AuthDep,
     use_case: CreateTargetBiologyRecordDep,
+    _gene: ExistingGeneDep,
 ) -> ResistanceMutationResponse:
     record = ResistanceMutation.create(
         workspace_id=auth.workspace_id,
@@ -965,6 +1004,7 @@ async def create_protein_production(
     body: ProteinProductionWriteBody,
     auth: AuthDep,
     use_case: CreateTargetBiologyRecordDep,
+    _protein: ExistingProteinDep,
 ) -> ProteinProductionResponse:
     record = ProteinProduction.create(
         workspace_id=auth.workspace_id,
@@ -1012,6 +1052,7 @@ async def create_protein_activity_assay(
     body: ProteinActivityAssayWriteBody,
     auth: AuthDep,
     use_case: CreateTargetBiologyRecordDep,
+    _protein: ExistingProteinDep,
 ) -> ProteinActivityAssayResponse:
     record = ProteinActivityAssay.create(
         workspace_id=auth.workspace_id,
@@ -1061,6 +1102,7 @@ async def create_unpublished_structure(
     body: UnpublishedStructureWriteBody,
     auth: AuthDep,
     use_case: CreateTargetBiologyRecordDep,
+    _protein: ExistingProteinDep,
 ) -> UnpublishedStructureResponse:
     record = UnpublishedStructure.create(
         workspace_id=auth.workspace_id,

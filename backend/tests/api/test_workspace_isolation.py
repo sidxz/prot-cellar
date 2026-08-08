@@ -232,7 +232,7 @@ async def test_workspace_essentiality_is_invisible_to_a_second_workspace(
     A record workspace A creates must not appear in workspace B's view of the
     same gene, even though the gene id itself is shared and visible to both.
     """
-    gene_id = uuid.uuid4()
+    gene_id = await _seed_shared_gene(client)
     created = await client.post(
         f"/api/v1/genes/{gene_id}/target-biology/essentiality",
         json=_ISOLATION_ESSENTIALITY_BODY,
@@ -251,7 +251,7 @@ async def test_workspace_essentiality_is_invisible_to_a_second_workspaces_bulk_l
     a record workspace A creates must not appear when workspace B lists the
     same kind in bulk, even filtered to the exact gene id.
     """
-    gene_id = uuid.uuid4()
+    gene_id = await _seed_shared_gene(client)
     created = await client.post(
         f"/api/v1/genes/{gene_id}/target-biology/essentiality",
         json=_ISOLATION_ESSENTIALITY_BODY,
@@ -284,48 +284,41 @@ async def _save_private_gene(database_url: str, workspace_id: uuid.UUID, organis
     return gene
 
 
-async def test_bulk_list_organism_filter_does_not_leak_another_workspaces_gene(
+async def test_create_rejects_another_workspaces_private_gene(
     client: AsyncClient,
     other_workspace_client: AsyncClient,
     database_url: str,
     workspace_id: uuid.UUID,
 ) -> None:
-    """The organism_id/strain_id join (Task 9) reaches the record's parent gene
-    — that join must be scoped the same as the record itself, or organism_id
-    becomes a match/no-match oracle for a private gene's organism, a fact
-    ``GET /genes/{id}`` correctly 404s on. Task 10 (parent validation on
-    attach) hasn't landed, so nothing stops a caller from attaching a record
-    to a gene_id it cannot see in the first place — that half of the gap is
-    expected here and is Task 10's job; this test is only about whether the
-    *bulk list*'s organism filter then leaks that gene's organism/strain.
+    """Task 10: attaching a record to a gene that exists but belongs to a
+    different, non-shared workspace must 404, not 403 — a 403 would confirm
+    the row exists to a caller who cannot see it.
+
+    This is also what closes the organism-id oracle Task 9 fixed the read
+    side of: the join-scoping fix in ``_bulk_query.py`` mattered because
+    nothing stopped a caller attaching a record to a gene_id it couldn't see
+    in the first place. Task 10 removes that precondition entirely — there is
+    no longer any HTTP path that produces a record on an invisible gene, so
+    the bulk list's organism filter has nothing to leak.
     """
     organism_id = await _seed_shared_organism(client)
     # workspace_id is the fixture `client` itself authenticates as — a private
-    # gene "belonging to" the victim, unreachable via any HTTP create path.
+    # gene "belonging to" the victim, unreachable via any HTTP create path
+    # (POST /genes always writes SHARED).
     victim_gene = await _save_private_gene(database_url, workspace_id, organism_id)
 
-    # The attacker (other_workspace_client) attaches a record to a gene_id it
-    # cannot see — allowed today (Task 10 not landed), not what's under test.
-    attached = await other_workspace_client.post(
+    attacked = await other_workspace_client.post(
         f"/api/v1/genes/{victim_gene.id}/target-biology/essentiality",
         json=_ISOLATION_ESSENTIALITY_BODY,
     )
-    assert attached.status_code == 201, attached.text
+    assert attacked.status_code == 404, attacked.text
 
-    # Its own record is visible by gene_id alone...
+    # No partial side effect from the blocked attach.
     by_gene = await other_workspace_client.get(
         f"/api/v1/target-biology/essentiality?gene_id={victim_gene.id}"
     )
     assert by_gene.status_code == 200, by_gene.text
-    assert len(by_gene.json()["items"]) == 1
-
-    # ...but organism_id must not turn into an oracle for the victim's private
-    # gene: the parent join has to be scoped too, or this returns the item.
-    by_organism = await other_workspace_client.get(
-        f"/api/v1/target-biology/essentiality?gene_id={victim_gene.id}&organism_id={organism_id}"
-    )
-    assert by_organism.status_code == 200, by_organism.text
-    assert by_organism.json()["items"] == []
+    assert by_gene.json()["items"] == []
 
 
 async def test_workspace_essentiality_cannot_be_mutated_by_a_second_workspace(
@@ -335,7 +328,7 @@ async def test_workspace_essentiality_cannot_be_mutated_by_a_second_workspace(
     on both, not 403 — a 403 would confirm the row exists to a caller who
     cannot see it.
     """
-    gene_id = uuid.uuid4()
+    gene_id = await _seed_shared_gene(client)
     created = await client.post(
         f"/api/v1/genes/{gene_id}/target-biology/essentiality",
         json=_ISOLATION_ESSENTIALITY_BODY,
@@ -362,7 +355,7 @@ async def test_owned_essentiality_bundle_marks_is_shared_false(client: AsyncClie
     plus shared ones, so these two tests exhaust the states the field can be
     in on a bundle the caller can actually see.
     """
-    gene_id = uuid.uuid4()
+    gene_id = await _seed_shared_gene(client)
     created = await client.post(
         f"/api/v1/genes/{gene_id}/target-biology/essentiality",
         json=_ISOLATION_ESSENTIALITY_BODY,
@@ -448,8 +441,9 @@ async def test_workspace_essentiality_condition_does_not_leak_into_another_works
     case this whole plan protects.
     """
     distinctive_condition = f"isolation-condition-{uuid.uuid4()}"
+    gene_id = await _seed_shared_gene(client)
     created = await client.post(
-        f"/api/v1/genes/{uuid.uuid4()}/target-biology/essentiality",
+        f"/api/v1/genes/{gene_id}/target-biology/essentiality",
         json={
             "classification": "essential",
             "condition": distinctive_condition,

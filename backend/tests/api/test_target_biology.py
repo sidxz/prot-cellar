@@ -10,6 +10,7 @@ from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
 from protcellar.domain.protein_catalog.gene import Gene
+from protcellar.domain.protein_catalog.protein import Protein
 from protcellar.domain.shared.compound_ref import CompoundRef
 from protcellar.domain.shared.global_workspace import SHARED_WORKSPACE_ID
 from protcellar.domain.shared.provenance import (
@@ -26,6 +27,9 @@ from protcellar.domain.target_biology.unpublished_structure import UnpublishedSt
 from protcellar.domain.target_biology.vulnerability import Vulnerability
 from protcellar.infrastructure.persistence.sqlalchemy.protein_catalog.gene_repository import (
     SQLAlchemyGeneRepository,
+)
+from protcellar.infrastructure.persistence.sqlalchemy.protein_catalog.protein_repository import (
+    SQLAlchemyProteinRepository,
 )
 from protcellar.infrastructure.persistence.sqlalchemy.target_biology.essentiality_repository import (  # noqa: E501
     SQLAlchemyEssentialityRepository,
@@ -54,6 +58,43 @@ async def _save(database_url: str, repo_cls: type, aggregate: object) -> None:
         await repo_cls(uow).save(aggregate)  # type: ignore[operator]
         await uow.commit()
     await engine.dispose()
+
+
+_FIXTURE_ORGANISM_TAX_ID = 941099
+_FIXTURE_ORGANISM_NAME = "Fixturus testus"
+
+
+async def _seed_gene(client: AsyncClient, database_url: str) -> uuid.UUID:
+    """A real, SHARED gene for create-route tests now that Task 10 (parent
+    validation) rejects a gene_id that was never persisted. genes.organism_id
+    is FK-constrained, so a real organism (``_make_organism``, defined below
+    and dedup-safe across calls) has to exist first.
+    """
+    organism_id = await _make_organism(client, _FIXTURE_ORGANISM_TAX_ID, _FIXTURE_ORGANISM_NAME)
+    gene = Gene.create(
+        workspace_id=WS, primary_name="tb-fixture-gene", organism_id=uuid.UUID(organism_id)
+    )
+    await _save(database_url, SQLAlchemyGeneRepository, gene)
+    return gene.id
+
+
+async def _seed_protein(client: AsyncClient, database_url: str) -> uuid.UUID:
+    """Same as ``_seed_gene``, protein side. ``primary_accession`` is
+    regex-validated UniProt syntax and unique per row, so it's derived from a
+    fresh uuid4 rather than hardcoded.
+    """
+    organism_id = await _make_organism(client, _FIXTURE_ORGANISM_TAX_ID, _FIXTURE_ORGANISM_NAME)
+    h = uuid.uuid4().hex
+    accession = f"Q{int(h[0], 16) % 10}{h[1:4].upper()}{int(h[4], 16) % 10}"
+    protein = Protein.create(
+        workspace_id=WS,
+        primary_accession=accession,
+        organism_id=uuid.UUID(organism_id),
+        sequence="MSTNPKPQRSTV",
+        is_reviewed=True,
+    )
+    await _save(database_url, SQLAlchemyProteinRepository, protein)
+    return protein.id
 
 
 @pytest.mark.asyncio
@@ -157,8 +198,8 @@ _ESS_BODY = {
 
 
 @pytest.mark.asyncio
-async def test_create_update_delete_essentiality(client: AsyncClient) -> None:
-    gene_id = uuid.uuid4()
+async def test_create_update_delete_essentiality(client: AsyncClient, database_url: str) -> None:
+    gene_id = await _seed_gene(client, database_url)
 
     created = await client.post(
         f"/api/v1/genes/{gene_id}/target-biology/essentiality", json=_ESS_BODY
@@ -202,8 +243,14 @@ async def test_update_missing_essentiality_404(client: AsyncClient) -> None:
 
 
 @pytest.mark.asyncio
-async def test_essentiality_writes_require_admin(editor_client: AsyncClient) -> None:
-    gene_id = uuid.uuid4()
+async def test_essentiality_writes_require_admin(
+    client: AsyncClient, editor_client: AsyncClient, database_url: str
+) -> None:
+    # A real, readable gene, seeded via the admin client — otherwise Task 10's
+    # parent guard would 404 first and this would no longer be testing the
+    # admin check at all. Seeding requires admin (organism create is
+    # admin-gated too), which editor_client by definition is not.
+    gene_id = await _seed_gene(client, database_url)
     r = await editor_client.post(
         f"/api/v1/genes/{gene_id}/target-biology/essentiality", json=_ESS_BODY
     )
@@ -361,8 +408,10 @@ _INTERNAL_PROV = {"source_type": "internal", "citations": []}
 
 
 @pytest.mark.asyncio
-async def test_create_delete_vulnerability_gene_side(client: AsyncClient) -> None:
-    gene_id = uuid.uuid4()
+async def test_create_delete_vulnerability_gene_side(
+    client: AsyncClient, database_url: str
+) -> None:
+    gene_id = await _seed_gene(client, database_url)
     created = await client.post(
         f"/api/v1/genes/{gene_id}/target-biology/vulnerability",
         json={"vulnerability_score": 0.86, "method": "CRISPRi-VI", "provenance": _INTERNAL_PROV},
@@ -383,8 +432,10 @@ async def test_create_delete_vulnerability_gene_side(client: AsyncClient) -> Non
 
 
 @pytest.mark.asyncio
-async def test_create_protein_production_protein_side(client: AsyncClient) -> None:
-    protein_id = uuid.uuid4()
+async def test_create_protein_production_protein_side(
+    client: AsyncClient, database_url: str
+) -> None:
+    protein_id = await _seed_protein(client, database_url)
     created = await client.post(
         f"/api/v1/proteins/{protein_id}/target-biology/protein_production",
         json={
@@ -401,10 +452,13 @@ async def test_create_protein_production_protein_side(client: AsyncClient) -> No
 
 
 @pytest.mark.asyncio
-async def test_hypomorph_severity_requires_growth_defect(client: AsyncClient) -> None:
+async def test_hypomorph_severity_requires_growth_defect(
+    client: AsyncClient, database_url: str
+) -> None:
     # Domain invariant surfaces as a 4xx through the generic create path.
+    gene_id = await _seed_gene(client, database_url)
     r = await client.post(
-        f"/api/v1/genes/{uuid.uuid4()}/target-biology/hypomorph",
+        f"/api/v1/genes/{gene_id}/target-biology/hypomorph",
         json={
             "growth_defect": False,
             "growth_defect_severity": "strong",
@@ -426,7 +480,7 @@ async def test_delete_unknown_kind_is_422(client: AsyncClient) -> None:
 async def test_resistance_mutation_compound_round_trips(
     client: AsyncClient, database_url: str
 ) -> None:
-    gene_id = uuid.uuid4()
+    gene_id = await _seed_gene(client, database_url)
     compound_id = uuid.uuid4()
 
     created = await client.post(
@@ -462,7 +516,7 @@ async def test_resistance_mutation_compound_round_trips(
 async def test_unpublished_structure_ligands_round_trip(
     client: AsyncClient, database_url: str
 ) -> None:
-    protein_id = uuid.uuid4()
+    protein_id = await _seed_protein(client, database_url)
     created = await client.post(
         f"/api/v1/proteins/{protein_id}/target-biology/unpublished_structure",
         json={
@@ -479,7 +533,7 @@ async def test_unpublished_structure_ligands_round_trip(
 async def test_hypomorph_knockdown_strain_round_trips(
     client: AsyncClient, database_url: str
 ) -> None:
-    gene_id = uuid.uuid4()
+    gene_id = await _seed_gene(client, database_url)
     strain_id = uuid.uuid4()
     created = await client.post(
         f"/api/v1/genes/{gene_id}/target-biology/hypomorph",
@@ -497,9 +551,10 @@ async def test_hypomorph_knockdown_strain_round_trips(
 # --- Explicit null on PATCH --------------------------------------------------
 
 
-async def test_patch_null_classification_is_422(client: AsyncClient) -> None:
+async def test_patch_null_classification_is_422(client: AsyncClient, database_url: str) -> None:
+    gene_id = await _seed_gene(client, database_url)
     created = await client.post(
-        f"/api/v1/genes/{uuid.uuid4()}/target-biology/essentiality",
+        f"/api/v1/genes/{gene_id}/target-biology/essentiality",
         json={"classification": "essential", "provenance": _INTERNAL_PROV},
     )
     assert created.status_code == 201, created.text
@@ -510,9 +565,10 @@ async def test_patch_null_classification_is_422(client: AsyncClient) -> None:
     assert r.status_code == 422
 
 
-async def test_patch_null_growth_defect_is_422(client: AsyncClient) -> None:
+async def test_patch_null_growth_defect_is_422(client: AsyncClient, database_url: str) -> None:
+    gene_id = await _seed_gene(client, database_url)
     created = await client.post(
-        f"/api/v1/genes/{uuid.uuid4()}/target-biology/hypomorph",
+        f"/api/v1/genes/{gene_id}/target-biology/hypomorph",
         json={"growth_defect": True, "provenance": _INTERNAL_PROV},
     )
     assert created.status_code == 201, created.text
@@ -523,9 +579,10 @@ async def test_patch_null_growth_defect_is_422(client: AsyncClient) -> None:
     assert r.status_code == 422
 
 
-async def test_patch_null_clears_compound(client: AsyncClient) -> None:
+async def test_patch_null_clears_compound(client: AsyncClient, database_url: str) -> None:
+    gene_id = await _seed_gene(client, database_url)
     created = await client.post(
-        f"/api/v1/genes/{uuid.uuid4()}/target-biology/resistance_mutation",
+        f"/api/v1/genes/{gene_id}/target-biology/resistance_mutation",
         json={
             "mutation": "S315T",
             "compound": {"compound_id": str(uuid.uuid4()), "name": "isoniazid"},
@@ -541,9 +598,10 @@ async def test_patch_null_clears_compound(client: AsyncClient) -> None:
     assert r.json()["compound"] is None
 
 
-async def test_patch_replaces_ligands(client: AsyncClient) -> None:
+async def test_patch_replaces_ligands(client: AsyncClient, database_url: str) -> None:
+    protein_id = await _seed_protein(client, database_url)
     created = await client.post(
-        f"/api/v1/proteins/{uuid.uuid4()}/target-biology/unpublished_structure",
+        f"/api/v1/proteins/{protein_id}/target-biology/unpublished_structure",
         json={
             "method": "X-ray",
             "ligands": [{"compound_id": str(uuid.uuid4()), "name": "ATP"}],
@@ -779,3 +837,29 @@ async def test_schema_route_is_not_shadowed_by_the_bulk_list_route(client: Async
     resp = await client.get("/api/v1/target-biology/schema")
     assert resp.status_code == 200, resp.text
     assert "kinds" in resp.json()
+
+
+# --- Parent validation on create (Task 10) -----------------------------------
+
+
+async def test_create_rejects_a_gene_that_does_not_exist(client: AsyncClient) -> None:
+    """A record must not be attachable to a UUID that has never existed."""
+    resp = await client.post(
+        f"/api/v1/genes/{uuid.uuid4()}/target-biology/essentiality",
+        json={
+            "classification": "essential",
+            "provenance": {"source_type": "published", "citations": []},
+        },
+    )
+    assert resp.status_code == 404, resp.text
+
+
+async def test_create_rejects_a_protein_that_does_not_exist(client: AsyncClient) -> None:
+    """Same guard, protein side — a distinct repository (SQLAlchemyProteinRepository,
+    not SQLAlchemyGeneRepository) so the gene case above doesn't prove this one.
+    """
+    resp = await client.post(
+        f"/api/v1/proteins/{uuid.uuid4()}/target-biology/protein_production",
+        json={"status": "purified", "provenance": _INTERNAL_PROV},
+    )
+    assert resp.status_code == 404, resp.text
