@@ -28,10 +28,15 @@ class ResolveProteinId:
     ) -> Result[Protein, DomainError]:
         require_authenticated(auth)
         async with self._uow:
+            workspace_id = auth.workspace_id  # type: ignore[union-attr]
             # Pivot through accession (primary, then secondary), then entry name.
-            protein = await self._repo.find_by_accession(input.identifier)
+            protein = await self._repo.find_by_accession(
+                input.identifier, workspace_id=workspace_id
+            )
             if protein is None:
-                protein = await self._repo.find_by_entry_name(input.identifier)
+                protein = await self._repo.find_by_entry_name(
+                    input.identifier, workspace_id=workspace_id
+                )
             if protein is None:
                 return Failure(NotFoundError("Protein", input.identifier))
             return Success(protein)

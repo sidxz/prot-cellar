@@ -23,6 +23,7 @@ from protcellar.domain.protein_catalog.gene import Gene
 from protcellar.domain.protein_catalog.gene_annotation import GeneAnnotation
 from protcellar.domain.protein_catalog.repository import GeneRepository
 from protcellar.domain.shared.errors import DomainError
+from protcellar.domain.shared.global_workspace import SHARED_WORKSPACE_ID
 
 _LOCATION_FIELDS = (
     "genomic_accession",
@@ -73,7 +74,13 @@ class BulkEnrichGenes:
         matched = locations_set = annotations_written = 0
         unmatched_loci: list[str] = []
         async with self._uow:
-            index = self._build_index(await self._repo.list_by_organism(organism_id))
+            # Ingestion path (this use case has no HTTP route): the lookup that
+            # feeds a load-then-mutate-then-save loop is pinned to SHARED
+            # explicitly, same as BulkUpsertGenes/BulkUpsertProteins — genes are
+            # reference data and this always enriches the shared catalog.
+            index = self._build_index(
+                await self._repo.list_by_organism(organism_id, workspace_id=SHARED_WORKSPACE_ID)
+            )
             for rec in records:
                 gene = index.get(rec.locus_key.upper())
                 if gene is None:

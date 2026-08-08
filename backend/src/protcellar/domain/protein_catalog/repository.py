@@ -9,6 +9,7 @@ from typing import Protocol, runtime_checkable
 from protcellar.domain.protein_catalog.gene import Gene
 from protcellar.domain.protein_catalog.protein import Protein
 from protcellar.domain.protein_catalog.read_models import GeneSummaryRow, ProteinListRow
+from protcellar.domain.shared.global_workspace import SHARED_WORKSPACE_ID
 
 
 @runtime_checkable
@@ -18,7 +19,7 @@ class GeneRepository(Protocol):
     async def find_owned(self, workspace_id: uuid.UUID, id: uuid.UUID) -> Gene | None: ...
 
     async def find_summary_rows_by_ids(
-        self, ids: Sequence[uuid.UUID]
+        self, ids: Sequence[uuid.UUID], *, workspace_id: uuid.UUID
     ) -> list[GeneSummaryRow]: ...
 
     async def find_by_name(
@@ -26,9 +27,13 @@ class GeneRepository(Protocol):
         name: str,
         organism_id: uuid.UUID | None = None,
         strain_id: uuid.UUID | None = None,
+        *,
+        workspace_id: uuid.UUID,
     ) -> list[Gene]: ...
 
-    async def find_by_ncbi_gene_id(self, ncbi_gene_id: str) -> Gene | None: ...
+    async def find_by_ncbi_gene_id(
+        self, ncbi_gene_id: str, *, workspace_id: uuid.UUID
+    ) -> Gene | None: ...
 
     async def find_all(
         self,
@@ -43,11 +48,15 @@ class GeneRepository(Protocol):
     ) -> list[Gene]: ...
 
     async def find_by_source_record_id(
-        self, source: str, source_record_id: str
+        self, source: str, source_record_id: str, *, workspace_id: uuid.UUID
     ) -> Gene | None: ...
 
     async def list_by_organism(
-        self, organism_id: uuid.UUID, *, batch: int = 1000
+        self,
+        organism_id: uuid.UUID,
+        *,
+        workspace_id: uuid.UUID = SHARED_WORKSPACE_ID,
+        batch: int = 1000,
     ) -> list[Gene]: ...
 
     async def find_genomic_neighbors(
@@ -57,6 +66,7 @@ class GeneRepository(Protocol):
         genomic_accession: str,
         center_start: int,
         window: int,
+        workspace_id: uuid.UUID,
     ) -> list[Gene]: ...
 
     async def save(self, aggregate: Gene) -> None: ...
@@ -64,12 +74,20 @@ class GeneRepository(Protocol):
 
 @runtime_checkable
 class ProteinRepository(Protocol):
-    async def find_by_accession(self, accession: str) -> Protein | None: ...
+    async def find_by_accession(
+        self, accession: str, *, workspace_id: uuid.UUID = SHARED_WORKSPACE_ID
+    ) -> Protein | None: ...
 
-    async def find_by_entry_name(self, entry_name: str) -> Protein | None: ...
+    async def find_owned_by_accession(
+        self, accession: str, *, workspace_id: uuid.UUID
+    ) -> Protein | None: ...
+
+    async def find_by_entry_name(
+        self, entry_name: str, *, workspace_id: uuid.UUID
+    ) -> Protein | None: ...
 
     async def find_by_source_record_id(
-        self, source: str, source_record_id: str
+        self, source: str, source_record_id: str, *, workspace_id: uuid.UUID
     ) -> Protein | None: ...
 
     async def find_list_rows(

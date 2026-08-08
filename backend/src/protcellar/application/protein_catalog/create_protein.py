@@ -17,6 +17,7 @@ from protcellar.domain.protein_catalog.repository import ProteinRepository
 from protcellar.domain.protein_catalog.value_objects import ProteinNames
 from protcellar.domain.shared.cross_reference import CrossReference
 from protcellar.domain.shared.errors import ConflictError, DomainError
+from protcellar.domain.shared.global_workspace import SHARED_WORKSPACE_ID
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -50,12 +51,17 @@ class CreateProtein:
     ) -> Result[Protein, DomainError]:
         require_admin(auth)
         async with self._uow:
-            existing = await self._repo.find_by_accession(input.primary_accession)
+            existing = await self._repo.find_by_accession(
+                input.primary_accession, workspace_id=SHARED_WORKSPACE_ID
+            )
             if existing is not None:
                 return Failure(
                     ConflictError(f"Protein '{input.primary_accession}' already exists")
                 )
+            # Proteins are reference data (design doc §1.5), same as organisms/genes:
+            # every create writes SHARED regardless of caller.
             protein = Protein.create(
+                workspace_id=SHARED_WORKSPACE_ID,
                 primary_accession=input.primary_accession,
                 organism_id=input.organism_id,
                 sequence=input.sequence,

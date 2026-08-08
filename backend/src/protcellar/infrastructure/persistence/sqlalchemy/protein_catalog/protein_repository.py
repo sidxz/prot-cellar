@@ -7,6 +7,7 @@ from typing import Any
 
 from sqlalchemy import Select, and_, exists, func, or_, select
 from sqlalchemy.orm import aliased, load_only, noload
+from sqlalchemy.sql.elements import ColumnElement
 
 from protcellar.domain.protein_catalog.enums import ProteinExistence
 from protcellar.domain.protein_catalog.protein import Protein
@@ -21,6 +22,7 @@ from protcellar.domain.protein_catalog.value_objects import (
     ProteinNames,
 )
 from protcellar.domain.shared.cross_reference import CrossReference
+from protcellar.domain.shared.global_workspace import SHARED_WORKSPACE_ID
 from protcellar.infrastructure.persistence.sqlalchemy.base_repository import SQLAlchemyRepository
 from protcellar.infrastructure.persistence.sqlalchemy.protein_catalog.models import (
     GeneModel,
@@ -34,6 +36,7 @@ from protcellar.infrastructure.persistence.sqlalchemy.protein_catalog.models imp
 )
 from protcellar.infrastructure.persistence.sqlalchemy.tagging.models import ProteinTagLinkModel
 from protcellar.infrastructure.persistence.sqlalchemy.tagging.tag_filter import tag_filter_subquery
+from protcellar.infrastructure.persistence.sqlalchemy.workspace_scope import owned_by, readable_by
 
 _STRUCTURE_DBS = ("PDB", "PDBsum", "AlphaFoldDB", "EMDB", "SMR")
 _FLAG_DBS = ("PDB", "AlphaFoldDB", "ChEMBL", "DrugBank")  # the 4 the list projection surfaces
@@ -45,6 +48,7 @@ class SQLAlchemyProteinRepository(SQLAlchemyRepository[Protein, ProteinModel], P
     def _to_domain(self, model: ProteinModel) -> Protein:
         return Protein(
             id=model.id,
+            workspace_id=model.workspace_id,
             primary_accession=model.primary_accession,
             organism_id=model.organism_id,
             sequence=model.sequence,
@@ -299,27 +303,65 @@ class SQLAlchemyProteinRepository(SQLAlchemyRepository[Protein, ProteinModel], P
             evidence=x.evidence,
         )
 
-    async def find_by_accession(self, accession: str) -> Protein | None:
+    async def find_by_accession(
+        self, accession: str, *, workspace_id: uuid.UUID = SHARED_WORKSPACE_ID
+    ) -> Protein | None:
+        """Look up a protein for a READ path — scoped with ``readable_by``.
+
+        Defaults to ``SHARED_WORKSPACE_ID``: target-biology's per-accession
+        importers call this with no workspace argument of their own, and
+        proteins are always shared reference data (see
+        ``find_owned_by_accession`` for the mutation path), so the default
+        finds exactly the same rows a real caller workspace would.
+        """
+        return await self._find_by_accession(accession, readable_by(ProteinModel, workspace_id))
+
+    async def find_owned_by_accession(
+        self, accession: str, *, workspace_id: uuid.UUID
+    ) -> Protein | None:
+        """Same lookup, scoped with ``owned_by`` — the mutation path
+        (``UpdateProtein``). A shared row is deliberately not found, which is
+        what makes reference-data proteins read-only through the API.
+        """
+        return await self._find_by_accession(accession, owned_by(ProteinModel, workspace_id))
+
+    async def _find_by_accession(
+        self, accession: str, scope: ColumnElement[bool]
+    ) -> Protein | None:
         # Primary first, then secondary (resolves merged/demerged accessions).
-        stmt = select(ProteinModel).where(ProteinModel.primary_accession == accession)
+        stmt = select(ProteinModel).where(ProteinModel.primary_accession == accession, scope)
         model = (await self._session.execute(stmt)).scalar_one_or_none()
         if model is None:
             # `@>` array-containment so the GIN index on secondary_accessions is usable.
             stmt = select(ProteinModel).where(
-                ProteinModel.secondary_accessions.contains([accession])
+                ProteinModel.secondary_accessions.contains([accession]), scope
             )
             model = (await self._session.execute(stmt)).scalar_one_or_none()
         return self._to_domain_tracked(model) if model else None
 
-    async def find_by_entry_name(self, entry_name: str) -> Protein | None:
-        stmt = select(ProteinModel).where(ProteinModel.entry_name == entry_name)
+    async def find_by_entry_name(
+        self, entry_name: str, *, workspace_id: uuid.UUID
+    ) -> Protein | None:
+        stmt = select(ProteinModel).where(
+            ProteinModel.entry_name == entry_name,
+            readable_by(ProteinModel, workspace_id),
+        )
         model = (await self._session.execute(stmt)).scalar_one_or_none()
         return self._to_domain_tracked(model) if model else None
 
-    async def find_by_source_record_id(self, source: str, source_record_id: str) -> Protein | None:
+    async def find_by_source_record_id(
+        self, source: str, source_record_id: str, *, workspace_id: uuid.UUID
+    ) -> Protein | None:
+        """Look up an import-tracked protein for a read-modify-write upsert.
+
+        Scoped with ``owned_by`` (not merely readable) because the only caller,
+        ``BulkUpsertProteins``, mutates and saves whatever it finds — same
+        rationale as the taxonomy equivalent in ``organism_repository.py``.
+        """
         stmt = select(ProteinModel).where(
             ProteinModel.source == source,
             ProteinModel.source_record_id == source_record_id,
+            owned_by(ProteinModel, workspace_id),
         )
         model = (await self._session.execute(stmt)).scalar_one_or_none()
         return self._to_domain_tracked(model) if model else None
@@ -349,6 +391,7 @@ class SQLAlchemyProteinRepository(SQLAlchemyRepository[Protein, ProteinModel], P
         Used by both ``find_all`` (page of rows) and ``count_all`` (matching total)
         so the two can never drift apart.
         """
+        stmt = stmt.where(readable_by(ProteinModel, workspace_id))
         if organism_id is not None:
             stmt = stmt.where(ProteinModel.organism_id == organism_id)
         if strain_id is not None:

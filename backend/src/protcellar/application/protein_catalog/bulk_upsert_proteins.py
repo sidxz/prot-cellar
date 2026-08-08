@@ -25,6 +25,7 @@ from protcellar.domain.protein_catalog.value_objects import (
 )
 from protcellar.domain.shared.cross_reference import CrossReference
 from protcellar.domain.shared.errors import DomainError
+from protcellar.domain.shared.global_workspace import SHARED_WORKSPACE_ID
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -88,7 +89,7 @@ class BulkUpsertProteins:
             for i, rec in enumerate(input.records):
                 try:
                     existing = await self._repo.find_by_source_record_id(
-                        rec.source, rec.source_record_id
+                        rec.source, rec.source_record_id, workspace_id=SHARED_WORKSPACE_ID
                     )
                     if existing is not None:
                         if existing.source_record_checksum == rec.source_record_checksum:
@@ -128,6 +129,7 @@ class BulkUpsertProteins:
                         results.append(ItemResult(index=i, status="updated", id=str(existing.id)))
                     else:
                         protein = Protein.create(
+                            workspace_id=SHARED_WORKSPACE_ID,
                             primary_accession=rec.primary_accession,
                             organism_id=rec.organism_id,
                             sequence=rec.sequence,

@@ -69,10 +69,18 @@ async def test_proteome_protein_membership_is_idempotent(
         await proteome_repo.save(proteome)
 
         p1 = Protein.create(
-            primary_accession="P0DQ01", organism_id=org.id, sequence="MKTAYIAKQR", is_reviewed=True
+            workspace_id=SHARED_WORKSPACE_ID,
+            primary_accession="P0DQ01",
+            organism_id=org.id,
+            sequence="MKTAYIAKQR",
+            is_reviewed=True,
         )
         p2 = Protein.create(
-            primary_accession="P0DQ02", organism_id=org.id, sequence="MKTAYIAKQR", is_reviewed=True
+            workspace_id=SHARED_WORKSPACE_ID,
+            primary_accession="P0DQ02",
+            organism_id=org.id,
+            sequence="MKTAYIAKQR",
+            is_reviewed=True,
         )
         await protein_repo.save(p1)
         await protein_repo.save(p2)

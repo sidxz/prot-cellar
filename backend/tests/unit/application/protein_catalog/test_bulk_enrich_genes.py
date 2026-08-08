@@ -17,6 +17,7 @@ from protcellar.application.protein_catalog.bulk_enrich_genes import (
 )
 from protcellar.domain.protein_catalog.gene import Gene
 from protcellar.domain.protein_catalog.gene_annotation import GeneAnnotation, GeneAnnotationAxis
+from protcellar.domain.shared.global_workspace import SHARED_WORKSPACE_ID
 from tests.fakes.fake_auth import FakeAuth
 
 
@@ -24,7 +25,13 @@ class _FakeGeneRepo:
     def __init__(self, genes: list[Gene]) -> None:
         self._genes = list(genes)
 
-    async def list_by_organism(self, organism_id: uuid.UUID, *, batch: int = 1000) -> list[Gene]:
+    async def list_by_organism(
+        self,
+        organism_id: uuid.UUID,
+        *,
+        workspace_id: uuid.UUID = SHARED_WORKSPACE_ID,
+        batch: int = 1000,
+    ) -> list[Gene]:
         return [g for g in self._genes if g.organism_id == organism_id]
 
     async def save(self, gene: Gene) -> None:
@@ -72,7 +79,12 @@ def _gene(
     synonyms: tuple[str, ...] = (),
     srid: str | None = None,
 ) -> Gene:
-    gene = Gene.create(primary_name=primary, organism_id=organism, synonyms=list(synonyms))
+    gene = Gene.create(
+        workspace_id=SHARED_WORKSPACE_ID,
+        primary_name=primary,
+        organism_id=organism,
+        synonyms=list(synonyms),
+    )
     if srid is not None:
         gene.source = "uniprot"
         gene.source_record_id = srid

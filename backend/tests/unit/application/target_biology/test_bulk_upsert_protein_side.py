@@ -22,6 +22,7 @@ from protcellar.application.target_biology.bulk_upsert_unpublished_structure imp
     UnpublishedStructureImportRecord,
 )
 from protcellar.domain.protein_catalog.protein import Protein
+from protcellar.domain.shared.global_workspace import SHARED_WORKSPACE_ID
 from tests.fakes.fake_auth import FakeAuth
 
 _ACC = "P9WGE9"
@@ -75,7 +76,11 @@ class _NoopDispatcher:
 
 def _protein() -> Protein:
     return Protein.create(
-        primary_accession=_ACC, organism_id=uuid.uuid4(), sequence="MKALIV", is_reviewed=True
+        workspace_id=SHARED_WORKSPACE_ID,
+        primary_accession=_ACC,
+        organism_id=uuid.uuid4(),
+        sequence="MKALIV",
+        is_reviewed=True,
     )
 
 

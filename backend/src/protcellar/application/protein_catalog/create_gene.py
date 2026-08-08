@@ -15,6 +15,7 @@ from protcellar.domain.protein_catalog.gene import Gene
 from protcellar.domain.protein_catalog.gene_annotation import GeneAnnotation
 from protcellar.domain.protein_catalog.repository import GeneRepository
 from protcellar.domain.shared.errors import DomainError
+from protcellar.domain.shared.global_workspace import SHARED_WORKSPACE_ID
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -44,7 +45,11 @@ class CreateGene:
     ) -> Result[Gene, DomainError]:
         require_admin(auth)
         async with self._uow:
+            # Genes are reference data (design doc §1.5, same as organisms/proteins):
+            # every create writes SHARED regardless of caller, so no tenant can ever
+            # own — and thus mutate — a gene through the API.
             gene = Gene.create(
+                workspace_id=SHARED_WORKSPACE_ID,
                 primary_name=input.primary_name,
                 organism_id=input.organism_id,
                 synonyms=list(input.synonyms),

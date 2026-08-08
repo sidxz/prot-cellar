@@ -95,19 +95,15 @@ async def test_create_get_and_search_gene(client: AsyncClient) -> None:
     assert any(g["primary_name"] == "TP53" for g in found.json()["items"])
 
 
-@pytest.mark.asyncio
-async def test_update_gene_increments_version(client: AsyncClient) -> None:
-    organism_id = await _make_organism(client, ncbi_tax_id=8355, scientific_name="Xenopus laevis")
-    created = await client.post(
-        "/api/v1/genes", json={"primary_name": "BRCA1", "organism_id": organism_id}
-    )
-    gene_id = created.json()["id"]
-    assert created.json()["version"] == 1
-
-    patched = await client.patch(f"/api/v1/genes/{gene_id}", json={"hgnc_id": "HGNC:1100"})
-    assert patched.status_code == 200
-    assert patched.json()["hgnc_id"] == "HGNC:1100"
-    assert patched.json()["version"] == 2
+# test_update_gene_increments_version was removed here: it created a gene then
+# PATCHed it in the same call, which genes (reference data, design doc §1.5, same
+# as organisms/proteins) can no longer do through the API — every gene now lives in
+# SHARED_WORKSPACE_ID regardless of who creates it, and PATCH is owned-only, so it
+# 404s unconditionally. That invariant is asserted once, honestly, in
+# test_workspace_isolation.py::test_shared_gene_cannot_be_mutated. The
+# version-increments-on-update mechanic it also checked is generic
+# (SQLAlchemyRepository.save()) and still exercised via other, still-mutable
+# aggregates (e.g. tags, targets) — it needs no gene-specific re-test.
 
 
 @pytest.mark.asyncio
@@ -118,6 +114,7 @@ async def test_gene_response_includes_location_and_annotations(
         client, ncbi_tax_id=990001, scientific_name="Locus testus alpha"
     )
     gene = Gene.create(
+        workspace_id=SHARED_WORKSPACE_ID,
         primary_name="rpoB",
         organism_id=uuid.UUID(organism_id),
         genomic_accession="NC_000962.3",
@@ -209,68 +206,17 @@ async def test_create_gene_with_location_and_annotations(client: AsyncClient) ->
     assert body["annotations"][0]["value_type"] == "categorical"
 
 
-@pytest.mark.asyncio
-async def test_patch_sets_location_and_vulnerability_annotation(client: AsyncClient) -> None:
-    organism_id = await _make_organism(
-        client, ncbi_tax_id=990004, scientific_name="Locus testus delta"
-    )
-    created = await client.post(
-        "/api/v1/genes", json={"primary_name": "inhA", "organism_id": organism_id}
-    )
-    gene_id = created.json()["id"]
-
-    patched = await client.patch(
-        f"/api/v1/genes/{gene_id}",
-        json={
-            "genomic_accession": "NC_000962.3",
-            "genomic_start": 1674202,
-            "genomic_end": 1675011,
-            "genomic_strand": "+",
-            "annotations": [
-                {
-                    "axis": "vulnerability",
-                    "key": "essentiality",
-                    "value": "essential",
-                    "dataset": "DeJesus 2017",
-                    "condition": "in vitro 7H9",
-                }
-            ],
-        },
-    )
-    assert patched.status_code == 200
-
-    body = (await client.get(f"/api/v1/genes/{gene_id}")).json()
-    assert body["genomic_accession"] == "NC_000962.3"
-    assert body["genomic_strand"] == "+"
-    assert body["length_bp"] == 1675011 - 1674202 + 1
-    assert body["annotations"][0]["value"] == "essential"
-    assert body["annotations"][0]["dataset"] == "DeJesus 2017"
-
-
-@pytest.mark.asyncio
-async def test_patch_without_location_keys_leaves_them_untouched(client: AsyncClient) -> None:
-    organism_id = await _make_organism(
-        client, ncbi_tax_id=990005, scientific_name="Locus testus epsilon"
-    )
-    created = await client.post(
-        "/api/v1/genes",
-        json={
-            "primary_name": "rpoC",
-            "organism_id": organism_id,
-            "genomic_accession": "NC_000962.3",
-            "genomic_start": 763370,
-            "genomic_end": 767320,
-            "genomic_strand": "+",
-        },
-    )
-    gene_id = created.json()["id"]
-
-    # Patch an unrelated field — location must survive.
-    patched = await client.patch(f"/api/v1/genes/{gene_id}", json={"hgnc_id": "HGNC:9999"})
-    assert patched.status_code == 200
-    body = patched.json()
-    assert body["genomic_accession"] == "NC_000962.3"
-    assert body["genomic_start"] == 763370
+# test_patch_sets_location_and_vulnerability_annotation and
+# test_patch_without_location_keys_leaves_them_untouched were removed here: both
+# created a gene then PATCHed it in the same call, unreachable now for the same
+# reason as test_update_gene_increments_version above. The field-mapping logic in
+# update_gene.py that they exercised is still correct and unchanged; the invariants
+# they checked — genomic-location fields and annotations round-trip through
+# Gene.update(), and an unspecified UNSET field survives a partial update — are
+# still covered at the domain level in test_gene.py
+# (test_gene_holds_genomic_location_and_length,
+# test_gene_holds_annotations_and_update_replaces_them), which calls Gene.update()
+# directly rather than through the now-unreachable HTTP PATCH path.
 
 
 @pytest.mark.asyncio
@@ -283,6 +229,7 @@ async def test_gene_neighborhood_returns_ordered_neighbors_with_essentiality(
     genes = []
     for i, start in enumerate([1000, 2000, 3000, 4000, 5000]):
         g = Gene.create(
+            workspace_id=SHARED_WORKSPACE_ID,
             primary_name=f"gene{i}",
             organism_id=organism_id,
             genomic_accession="NC_000962.3",
@@ -333,11 +280,14 @@ async def test_gene_neighborhood_404_for_unknown_gene(client: AsyncClient) -> No
 
 
 @pytest.mark.asyncio
-async def test_gene_list_and_detail_lead_with_locus(client: AsyncClient, database_url: str) -> None:
+async def test_gene_list_and_detail_lead_with_locus(
+    client: AsyncClient, database_url: str
+) -> None:
     organism_id = await _make_organism(
         client, ncbi_tax_id=83332, scientific_name="Mycobacterium tuberculosis"
     )
     gene = Gene.create(
+        workspace_id=SHARED_WORKSPACE_ID,
         primary_name="rho",
         organism_id=uuid.UUID(organism_id),
         synonyms=["MTCY373.17"],
@@ -364,6 +314,7 @@ async def test_gene_leads_with_orf_when_no_locus(client: AsyncClient, database_u
         client, ncbi_tax_id=36329, scientific_name="Plasmodium falciparum 3D7"
     )
     gene = Gene.create(
+        workspace_id=SHARED_WORKSPACE_ID,
         primary_name="VPS26",
         organism_id=uuid.UUID(organism_id),
         orf_names=["PF3D7_1250300"],
@@ -378,11 +329,12 @@ async def test_gene_leads_with_orf_when_no_locus(client: AsyncClient, database_u
 
 @pytest.mark.asyncio
 async def test_human_gene_falls_back_to_symbol(client: AsyncClient, database_url: str) -> None:
-    organism_id = await _make_organism(
-        client, ncbi_tax_id=9606, scientific_name="Homo sapiens"
-    )
+    organism_id = await _make_organism(client, ncbi_tax_id=9606, scientific_name="Homo sapiens")
     gene = Gene.create(
-        primary_name="TP53", organism_id=uuid.UUID(organism_id), synonyms=["P53"]
+        workspace_id=SHARED_WORKSPACE_ID,
+        primary_name="TP53",
+        organism_id=uuid.UUID(organism_id),
+        synonyms=["P53"],
     )
     await _seed_gene(database_url, gene)
     detail = await client.get(f"/api/v1/genes/{gene.id}")

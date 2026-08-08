@@ -18,6 +18,7 @@ from protcellar.domain.protein_catalog.gene import Gene
 from protcellar.domain.protein_catalog.repository import GeneRepository
 from protcellar.domain.shared.cross_reference import CrossReference
 from protcellar.domain.shared.errors import DomainError
+from protcellar.domain.shared.global_workspace import SHARED_WORKSPACE_ID
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -58,7 +59,7 @@ class BulkUpsertGenes:
             for i, rec in enumerate(input.records):
                 try:
                     existing = await self._repo.find_by_source_record_id(
-                        rec.source, rec.source_record_id
+                        rec.source, rec.source_record_id, workspace_id=SHARED_WORKSPACE_ID
                     )
                     if existing is not None:
                         if existing.source_record_checksum == rec.source_record_checksum:
@@ -89,6 +90,7 @@ class BulkUpsertGenes:
                         results.append(ItemResult(index=i, status="updated", id=str(existing.id)))
                     else:
                         gene = Gene.create(
+                            workspace_id=SHARED_WORKSPACE_ID,
                             primary_name=rec.primary_name,
                             organism_id=rec.organism_id,
                             strain_id=rec.strain_id,

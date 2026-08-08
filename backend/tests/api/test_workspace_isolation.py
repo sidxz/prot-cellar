@@ -4,16 +4,17 @@ Each context adds its own case as it is converted. The general shape: a row
 owned by workspace B must be invisible to workspace A, and a shared row must
 be readable by both and mutable by neither.
 
-Taxonomy (this file's first contributor) can only demonstrate half of that
-shape. Organisms, strains and proteomes are reference data
+Taxonomy and protein_catalog, the two contributors so far, can only
+demonstrate half of that shape. Organisms, strains, proteomes, genes and
+proteins are all reference data
 (``docs/superpowers/specs/2026-08-08-workspace-scoping-design.md`` §1.5):
-every create path — including the plain ``POST /organisms`` — writes
-``SHARED_WORKSPACE_ID`` regardless of caller, so no tenant-owned organism
-ever exists to prove "invisible to a different workspace" against. That case
-belongs to Tasks 4 and 5 (target_biology, tagging), whose contexts have rows
-a single workspace actually owns. What taxonomy *can* and does demonstrate
-here: a shared row is readable by more than one workspace, and mutable by
-none.
+every create path — including the plain ``POST /organisms`` and
+``POST /genes`` — writes ``SHARED_WORKSPACE_ID`` regardless of caller, so no
+tenant-owned row of theirs ever exists to prove "invisible to a different
+workspace" against. That case belongs to Tasks 4 and 5 (target_biology,
+tagging), whose contexts have rows a single workspace actually owns. What
+these two contexts *can* and do demonstrate here: a shared row is readable by
+more than one workspace, and mutable by none.
 """
 
 from __future__ import annotations
@@ -78,4 +79,40 @@ async def test_shared_organism_cannot_be_mutated(client: AsyncClient) -> None:
     organism_id = await _seed_shared_organism(client)
 
     resp = await client.patch(f"/api/v1/organisms/{organism_id}", json={"division": "QA-TEMP"})
+    assert resp.status_code == 404, resp.text
+
+
+async def _seed_shared_gene(client: AsyncClient) -> str:
+    """Create a gene via the plain create route. Unlike organisms, genes carry
+    no natural-key conflict to dodge, and every create path writes SHARED
+    regardless of caller (create_gene.py), so the plain POST suffices.
+    """
+    organism_id = await _seed_shared_organism(client)
+    resp = await client.post(
+        "/api/v1/genes",
+        json={"primary_name": "isolationTestus", "organism_id": organism_id},
+    )
+    assert resp.status_code == 201, resp.text
+    return resp.json()["id"]
+
+
+async def test_shared_gene_is_readable_by_a_second_workspace(
+    client: AsyncClient, other_workspace_client: AsyncClient
+) -> None:
+    """A gene created under one workspace's call is still visible to another —
+    protein_catalog's proof of the same readable-by-all rule taxonomy already
+    established for organisms.
+    """
+    gene_id = await _seed_shared_gene(client)
+
+    resp = await other_workspace_client.get(f"/api/v1/genes/{gene_id}")
+    assert resp.status_code == 200, resp.text
+    assert resp.json()["id"] == gene_id
+
+
+async def test_shared_gene_cannot_be_mutated(client: AsyncClient) -> None:
+    """Genes are reference data too: PATCH 404s unconditionally, admin or not."""
+    gene_id = await _seed_shared_gene(client)
+
+    resp = await client.patch(f"/api/v1/genes/{gene_id}", json={"hgnc_id": "HGNC:QA-TEMP"})
     assert resp.status_code == 404, resp.text

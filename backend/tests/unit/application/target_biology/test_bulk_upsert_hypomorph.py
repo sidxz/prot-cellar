@@ -12,6 +12,7 @@ from protcellar.application.target_biology.bulk_upsert_hypomorph import (
     HypomorphImportRecord,
 )
 from protcellar.domain.protein_catalog.gene import Gene
+from protcellar.domain.shared.global_workspace import SHARED_WORKSPACE_ID
 from protcellar.domain.target_biology.hypomorph import Hypomorph
 from tests.fakes.fake_auth import FakeAuth
 
@@ -69,7 +70,7 @@ def _admin() -> FakeAuth:
 @pytest.mark.asyncio
 async def test_creates_then_updates_idempotently() -> None:
     org = uuid.uuid4()
-    gene = Gene.create(primary_name="Rv0667", organism_id=org)
+    gene = Gene.create(workspace_id=SHARED_WORKSPACE_ID, primary_name="Rv0667", organism_id=org)
     hyp_repo = _FakeHypRepo()
     uc = _uc(_FakeGeneRepo([gene]), hyp_repo)
     cmd = BulkUpsertHypomorphCommand(
@@ -95,7 +96,7 @@ async def test_creates_then_updates_idempotently() -> None:
 @pytest.mark.asyncio
 async def test_severity_without_defect_reported_failed() -> None:
     org = uuid.uuid4()
-    gene = Gene.create(primary_name="Rv0667", organism_id=org)
+    gene = Gene.create(workspace_id=SHARED_WORKSPACE_ID, primary_name="Rv0667", organism_id=org)
     uc = _uc(_FakeGeneRepo([gene]), _FakeHypRepo())
     cmd = BulkUpsertHypomorphCommand(
         organism_id=org,

@@ -251,7 +251,9 @@ async def test_import_creates_and_links_genes(import_uow: AsyncUnitOfWork) -> No
 
     async with import_uow:
         grepo = SQLAlchemyGeneRepository(import_uow)
-        gene = await grepo.find_by_source_record_id("uniprot", "99980:Rv1908c")
+        gene = await grepo.find_by_source_record_id(
+            "uniprot", "99980:Rv1908c", workspace_id=SHARED_WORKSPACE_ID
+        )
         assert gene is not None
         assert gene.primary_name == "katG"
 
@@ -328,7 +330,9 @@ async def test_import_resolves_species_and_strain(import_uow: AsyncUnitOfWork) -
 
         # Genes anchor to the species too.
         grepo = SQLAlchemyGeneRepository(import_uow)
-        gene = await grepo.find_by_source_record_id("uniprot", "771001:Rv1908c")
+        gene = await grepo.find_by_source_record_id(
+            "uniprot", "771001:Rv1908c", workspace_id=SHARED_WORKSPACE_ID
+        )
         assert gene is not None
         assert gene.organism_id == species.id
 

@@ -19,7 +19,9 @@ class _FakeGeneRepo:
     def __init__(self) -> None:
         self.by_srid: dict[tuple[str, str], Gene] = {}
 
-    async def find_by_source_record_id(self, source: str, source_record_id: str) -> Gene | None:
+    async def find_by_source_record_id(
+        self, source: str, source_record_id: str, *, workspace_id: uuid.UUID
+    ) -> Gene | None:
         return self.by_srid.get((source, source_record_id))
 
     async def save(self, gene: Gene) -> None:
@@ -153,7 +155,12 @@ async def test_created_gene_carries_ordered_locus_names() -> None:
 async def test_created_gene_carries_orf_names() -> None:
     repo = _FakeGeneRepo()
     auth = FakeAuth(role="admin")
-    rec = _rec(srid="36329:PF3D7_1250300", primary="VPS26", ordered_locus_names=(), orf_names=("PF3D7_1250300",))
+    rec = _rec(
+        srid="36329:PF3D7_1250300",
+        primary="VPS26",
+        ordered_locus_names=(),
+        orf_names=("PF3D7_1250300",),
+    )
     await _uc(repo)(BulkUpsertGenesCommand(records=(rec,)), auth=auth)
     saved = repo.by_srid[("uniprot", "36329:PF3D7_1250300")]
     assert saved.orf_names == ["PF3D7_1250300"]

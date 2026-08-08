@@ -12,6 +12,7 @@ from protcellar.application.target_biology.bulk_upsert_crispri_strain import (
     CrispriStrainImportRecord,
 )
 from protcellar.domain.protein_catalog.gene import Gene
+from protcellar.domain.shared.global_workspace import SHARED_WORKSPACE_ID
 from protcellar.domain.target_biology.crispri_strain import CrispriStrain
 from tests.fakes.fake_auth import FakeAuth
 
@@ -75,7 +76,7 @@ def _admin() -> FakeAuth:
 @pytest.mark.asyncio
 async def test_creates_then_updates_by_name() -> None:
     org = uuid.uuid4()
-    gene = Gene.create(primary_name="rpoB", organism_id=org)
+    gene = Gene.create(workspace_id=SHARED_WORKSPACE_ID, primary_name="rpoB", organism_id=org)
     cs_repo = _FakeCsRepo()
     uc = _uc(_FakeGeneRepo([gene]), cs_repo)
     cmd = BulkUpsertCrispriStrainCommand(
@@ -95,7 +96,7 @@ async def test_creates_then_updates_by_name() -> None:
 @pytest.mark.asyncio
 async def test_different_names_create_separate_strains() -> None:
     org = uuid.uuid4()
-    gene = Gene.create(primary_name="rpoB", organism_id=org)
+    gene = Gene.create(workspace_id=SHARED_WORKSPACE_ID, primary_name="rpoB", organism_id=org)
     cs_repo = _FakeCsRepo()
     uc = _uc(_FakeGeneRepo([gene]), cs_repo)
     cmd = BulkUpsertCrispriStrainCommand(

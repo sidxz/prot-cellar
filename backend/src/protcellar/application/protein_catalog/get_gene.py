@@ -13,7 +13,6 @@ from protcellar.application.shared.unit_of_work import UnitOfWork
 from protcellar.domain.protein_catalog.gene import Gene
 from protcellar.domain.protein_catalog.repository import GeneRepository
 from protcellar.domain.shared.errors import DomainError, NotFoundError
-from protcellar.domain.shared.global_workspace import SHARED_WORKSPACE_ID
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -31,7 +30,10 @@ class GetGene:
     ) -> Result[Gene, DomainError]:
         require_authenticated(auth)
         async with self._uow:
-            gene = await self._repo.find_readable(SHARED_WORKSPACE_ID, input.gene_id)
+            gene = await self._repo.find_readable(
+                auth.workspace_id,  # type: ignore[union-attr]
+                input.gene_id,
+            )
             if gene is None:
                 return Failure(NotFoundError("Gene", str(input.gene_id)))
             return Success(gene)

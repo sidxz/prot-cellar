@@ -12,6 +12,7 @@ from protcellar.application.target_biology.bulk_upsert_essentiality import (
     EssentialityImportRecord,
 )
 from protcellar.domain.protein_catalog.gene import Gene
+from protcellar.domain.shared.global_workspace import SHARED_WORKSPACE_ID
 from protcellar.domain.shared.provenance import GenerationMethod
 from protcellar.domain.target_biology.enums import EssentialityClass
 from protcellar.domain.target_biology.essentiality import Essentiality
@@ -73,7 +74,9 @@ def _admin() -> FakeAuth:
 @pytest.mark.asyncio
 async def test_creates_then_updates_idempotently() -> None:
     org = uuid.uuid4()
-    gene = Gene.create(primary_name="Rv0667", organism_id=org, synonyms=["rpoB"])
+    gene = Gene.create(
+        workspace_id=SHARED_WORKSPACE_ID, primary_name="Rv0667", organism_id=org, synonyms=["rpoB"]
+    )
     ess_repo = _FakeEssRepo()
     uc = _uc(_FakeGeneRepo([gene]), ess_repo)
     cmd = BulkUpsertEssentialityCommand(
@@ -112,7 +115,7 @@ async def test_unmatched_locus_is_reported_failed() -> None:
 @pytest.mark.asyncio
 async def test_dry_run_writes_nothing() -> None:
     org = uuid.uuid4()
-    gene = Gene.create(primary_name="Rv0667", organism_id=org)
+    gene = Gene.create(workspace_id=SHARED_WORKSPACE_ID, primary_name="Rv0667", organism_id=org)
     ess_repo = _FakeEssRepo()
     uc = _uc(_FakeGeneRepo([gene]), ess_repo)
     cmd = BulkUpsertEssentialityCommand(
@@ -128,7 +131,9 @@ async def test_dry_run_writes_nothing() -> None:
 @pytest.mark.asyncio
 async def test_default_generation_method_is_imported() -> None:
     org = uuid.uuid4()
-    gene = Gene.create(primary_name="Rv0667", organism_id=org, synonyms=["rpoB"])
+    gene = Gene.create(
+        workspace_id=SHARED_WORKSPACE_ID, primary_name="Rv0667", organism_id=org, synonyms=["rpoB"]
+    )
     ess_repo = _FakeEssRepo()
     uc = _uc(_FakeGeneRepo([gene]), ess_repo)
     cmd = BulkUpsertEssentialityCommand(
@@ -143,7 +148,9 @@ async def test_default_generation_method_is_imported() -> None:
 async def test_stamps_generation_method_and_source_run_id() -> None:
     org = uuid.uuid4()
     run_id = uuid.uuid4()
-    gene = Gene.create(primary_name="Rv0667", organism_id=org, synonyms=["rpoB"])
+    gene = Gene.create(
+        workspace_id=SHARED_WORKSPACE_ID, primary_name="Rv0667", organism_id=org, synonyms=["rpoB"]
+    )
     ess_repo = _FakeEssRepo()
     uc = _uc(_FakeGeneRepo([gene]), ess_repo)
     cmd = BulkUpsertEssentialityCommand(

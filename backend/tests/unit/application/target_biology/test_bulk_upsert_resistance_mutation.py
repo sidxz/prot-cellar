@@ -12,6 +12,7 @@ from protcellar.application.target_biology.bulk_upsert_resistance_mutation impor
     ResistanceMutationImportRecord,
 )
 from protcellar.domain.protein_catalog.gene import Gene
+from protcellar.domain.shared.global_workspace import SHARED_WORKSPACE_ID
 from protcellar.domain.target_biology.resistance_mutation import ResistanceMutation
 from tests.fakes.fake_auth import FakeAuth
 
@@ -71,7 +72,7 @@ def _admin() -> FakeAuth:
 @pytest.mark.asyncio
 async def test_upsert_by_mutation_and_compound() -> None:
     org = uuid.uuid4()
-    gene = Gene.create(primary_name="katG", organism_id=org)
+    gene = Gene.create(workspace_id=SHARED_WORKSPACE_ID, primary_name="katG", organism_id=org)
     rm_repo = _FakeRmRepo()
     uc = _uc(_FakeGeneRepo([gene]), rm_repo)
     c1, c2 = uuid.uuid4(), uuid.uuid4()
@@ -105,7 +106,7 @@ async def test_upsert_by_mutation_and_compound() -> None:
 @pytest.mark.asyncio
 async def test_empty_mutation_reported_failed() -> None:
     org = uuid.uuid4()
-    gene = Gene.create(primary_name="katG", organism_id=org)
+    gene = Gene.create(workspace_id=SHARED_WORKSPACE_ID, primary_name="katG", organism_id=org)
     uc = _uc(_FakeGeneRepo([gene]), _FakeRmRepo())
     cmd = BulkUpsertResistanceMutationCommand(
         organism_id=org,

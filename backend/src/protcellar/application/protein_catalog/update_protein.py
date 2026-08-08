@@ -57,7 +57,10 @@ class UpdateProtein:
         require_admin(auth)
 
         async with self._uow:
-            protein = await self._repo.find_by_accession(input.accession)
+            protein = await self._repo.find_owned_by_accession(
+                input.accession,
+                workspace_id=auth.workspace_id,  # type: ignore[union-attr]
+            )
             if protein is None:
                 return Failure(NotFoundError("Protein", input.accession))
 

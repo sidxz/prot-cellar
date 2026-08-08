@@ -20,7 +20,6 @@ from protcellar.domain.protein_catalog.value_objects import (
 from protcellar.domain.shared.cross_reference import CrossReference
 from protcellar.domain.shared.entity import AggregateRoot
 from protcellar.domain.shared.errors import ValidationError
-from protcellar.domain.shared.global_workspace import SHARED_WORKSPACE_ID
 
 # UniProtKB accession syntax (6 or 10 alphanumerics, two layouts). Mirrors the
 # registry `uniprot` prefix but kept here so the domain stays dependency-free.
@@ -36,6 +35,7 @@ class Protein(AggregateRoot):
         self,
         *,
         id: uuid.UUID | None = None,
+        workspace_id: uuid.UUID,
         primary_accession: str,
         organism_id: uuid.UUID,
         sequence: str,
@@ -75,8 +75,7 @@ class Protein(AggregateRoot):
             raise ValidationError(f"Invalid UniProt primary_accession '{primary_accession}'")
         if not sequence or not sequence.strip():
             raise ValidationError("Protein sequence must not be empty")
-        # Reference data lives under the reserved GLOBAL workspace.
-        self.workspace_id = SHARED_WORKSPACE_ID
+        self.workspace_id = workspace_id
         self.primary_accession = accession
         self.organism_id = organism_id
         self.sequence = sequence.strip()
@@ -114,6 +113,7 @@ class Protein(AggregateRoot):
     def create(
         cls,
         *,
+        workspace_id: uuid.UUID,
         primary_accession: str,
         organism_id: uuid.UUID,
         sequence: str,
@@ -140,6 +140,7 @@ class Protein(AggregateRoot):
         citations: list[ProteinCitation] | None = None,
     ) -> Protein:
         protein = cls(
+            workspace_id=workspace_id,
             primary_accession=primary_accession,
             organism_id=organism_id,
             sequence=sequence,

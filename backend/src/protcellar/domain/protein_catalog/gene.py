@@ -11,7 +11,6 @@ from protcellar.domain.protein_catalog.gene_annotation import GeneAnnotation
 from protcellar.domain.shared.cross_reference import CrossReference
 from protcellar.domain.shared.entity import AggregateRoot
 from protcellar.domain.shared.errors import ValidationError
-from protcellar.domain.shared.global_workspace import SHARED_WORKSPACE_ID
 
 
 class Gene(AggregateRoot):
@@ -19,6 +18,7 @@ class Gene(AggregateRoot):
         self,
         *,
         id: uuid.UUID | None = None,
+        workspace_id: uuid.UUID,
         primary_name: str,
         organism_id: uuid.UUID,
         strain_id: uuid.UUID | None = None,
@@ -47,15 +47,12 @@ class Gene(AggregateRoot):
         super().__init__(id=id, created_at=created_at, updated_at=updated_at, version=version)
         if not primary_name or not primary_name.strip():
             raise ValidationError("Gene primary_name must not be empty")
-        # Reference data lives under the reserved GLOBAL workspace.
-        self.workspace_id = SHARED_WORKSPACE_ID
+        self.workspace_id = workspace_id
         self.primary_name = primary_name.strip()
         self.organism_id = organism_id
         self.strain_id = strain_id
         self.synonyms = synonyms if synonyms is not None else []
-        self.ordered_locus_names = (
-            ordered_locus_names if ordered_locus_names is not None else []
-        )
+        self.ordered_locus_names = ordered_locus_names if ordered_locus_names is not None else []
         self.orf_names = orf_names if orf_names is not None else []
         self.ncbi_gene_id = ncbi_gene_id
         self.ensembl_gene_id = ensembl_gene_id
@@ -77,6 +74,7 @@ class Gene(AggregateRoot):
     def create(
         cls,
         *,
+        workspace_id: uuid.UUID,
         primary_name: str,
         organism_id: uuid.UUID,
         strain_id: uuid.UUID | None = None,
@@ -95,6 +93,7 @@ class Gene(AggregateRoot):
         annotations: list[GeneAnnotation] | None = None,
     ) -> Gene:
         gene = cls(
+            workspace_id=workspace_id,
             primary_name=primary_name,
             organism_id=organism_id,
             strain_id=strain_id,

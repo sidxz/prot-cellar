@@ -83,7 +83,10 @@ class GetGeneNeighborhood:
     ) -> Result[GeneNeighborhood, DomainError]:
         require_authenticated(auth)
         async with self._uow:
-            gene = await self._repo.find_readable(SHARED_WORKSPACE_ID, input.gene_id)
+            gene = await self._repo.find_readable(
+                auth.workspace_id,  # type: ignore[union-attr]
+                input.gene_id,
+            )
             if gene is None:
                 return Failure(NotFoundError("Gene", str(input.gene_id)))
             if gene.genomic_accession is None or gene.genomic_start is None:
@@ -94,6 +97,7 @@ class GetGeneNeighborhood:
                 genomic_accession=gene.genomic_accession,
                 center_start=gene.genomic_start,
                 window=input.window,
+                workspace_id=auth.workspace_id,  # type: ignore[union-attr]
             )
             summaries: list[GeneNeighborSummary] = []
             for n in neighbors:

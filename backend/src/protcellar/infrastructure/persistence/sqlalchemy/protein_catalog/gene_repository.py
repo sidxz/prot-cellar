@@ -10,6 +10,7 @@ from sqlalchemy import select
 from protcellar.domain.protein_catalog.gene import Gene
 from protcellar.domain.protein_catalog.read_models import GeneSummaryRow
 from protcellar.domain.protein_catalog.repository import GeneRepository
+from protcellar.domain.shared.global_workspace import SHARED_WORKSPACE_ID
 from protcellar.infrastructure.persistence.sqlalchemy.base_repository import SQLAlchemyRepository
 from protcellar.infrastructure.persistence.sqlalchemy.protein_catalog._annotation_json import (
     annotations_from_json,
@@ -22,6 +23,7 @@ from protcellar.infrastructure.persistence.sqlalchemy.protein_catalog._xref_json
 from protcellar.infrastructure.persistence.sqlalchemy.protein_catalog.models import GeneModel
 from protcellar.infrastructure.persistence.sqlalchemy.tagging.models import GeneTagLinkModel
 from protcellar.infrastructure.persistence.sqlalchemy.tagging.tag_filter import tag_filter_subquery
+from protcellar.infrastructure.persistence.sqlalchemy.workspace_scope import owned_by, readable_by
 
 
 class SQLAlchemyGeneRepository(SQLAlchemyRepository[Gene, GeneModel], GeneRepository):
@@ -30,6 +32,7 @@ class SQLAlchemyGeneRepository(SQLAlchemyRepository[Gene, GeneModel], GeneReposi
     def _to_domain(self, model: GeneModel) -> Gene:
         return Gene(
             id=model.id,
+            workspace_id=model.workspace_id,
             primary_name=model.primary_name,
             organism_id=model.organism_id,
             strain_id=model.strain_id,
@@ -109,7 +112,9 @@ class SQLAlchemyGeneRepository(SQLAlchemyRepository[Gene, GeneModel], GeneReposi
         model.source_record_checksum = aggregate.source_record_checksum
         model.imported_at = aggregate.imported_at
 
-    async def find_summary_rows_by_ids(self, ids: Sequence[uuid.UUID]) -> list[GeneSummaryRow]:
+    async def find_summary_rows_by_ids(
+        self, ids: Sequence[uuid.UUID], *, workspace_id: uuid.UUID
+    ) -> list[GeneSummaryRow]:
         # Column select only (see GeneSummaryRow): no aggregate hydration, no tracking.
         if not ids:
             return []
@@ -119,7 +124,7 @@ class SQLAlchemyGeneRepository(SQLAlchemyRepository[Gene, GeneModel], GeneReposi
             GeneModel.synonyms,
             GeneModel.ordered_locus_names,
             GeneModel.orf_names,
-        ).where(GeneModel.id.in_(list(ids)))
+        ).where(GeneModel.id.in_(list(ids)), readable_by(GeneModel, workspace_id))
         return [
             GeneSummaryRow(
                 id=row.id,
@@ -138,8 +143,13 @@ class SQLAlchemyGeneRepository(SQLAlchemyRepository[Gene, GeneModel], GeneReposi
         name: str,
         organism_id: uuid.UUID | None = None,
         strain_id: uuid.UUID | None = None,
+        *,
+        workspace_id: uuid.UUID,
     ) -> list[Gene]:
-        stmt = select(GeneModel).where(GeneModel.primary_name.ilike(f"%{name}%"))
+        stmt = select(GeneModel).where(
+            GeneModel.primary_name.ilike(f"%{name}%"),
+            readable_by(GeneModel, workspace_id),
+        )
         if organism_id is not None:
             stmt = stmt.where(GeneModel.organism_id == organism_id)
         if strain_id is not None:
@@ -147,29 +157,57 @@ class SQLAlchemyGeneRepository(SQLAlchemyRepository[Gene, GeneModel], GeneReposi
         stmt = stmt.order_by(GeneModel.primary_name).limit(50)
         return [self._to_domain_tracked(m) for m in (await self._session.execute(stmt)).scalars()]
 
-    async def find_by_ncbi_gene_id(self, ncbi_gene_id: str) -> Gene | None:
-        stmt = select(GeneModel).where(GeneModel.ncbi_gene_id == ncbi_gene_id)
-        model = (await self._session.execute(stmt)).scalar_one_or_none()
-        return self._to_domain_tracked(model) if model else None
-
-    async def find_by_source_record_id(self, source: str, source_record_id: str) -> Gene | None:
+    async def find_by_ncbi_gene_id(
+        self, ncbi_gene_id: str, *, workspace_id: uuid.UUID
+    ) -> Gene | None:
         stmt = select(GeneModel).where(
-            GeneModel.source == source,
-            GeneModel.source_record_id == source_record_id,
+            GeneModel.ncbi_gene_id == ncbi_gene_id,
+            readable_by(GeneModel, workspace_id),
         )
         model = (await self._session.execute(stmt)).scalar_one_or_none()
         return self._to_domain_tracked(model) if model else None
 
-    async def list_by_organism(self, organism_id: uuid.UUID, *, batch: int = 1000) -> list[Gene]:
+    async def find_by_source_record_id(
+        self, source: str, source_record_id: str, *, workspace_id: uuid.UUID
+    ) -> Gene | None:
+        """Look up an import-tracked gene for a read-modify-write upsert.
+
+        Scoped with ``owned_by`` (not merely readable) because the only caller,
+        ``BulkUpsertGenes``, mutates and saves whatever it finds — same
+        rationale as the taxonomy equivalent in ``organism_repository.py``.
+        """
+        stmt = select(GeneModel).where(
+            GeneModel.source == source,
+            GeneModel.source_record_id == source_record_id,
+            owned_by(GeneModel, workspace_id),
+        )
+        model = (await self._session.execute(stmt)).scalar_one_or_none()
+        return self._to_domain_tracked(model) if model else None
+
+    async def list_by_organism(
+        self,
+        organism_id: uuid.UUID,
+        *,
+        workspace_id: uuid.UUID = SHARED_WORKSPACE_ID,
+        batch: int = 1000,
+    ) -> list[Gene]:
         """Load every gene for an organism, paged by keyset (``id``) in ``batch``-sized chunks.
 
         Used to build the locus→gene match index for enrichment; the keyset walk
         keeps memory bounded per query while still returning the full set.
+
+        ``workspace_id`` defaults to shared: genes are always reference data, so
+        the target-biology bulk importers that call this to resolve gene ids for
+        their own workspace-owned records — with no gene-side workspace of their
+        own to pass — get exactly the right rows either way.
         """
         genes: list[Gene] = []
         cursor: uuid.UUID | None = None
         while True:
-            stmt = select(GeneModel).where(GeneModel.organism_id == organism_id)
+            stmt = select(GeneModel).where(
+                GeneModel.organism_id == organism_id,
+                readable_by(GeneModel, workspace_id),
+            )
             if cursor is not None:
                 stmt = stmt.where(GeneModel.id > cursor)
             stmt = stmt.order_by(GeneModel.id).limit(batch)
@@ -191,6 +229,7 @@ class SQLAlchemyGeneRepository(SQLAlchemyRepository[Gene, GeneModel], GeneReposi
         genomic_accession: str,
         center_start: int,
         window: int,
+        workspace_id: uuid.UUID,
     ) -> list[Gene]:
         """Return genes flanking ``center_start`` on the same replicon.
 
@@ -198,8 +237,10 @@ class SQLAlchemyGeneRepository(SQLAlchemyRepository[Gene, GeneModel], GeneReposi
         the center gene) are merged and re-sorted, so the whole replicon never
         has to be loaded. Result is ascending by ``genomic_start``.
         """
-        base = (GeneModel.organism_id == organism_id) & (
-            GeneModel.genomic_accession == genomic_accession
+        base = (
+            (GeneModel.organism_id == organism_id)
+            & (GeneModel.genomic_accession == genomic_accession)
+            & readable_by(GeneModel, workspace_id)
         )
         upstream = (
             select(GeneModel)
@@ -230,7 +271,7 @@ class SQLAlchemyGeneRepository(SQLAlchemyRepository[Gene, GeneModel], GeneReposi
         tag_ids: list[uuid.UUID] | None = None,
         match_all: bool = False,
     ) -> list[Gene]:
-        stmt = select(GeneModel).order_by(GeneModel.id)
+        stmt = select(GeneModel).where(readable_by(GeneModel, workspace_id)).order_by(GeneModel.id)
         if organism_id is not None:
             stmt = stmt.where(GeneModel.organism_id == organism_id)
         if strain_id is not None:

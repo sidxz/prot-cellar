@@ -51,6 +51,7 @@ async def test_cross_references_persist_as_rows(xref_uow: AsyncUnitOfWork) -> No
         )
         await org_repo.save(org)
         protein = Protein.create(
+            workspace_id=SHARED_WORKSPACE_ID,
             primary_accession="P0DV01",
             organism_id=org.id,
             sequence="MKTAYIAKQR",

@@ -11,6 +11,7 @@ from protcellar.application.protein_catalog.resolve_protein_id import (
 )
 from protcellar.domain.protein_catalog.protein import Protein
 from protcellar.domain.shared.errors import NotFoundError
+from protcellar.domain.shared.global_workspace import SHARED_WORKSPACE_ID
 from tests.fakes.fake_auth import FakeAuth
 
 _AUTH = FakeAuth()
@@ -43,7 +44,9 @@ class FakeProteinRepository:
     def __init__(self, proteins: list[Protein]) -> None:
         self._by_id = {p.id: p for p in proteins}
 
-    async def find_by_accession(self, accession: str) -> Protein | None:
+    async def find_by_accession(
+        self, accession: str, *, workspace_id: uuid.UUID = SHARED_WORKSPACE_ID
+    ) -> Protein | None:
         for p in self._by_id.values():
             if p.primary_accession == accession:
                 return p
@@ -52,12 +55,15 @@ class FakeProteinRepository:
                 return p
         return None
 
-    async def find_by_entry_name(self, entry_name: str) -> Protein | None:
+    async def find_by_entry_name(
+        self, entry_name: str, *, workspace_id: uuid.UUID = SHARED_WORKSPACE_ID
+    ) -> Protein | None:
         return next((p for p in self._by_id.values() if p.entry_name == entry_name), None)
 
 
 def _protein(accession: str, **kw: object) -> Protein:
     return Protein.create(
+        workspace_id=SHARED_WORKSPACE_ID,
         primary_accession=accession,
         organism_id=uuid.uuid4(),
         sequence="MKTAYIAKQR",

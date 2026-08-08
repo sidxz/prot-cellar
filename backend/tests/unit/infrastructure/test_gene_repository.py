@@ -49,6 +49,7 @@ async def test_find_genomic_neighbors_returns_window_ordered(gene_uow: AsyncUnit
         for i, start in enumerate([100, 200, 300, 400, 500]):
             await gene_repo.save(
                 Gene.create(
+                    workspace_id=SHARED_WORKSPACE_ID,
                     primary_name=f"g{i}",
                     organism_id=organism_id,
                     genomic_accession="NC_000962.3",
@@ -60,6 +61,7 @@ async def test_find_genomic_neighbors_returns_window_ordered(gene_uow: AsyncUnit
         # A gene on a different replicon must never leak into the window.
         await gene_repo.save(
             Gene.create(
+                workspace_id=SHARED_WORKSPACE_ID,
                 primary_name="other",
                 organism_id=organism_id,
                 genomic_accession="NC_OTHER.1",
@@ -75,6 +77,7 @@ async def test_find_genomic_neighbors_returns_window_ordered(gene_uow: AsyncUnit
             genomic_accession="NC_000962.3",
             center_start=300,
             window=1,
+            workspace_id=SHARED_WORKSPACE_ID,
         )
 
     assert [g.genomic_start for g in out] == [200, 300, 400]
@@ -89,6 +92,7 @@ async def test_find_genomic_neighbors_clamps_at_replicon_edges(gene_uow: AsyncUn
         for i, start in enumerate([100, 200, 300]):
             await gene_repo.save(
                 Gene.create(
+                    workspace_id=SHARED_WORKSPACE_ID,
                     primary_name=f"e{i}",
                     organism_id=organism_id,
                     genomic_accession="NC_000962.3",
@@ -104,6 +108,7 @@ async def test_find_genomic_neighbors_clamps_at_replicon_edges(gene_uow: AsyncUn
             genomic_accession="NC_000962.3",
             center_start=100,
             window=5,
+            workspace_id=SHARED_WORKSPACE_ID,
         )
 
     assert [g.genomic_start for g in out] == [100, 200, 300]

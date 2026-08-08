@@ -54,7 +54,9 @@ async def test_dejesus_plugin_run_creates_essentiality(
             scientific_name="M. tuberculosis H37Rv (test)",
         )
         org = organism.id
-        gene = Gene.create(primary_name="Rv0667", organism_id=org)
+        gene = Gene.create(
+            workspace_id=SHARED_WORKSPACE_ID, primary_name="Rv0667", organism_id=org
+        )
         async with AsyncUnitOfWork(factory) as uow:
             await SQLAlchemyOrganismRepository(uow).save(organism)
             await SQLAlchemyGeneRepository(uow).save(gene)

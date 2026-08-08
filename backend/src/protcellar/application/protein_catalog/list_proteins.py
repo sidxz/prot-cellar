@@ -129,7 +129,11 @@ class ListProteins:
 
             gene_ids = {r.gene_id for r in rows if r.gene_id is not None}
             genes_by_id = {
-                g.id: g for g in await self._gene_repo.find_summary_rows_by_ids(list(gene_ids))
+                g.id: g
+                for g in await self._gene_repo.find_summary_rows_by_ids(
+                    list(gene_ids),
+                    workspace_id=auth.workspace_id,  # type: ignore[union-attr]
+                )
             }
             items = [
                 ProteinListItem(

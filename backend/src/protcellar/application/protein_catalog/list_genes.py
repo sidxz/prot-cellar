@@ -40,7 +40,10 @@ class ListGenes:
             if input.name is not None:
                 # Name search — no cursor pagination
                 genes = await self._repo.find_by_name(
-                    input.name, input.organism_id, input.strain_id
+                    input.name,
+                    input.organism_id,
+                    input.strain_id,
+                    workspace_id=auth.workspace_id,  # type: ignore[union-attr]
                 )
                 return Success(PageResult(items=genes, next_cursor=None))
 

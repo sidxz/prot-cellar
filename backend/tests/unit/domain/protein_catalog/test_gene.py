@@ -10,7 +10,12 @@ from protcellar.domain.shared.global_workspace import SHARED_WORKSPACE_ID
 
 def test_create_gene() -> None:
     organism = uuid.uuid4()
-    gene = Gene.create(primary_name="TP53", organism_id=organism, synonyms=["P53", "LFS1"])
+    gene = Gene.create(
+        workspace_id=SHARED_WORKSPACE_ID,
+        primary_name="TP53",
+        organism_id=organism,
+        synonyms=["P53", "LFS1"],
+    )
     assert gene.primary_name == "TP53"
     assert gene.organism_id == organism
     assert gene.synonyms == ["P53", "LFS1"]
@@ -22,11 +27,13 @@ def test_create_gene() -> None:
 
 def test_create_requires_primary_name() -> None:
     with pytest.raises(ValidationError):
-        Gene.create(primary_name="   ", organism_id=uuid.uuid4())
+        Gene.create(workspace_id=SHARED_WORKSPACE_ID, primary_name="   ", organism_id=uuid.uuid4())
 
 
 def test_update_gene_fields() -> None:
-    gene = Gene.create(primary_name="TP53", organism_id=uuid.uuid4())
+    gene = Gene.create(
+        workspace_id=SHARED_WORKSPACE_ID, primary_name="TP53", organism_id=uuid.uuid4()
+    )
     gene.update(ncbi_gene_id="7157", ensembl_gene_id="ENSG00000141510")
     assert gene.ncbi_gene_id == "7157"
     assert gene.ensembl_gene_id == "ENSG00000141510"
@@ -36,23 +43,33 @@ def test_update_gene_fields() -> None:
 def test_gene_carries_strain() -> None:
     # A gene belongs to a specific strain's genome (null for single-genome species).
     strain = uuid.uuid4()
-    gene = Gene.create(primary_name="rpoB", organism_id=uuid.uuid4(), strain_id=strain)
+    gene = Gene.create(
+        workspace_id=SHARED_WORKSPACE_ID,
+        primary_name="rpoB",
+        organism_id=uuid.uuid4(),
+        strain_id=strain,
+    )
     assert gene.strain_id == strain
     other = uuid.uuid4()
     gene.update(strain_id=other)
     assert gene.strain_id == other
-    human = Gene.create(primary_name="TP53", organism_id=uuid.uuid4())
+    human = Gene.create(
+        workspace_id=SHARED_WORKSPACE_ID, primary_name="TP53", organism_id=uuid.uuid4()
+    )
     assert human.strain_id is None
 
 
 def test_update_rejects_empty_primary_name() -> None:
-    gene = Gene.create(primary_name="TP53", organism_id=uuid.uuid4())
+    gene = Gene.create(
+        workspace_id=SHARED_WORKSPACE_ID, primary_name="TP53", organism_id=uuid.uuid4()
+    )
     with pytest.raises(ValidationError):
         gene.update(primary_name="  ")
 
 
 def test_gene_holds_genomic_location_and_length() -> None:
     g = Gene.create(
+        workspace_id=SHARED_WORKSPACE_ID,
         primary_name="rpoB",
         organism_id=uuid.uuid4(),
         genomic_accession="NC_000962.3",
@@ -67,7 +84,7 @@ def test_gene_holds_genomic_location_and_length() -> None:
 
 
 def test_gene_length_bp_none_when_coords_missing() -> None:
-    g = Gene.create(primary_name="x", organism_id=uuid.uuid4())
+    g = Gene.create(workspace_id=SHARED_WORKSPACE_ID, primary_name="x", organism_id=uuid.uuid4())
     assert g.length_bp is None
 
 
@@ -77,7 +94,9 @@ def test_gene_holds_annotations_and_update_replaces_them() -> None:
         GeneAnnotationAxis,
     )
 
-    g = Gene.create(primary_name="katG", organism_id=uuid.uuid4())
+    g = Gene.create(
+        workspace_id=SHARED_WORKSPACE_ID, primary_name="katG", organism_id=uuid.uuid4()
+    )
     assert g.annotations == []
     ann = GeneAnnotation(
         axis=GeneAnnotationAxis.VULNERABILITY, key="essentiality", value="non-essential"
@@ -91,6 +110,7 @@ def test_gene_holds_annotations_and_update_replaces_them() -> None:
 
 def test_gene_carries_ordered_locus_names() -> None:
     gene = Gene.create(
+        workspace_id=SHARED_WORKSPACE_ID,
         primary_name="rho",
         organism_id=uuid.uuid4(),
         ordered_locus_names=["Rv1297"],
@@ -99,29 +119,43 @@ def test_gene_carries_ordered_locus_names() -> None:
 
 
 def test_gene_ordered_locus_names_default_empty() -> None:
-    gene = Gene.create(primary_name="TP53", organism_id=uuid.uuid4())
+    gene = Gene.create(
+        workspace_id=SHARED_WORKSPACE_ID, primary_name="TP53", organism_id=uuid.uuid4()
+    )
     assert gene.ordered_locus_names == []
 
 
 def test_gene_update_ordered_locus_names() -> None:
-    gene = Gene.create(primary_name="rho", organism_id=uuid.uuid4())
+    gene = Gene.create(
+        workspace_id=SHARED_WORKSPACE_ID, primary_name="rho", organism_id=uuid.uuid4()
+    )
     gene.update(ordered_locus_names=["Rv1297"])
     assert gene.ordered_locus_names == ["Rv1297"]
 
 
 def test_gene_carries_orf_names() -> None:
     gene = Gene.create(
-        primary_name="VPS26", organism_id=uuid.uuid4(), orf_names=["PF3D7_1250300"]
+        workspace_id=SHARED_WORKSPACE_ID,
+        primary_name="VPS26",
+        organism_id=uuid.uuid4(),
+        orf_names=["PF3D7_1250300"],
     )
     assert gene.orf_names == ["PF3D7_1250300"]
 
 
 def test_gene_orf_names_default_empty() -> None:
-    assert Gene.create(primary_name="TP53", organism_id=uuid.uuid4()).orf_names == []
+    assert (
+        Gene.create(
+            workspace_id=SHARED_WORKSPACE_ID, primary_name="TP53", organism_id=uuid.uuid4()
+        ).orf_names
+        == []
+    )
 
 
 def test_gene_update_orf_names() -> None:
-    gene = Gene.create(primary_name="VPS26", organism_id=uuid.uuid4())
+    gene = Gene.create(
+        workspace_id=SHARED_WORKSPACE_ID, primary_name="VPS26", organism_id=uuid.uuid4()
+    )
     gene.update(orf_names=["PF3D7_1250300"])
     assert gene.orf_names == ["PF3D7_1250300"]
 
