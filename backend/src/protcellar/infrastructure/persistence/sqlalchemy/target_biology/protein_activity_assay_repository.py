@@ -16,6 +16,7 @@ from protcellar.infrastructure.persistence.sqlalchemy.target_biology._provenance
 from protcellar.infrastructure.persistence.sqlalchemy.target_biology.models import (
     ProteinActivityAssayModel,
 )
+from protcellar.infrastructure.persistence.sqlalchemy.workspace_scope import owned_by, readable_by
 
 
 class SQLAlchemyProteinActivityAssayRepository(
@@ -72,10 +73,31 @@ class SQLAlchemyProteinActivityAssayRepository(
     async def find_by_protein(
         self, workspace_id: uuid.UUID, protein_id: uuid.UUID
     ) -> list[ProteinActivityAssay]:
+        """Read path only — ``readable_by``. For a caller that loads records in
+        order to mutate and save them, use ``find_owned_by_protein`` instead.
+        """
         stmt = (
             select(ProteinActivityAssayModel)
             .where(
-                ProteinActivityAssayModel.workspace_id == workspace_id,
+                readable_by(ProteinActivityAssayModel, workspace_id),
+                ProteinActivityAssayModel.protein_id == protein_id,
+            )
+            .order_by(ProteinActivityAssayModel.id)
+        )
+        result = await self._session.execute(stmt)
+        return [self._to_domain_tracked(m) for m in result.scalars()]
+
+    async def find_owned_by_protein(
+        self, workspace_id: uuid.UUID, protein_id: uuid.UUID
+    ) -> list[ProteinActivityAssay]:
+        """The mutation-safe twin of ``find_by_protein`` — ``owned_by``, for the
+        bulk-import load-then-update-then-save loop. A shared record is never
+        found here, no matter what ``workspace_id`` a future caller passes.
+        """
+        stmt = (
+            select(ProteinActivityAssayModel)
+            .where(
+                owned_by(ProteinActivityAssayModel, workspace_id),
                 ProteinActivityAssayModel.protein_id == protein_id,
             )
             .order_by(ProteinActivityAssayModel.id)

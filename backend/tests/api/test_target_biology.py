@@ -203,12 +203,16 @@ async def test_essentiality_writes_require_admin(editor_client: AsyncClient) -> 
 
 
 async def test_patch_one_field_preserves_provenance_and_other_fields(
-    client: AsyncClient, database_url: str
+    client: AsyncClient, database_url: str, workspace_id: uuid.UUID
 ) -> None:
     """Editing `condition` must not touch provenance, generation_method, or siblings."""
     gene_id = uuid.uuid4()
     record = Essentiality(
-        workspace_id=WS,
+        # Owned by the caller, not shared — a PATCH must find it via find_owned.
+        # This test exercises patch-body semantics, not shared-row immutability
+        # (see test_shared_essentiality_cannot_be_mutated in
+        # test_workspace_isolation.py for that).
+        workspace_id=workspace_id,
         gene_id=gene_id,
         classification=EssentialityClass.ESSENTIAL,
         provenance=Provenance(
@@ -246,12 +250,12 @@ async def test_patch_one_field_preserves_provenance_and_other_fields(
 
 
 async def test_patch_with_provenance_reattributes_to_manual(
-    client: AsyncClient, database_url: str
+    client: AsyncClient, database_url: str, workspace_id: uuid.UUID
 ) -> None:
     """Submitting provenance is what re-attributes a record — and only that."""
     gene_id = uuid.uuid4()
     record = Essentiality(
-        workspace_id=WS,
+        workspace_id=workspace_id,  # owned by the caller — see the sibling test above
         gene_id=gene_id,
         classification=EssentialityClass.ESSENTIAL,
         provenance=Provenance(
@@ -287,9 +291,11 @@ async def test_patch_rejects_unknown_field(client: AsyncClient, database_url: st
     assert resp.status_code == 422
 
 
-async def test_patch_with_stale_version_conflicts(client: AsyncClient, database_url: str) -> None:
+async def test_patch_with_stale_version_conflicts(
+    client: AsyncClient, database_url: str, workspace_id: uuid.UUID
+) -> None:
     record = Essentiality(
-        workspace_id=WS,
+        workspace_id=workspace_id,  # owned by the caller — see test_patch_one_field... above
         gene_id=uuid.uuid4(),
         classification=EssentialityClass.ESSENTIAL,
         provenance=Provenance(source_type=ProvenanceSourceType.PUBLISHED),
@@ -323,11 +329,11 @@ async def test_patch_with_stale_version_conflicts(client: AsyncClient, database_
 
 
 async def test_patch_without_version_still_succeeds(
-    client: AsyncClient, database_url: str
+    client: AsyncClient, database_url: str, workspace_id: uuid.UUID
 ) -> None:
     """Version is opt-in — importers and scripts keep working."""
     record = Essentiality(
-        workspace_id=WS,
+        workspace_id=workspace_id,  # owned by the caller — see test_patch_one_field... above
         gene_id=uuid.uuid4(),
         classification=EssentialityClass.ESSENTIAL,
         provenance=Provenance(source_type=ProvenanceSourceType.PUBLISHED),

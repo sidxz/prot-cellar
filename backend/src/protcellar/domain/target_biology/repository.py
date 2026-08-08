@@ -23,6 +23,10 @@ class EssentialityRepository(Protocol):
         self, workspace_id: uuid.UUID, gene_id: uuid.UUID
     ) -> list[Essentiality]: ...
 
+    async def find_owned_by_gene(
+        self, workspace_id: uuid.UUID, gene_id: uuid.UUID
+    ) -> list[Essentiality]: ...
+
     async def save(self, aggregate: Essentiality) -> None: ...
 
     async def delete(self, workspace_id: uuid.UUID, id: uuid.UUID) -> None: ...
@@ -33,6 +37,10 @@ class CrispriStrainRepository(Protocol):
     async def find_owned(self, workspace_id: uuid.UUID, id: uuid.UUID) -> CrispriStrain | None: ...
 
     async def find_by_gene(
+        self, workspace_id: uuid.UUID, target_gene_id: uuid.UUID
+    ) -> list[CrispriStrain]: ...
+
+    async def find_owned_by_gene(
         self, workspace_id: uuid.UUID, target_gene_id: uuid.UUID
     ) -> list[CrispriStrain]: ...
 
@@ -47,6 +55,10 @@ class VulnerabilityRepository(Protocol):
         self, workspace_id: uuid.UUID, gene_id: uuid.UUID
     ) -> list[Vulnerability]: ...
 
+    async def find_owned_by_gene(
+        self, workspace_id: uuid.UUID, gene_id: uuid.UUID
+    ) -> list[Vulnerability]: ...
+
     async def save(self, aggregate: Vulnerability) -> None: ...
 
 
@@ -55,6 +67,10 @@ class HypomorphRepository(Protocol):
     async def find_owned(self, workspace_id: uuid.UUID, id: uuid.UUID) -> Hypomorph | None: ...
 
     async def find_by_gene(
+        self, workspace_id: uuid.UUID, gene_id: uuid.UUID
+    ) -> list[Hypomorph]: ...
+
+    async def find_owned_by_gene(
         self, workspace_id: uuid.UUID, gene_id: uuid.UUID
     ) -> list[Hypomorph]: ...
 
@@ -71,6 +87,10 @@ class ResistanceMutationRepository(Protocol):
         self, workspace_id: uuid.UUID, gene_id: uuid.UUID
     ) -> list[ResistanceMutation]: ...
 
+    async def find_owned_by_gene(
+        self, workspace_id: uuid.UUID, gene_id: uuid.UUID
+    ) -> list[ResistanceMutation]: ...
+
     async def save(self, aggregate: ResistanceMutation) -> None: ...
 
 
@@ -81,6 +101,10 @@ class ProteinProductionRepository(Protocol):
     ) -> ProteinProduction | None: ...
 
     async def find_by_protein(
+        self, workspace_id: uuid.UUID, protein_id: uuid.UUID
+    ) -> list[ProteinProduction]: ...
+
+    async def find_owned_by_protein(
         self, workspace_id: uuid.UUID, protein_id: uuid.UUID
     ) -> list[ProteinProduction]: ...
 
@@ -97,6 +121,10 @@ class ProteinActivityAssayRepository(Protocol):
         self, workspace_id: uuid.UUID, protein_id: uuid.UUID
     ) -> list[ProteinActivityAssay]: ...
 
+    async def find_owned_by_protein(
+        self, workspace_id: uuid.UUID, protein_id: uuid.UUID
+    ) -> list[ProteinActivityAssay]: ...
+
     async def save(self, aggregate: ProteinActivityAssay) -> None: ...
 
 
@@ -107,6 +135,10 @@ class UnpublishedStructureRepository(Protocol):
     ) -> UnpublishedStructure | None: ...
 
     async def find_by_protein(
+        self, workspace_id: uuid.UUID, protein_id: uuid.UUID
+    ) -> list[UnpublishedStructure]: ...
+
+    async def find_owned_by_protein(
         self, workspace_id: uuid.UUID, protein_id: uuid.UUID
     ) -> list[UnpublishedStructure]: ...
 

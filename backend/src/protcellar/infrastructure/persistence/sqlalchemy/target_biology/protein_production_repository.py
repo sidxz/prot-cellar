@@ -16,6 +16,7 @@ from protcellar.infrastructure.persistence.sqlalchemy.target_biology._provenance
 from protcellar.infrastructure.persistence.sqlalchemy.target_biology.models import (
     ProteinProductionModel,
 )
+from protcellar.infrastructure.persistence.sqlalchemy.workspace_scope import owned_by, readable_by
 
 
 class SQLAlchemyProteinProductionRepository(
@@ -58,9 +59,7 @@ class SQLAlchemyProteinProductionRepository(
             version=aggregate.version,
         )
 
-    def _update_model(
-        self, model: ProteinProductionModel, aggregate: ProteinProduction
-    ) -> None:
+    def _update_model(self, model: ProteinProductionModel, aggregate: ProteinProduction) -> None:
         model.status = aggregate.status
         model.expression_host = aggregate.expression_host
         model.purity = aggregate.purity
@@ -72,10 +71,31 @@ class SQLAlchemyProteinProductionRepository(
     async def find_by_protein(
         self, workspace_id: uuid.UUID, protein_id: uuid.UUID
     ) -> list[ProteinProduction]:
+        """Read path only — ``readable_by``. For a caller that loads records in
+        order to mutate and save them, use ``find_owned_by_protein`` instead.
+        """
         stmt = (
             select(ProteinProductionModel)
             .where(
-                ProteinProductionModel.workspace_id == workspace_id,
+                readable_by(ProteinProductionModel, workspace_id),
+                ProteinProductionModel.protein_id == protein_id,
+            )
+            .order_by(ProteinProductionModel.id)
+        )
+        result = await self._session.execute(stmt)
+        return [self._to_domain_tracked(m) for m in result.scalars()]
+
+    async def find_owned_by_protein(
+        self, workspace_id: uuid.UUID, protein_id: uuid.UUID
+    ) -> list[ProteinProduction]:
+        """The mutation-safe twin of ``find_by_protein`` — ``owned_by``, for the
+        bulk-import load-then-update-then-save loop. A shared record is never
+        found here, no matter what ``workspace_id`` a future caller passes.
+        """
+        stmt = (
+            select(ProteinProductionModel)
+            .where(
+                owned_by(ProteinProductionModel, workspace_id),
                 ProteinProductionModel.protein_id == protein_id,
             )
             .order_by(ProteinProductionModel.id)

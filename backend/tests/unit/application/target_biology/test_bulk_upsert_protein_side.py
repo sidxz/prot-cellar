@@ -40,7 +40,7 @@ class _FakeRecordRepo:
     def __init__(self) -> None:
         self.items: list[object] = []
 
-    async def find_by_protein(self, workspace_id: uuid.UUID, protein_id: uuid.UUID) -> list:
+    async def find_owned_by_protein(self, workspace_id: uuid.UUID, protein_id: uuid.UUID) -> list:
         return [
             r
             for r in self.items

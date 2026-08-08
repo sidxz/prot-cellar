@@ -75,10 +75,8 @@ class BulkUpsertCrispriStrain:
                         )
                         continue
                     provenance = provenance_from(input.source_type, rec.pmid, rec.dataset)
-                    existing = await self._cs_repo.find_by_gene(SHARED_WORKSPACE_ID, gene.id)
-                    match = next(
-                        (s for s in existing if s.name == rec.name.strip()), None
-                    )
+                    existing = await self._cs_repo.find_owned_by_gene(SHARED_WORKSPACE_ID, gene.id)
+                    match = next((s for s in existing if s.name == rec.name.strip()), None)
                     if match is not None:
                         match.update(provenance=provenance)
                         if not input.dry_run:

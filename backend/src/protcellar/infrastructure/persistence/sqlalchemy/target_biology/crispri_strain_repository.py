@@ -16,6 +16,7 @@ from protcellar.infrastructure.persistence.sqlalchemy.target_biology._provenance
 from protcellar.infrastructure.persistence.sqlalchemy.target_biology.models import (
     CrispriStrainModel,
 )
+from protcellar.infrastructure.persistence.sqlalchemy.workspace_scope import owned_by, readable_by
 
 
 class SQLAlchemyCrispriStrainRepository(
@@ -58,10 +59,31 @@ class SQLAlchemyCrispriStrainRepository(
     async def find_by_gene(
         self, workspace_id: uuid.UUID, target_gene_id: uuid.UUID
     ) -> list[CrispriStrain]:
+        """Read path only — ``readable_by``. For a caller that loads records in
+        order to mutate and save them, use ``find_owned_by_gene`` instead.
+        """
         stmt = (
             select(CrispriStrainModel)
             .where(
-                CrispriStrainModel.workspace_id == workspace_id,
+                readable_by(CrispriStrainModel, workspace_id),
+                CrispriStrainModel.target_gene_id == target_gene_id,
+            )
+            .order_by(CrispriStrainModel.id)
+        )
+        result = await self._session.execute(stmt)
+        return [self._to_domain_tracked(m) for m in result.scalars()]
+
+    async def find_owned_by_gene(
+        self, workspace_id: uuid.UUID, target_gene_id: uuid.UUID
+    ) -> list[CrispriStrain]:
+        """The mutation-safe twin of ``find_by_gene`` — ``owned_by``, for the
+        bulk-import load-then-update-then-save loop. A shared record is never
+        found here, no matter what ``workspace_id`` a future caller passes.
+        """
+        stmt = (
+            select(CrispriStrainModel)
+            .where(
+                owned_by(CrispriStrainModel, workspace_id),
                 CrispriStrainModel.target_gene_id == target_gene_id,
             )
             .order_by(CrispriStrainModel.id)

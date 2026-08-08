@@ -14,6 +14,7 @@ from protcellar.infrastructure.persistence.sqlalchemy.target_biology._provenance
     provenance_to_json,
 )
 from protcellar.infrastructure.persistence.sqlalchemy.target_biology.models import HypomorphModel
+from protcellar.infrastructure.persistence.sqlalchemy.workspace_scope import owned_by, readable_by
 
 
 class SQLAlchemyHypomorphRepository(
@@ -65,10 +66,31 @@ class SQLAlchemyHypomorphRepository(
         model.extensions = aggregate.extensions or None
 
     async def find_by_gene(self, workspace_id: uuid.UUID, gene_id: uuid.UUID) -> list[Hypomorph]:
+        """Read path only — ``readable_by``. For a caller that loads records in
+        order to mutate and save them, use ``find_owned_by_gene`` instead.
+        """
         stmt = (
             select(HypomorphModel)
             .where(
-                HypomorphModel.workspace_id == workspace_id,
+                readable_by(HypomorphModel, workspace_id),
+                HypomorphModel.gene_id == gene_id,
+            )
+            .order_by(HypomorphModel.id)
+        )
+        result = await self._session.execute(stmt)
+        return [self._to_domain_tracked(m) for m in result.scalars()]
+
+    async def find_owned_by_gene(
+        self, workspace_id: uuid.UUID, gene_id: uuid.UUID
+    ) -> list[Hypomorph]:
+        """The mutation-safe twin of ``find_by_gene`` — ``owned_by``, for the
+        bulk-import load-then-update-then-save loop. A shared record is never
+        found here, no matter what ``workspace_id`` a future caller passes.
+        """
+        stmt = (
+            select(HypomorphModel)
+            .where(
+                owned_by(HypomorphModel, workspace_id),
                 HypomorphModel.gene_id == gene_id,
             )
             .order_by(HypomorphModel.id)

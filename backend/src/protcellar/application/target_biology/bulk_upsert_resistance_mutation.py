@@ -94,7 +94,7 @@ class BulkUpsertResistanceMutation:
                         continue
                     provenance = provenance_from(input.source_type, rec.pmid, rec.dataset)
                     compound = _compound(rec)
-                    existing = await self._rm_repo.find_by_gene(SHARED_WORKSPACE_ID, gene.id)
+                    existing = await self._rm_repo.find_owned_by_gene(SHARED_WORKSPACE_ID, gene.id)
                     match = next(
                         (
                             r

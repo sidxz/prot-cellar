@@ -129,7 +129,9 @@ class BulkUpsertEssentiality:
                         continue
                     classification = classify(rec.classification)
                     provenance = _provenance(input.source_type, input.generation_method, rec)
-                    existing = await self._ess_repo.find_by_gene(SHARED_WORKSPACE_ID, gene.id)
+                    existing = await self._ess_repo.find_owned_by_gene(
+                        SHARED_WORKSPACE_ID, gene.id
+                    )
                     match = next(
                         (
                             e

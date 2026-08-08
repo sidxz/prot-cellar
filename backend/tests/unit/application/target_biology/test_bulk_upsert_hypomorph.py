@@ -29,7 +29,9 @@ class _FakeHypRepo:
     def __init__(self) -> None:
         self.items: list[Hypomorph] = []
 
-    async def find_by_gene(self, workspace_id: uuid.UUID, gene_id: uuid.UUID) -> list[Hypomorph]:
+    async def find_owned_by_gene(
+        self, workspace_id: uuid.UUID, gene_id: uuid.UUID
+    ) -> list[Hypomorph]:
         return [h for h in self.items if h.gene_id == gene_id and h.workspace_id == workspace_id]
 
     async def save(self, agg: Hypomorph) -> None:

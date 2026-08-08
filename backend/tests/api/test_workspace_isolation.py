@@ -4,22 +4,39 @@ Each context adds its own case as it is converted. The general shape: a row
 owned by workspace B must be invisible to workspace A, and a shared row must
 be readable by both and mutable by neither.
 
-Taxonomy and protein_catalog, the two contributors so far, can only
-demonstrate half of that shape. Organisms, strains, proteomes, genes and
-proteins are all reference data
+Taxonomy and protein_catalog could only demonstrate half of that shape.
+Organisms, strains, proteomes, genes and proteins are all reference data
 (``docs/superpowers/specs/2026-08-08-workspace-scoping-design.md`` §1.5):
 every create path — including the plain ``POST /organisms`` and
 ``POST /genes`` — writes ``SHARED_WORKSPACE_ID`` regardless of caller, so no
 tenant-owned row of theirs ever exists to prove "invisible to a different
-workspace" against. That case belongs to Tasks 4 and 5 (target_biology,
-tagging), whose contexts have rows a single workspace actually owns. What
-these two contexts *can* and do demonstrate here: a shared row is readable by
-more than one workspace, and mutable by none.
+workspace" against. What those two contexts *can* and do demonstrate here: a
+shared row is readable by more than one workspace, and mutable by none.
+
+target_biology (this task) is the first context with genuinely tenant-owned
+rows: §1.5 is about reference data, but target-biology records are the
+private observations this whole design exists to protect (``source_type``
+has ``private_comm``/``internal``/``patent`` values, and ``Unpublished
+Structure`` is a whole record type). Its cases below demonstrate the full
+shape — invisibility, not just non-mutability — for the first time. Tagging
+(Task 5) is the one context left.
 """
 
 from __future__ import annotations
 
+import uuid
+
 from httpx import AsyncClient
+from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
+
+from protcellar.domain.shared.global_workspace import SHARED_WORKSPACE_ID
+from protcellar.domain.shared.provenance import Provenance, ProvenanceSourceType
+from protcellar.domain.target_biology.enums import EssentialityClass
+from protcellar.domain.target_biology.essentiality import Essentiality
+from protcellar.infrastructure.persistence.sqlalchemy.target_biology.essentiality_repository import (  # noqa: E501
+    SQLAlchemyEssentialityRepository,
+)
+from protcellar.infrastructure.persistence.unit_of_work import AsyncUnitOfWork
 
 # other_workspace_client (a second API client under a distinct workspace) lives
 # in tests/api/conftest.py — shared with test_tag_filter.py and, per the
@@ -172,3 +189,100 @@ async def test_shared_protein_cannot_be_mutated(client: AsyncClient) -> None:
 
     resp = await client.patch(f"/api/v1/proteins/{accession}", json={"is_reviewed": False})
     assert resp.status_code == 404, resp.text
+
+
+# --- target_biology: the first context with a genuinely tenant-owned row ----
+
+_ISOLATION_ESSENTIALITY_BODY = {
+    "classification": "essential",
+    "provenance": {"source_type": "internal", "citations": []},
+}
+
+
+async def test_workspace_essentiality_is_invisible_to_a_second_workspace(
+    client: AsyncClient, other_workspace_client: AsyncClient
+) -> None:
+    """A target-biology create lands in the caller's own workspace, not
+    SHARED — the headline property this whole ten-task plan exists to prove.
+    A record workspace A creates must not appear in workspace B's view of the
+    same gene, even though the gene id itself is shared and visible to both.
+    """
+    gene_id = uuid.uuid4()
+    created = await client.post(
+        f"/api/v1/genes/{gene_id}/target-biology/essentiality",
+        json=_ISOLATION_ESSENTIALITY_BODY,
+    )
+    assert created.status_code == 201, created.text
+
+    bundle = await other_workspace_client.get(f"/api/v1/genes/{gene_id}/target-biology")
+    assert bundle.status_code == 200, bundle.text
+    assert bundle.json()["essentiality"] == []
+
+
+async def test_workspace_essentiality_cannot_be_mutated_by_a_second_workspace(
+    client: AsyncClient, other_workspace_client: AsyncClient
+) -> None:
+    """Workspace B cannot PATCH or DELETE a record workspace A created. 404
+    on both, not 403 — a 403 would confirm the row exists to a caller who
+    cannot see it.
+    """
+    gene_id = uuid.uuid4()
+    created = await client.post(
+        f"/api/v1/genes/{gene_id}/target-biology/essentiality",
+        json=_ISOLATION_ESSENTIALITY_BODY,
+    )
+    assert created.status_code == 201, created.text
+    record_id = created.json()["id"]
+
+    patched = await other_workspace_client.patch(
+        f"/api/v1/target-biology/essentiality/{record_id}",
+        json={"classification": "non_essential"},
+    )
+    assert patched.status_code == 404, patched.text
+
+    deleted = await other_workspace_client.delete(
+        f"/api/v1/target-biology/essentiality/{record_id}"
+    )
+    assert deleted.status_code == 404, deleted.text
+
+
+async def _save_shared_essentiality(database_url: str) -> uuid.UUID:
+    """Seed a SHARED, published essentiality record directly through the
+    repository, the same way ``test_target_biology.py``'s ``_save`` does —
+    every HTTP create path now writes the caller's own workspace (see the
+    module docstring), so there is no API route left that produces a shared
+    record to test PATCH/DELETE against.
+    """
+    engine = create_async_engine(database_url)
+    uow = AsyncUnitOfWork(async_sessionmaker(engine, expire_on_commit=False))
+    record = Essentiality(
+        workspace_id=SHARED_WORKSPACE_ID,
+        gene_id=uuid.uuid4(),
+        classification=EssentialityClass.ESSENTIAL,
+        provenance=Provenance(source_type=ProvenanceSourceType.PUBLISHED),
+    )
+    async with uow:
+        await SQLAlchemyEssentialityRepository(uow).save(record)
+        await uow.commit()
+    await engine.dispose()
+    return record.id
+
+
+async def test_shared_essentiality_cannot_be_mutated(
+    client: AsyncClient, database_url: str
+) -> None:
+    """A published (shared) target-biology record is reference data too:
+    PATCH and DELETE 404 unconditionally, admin or not — the same rule as
+    every other context, now also covering DELETE (organisms, genes and
+    proteins have no delete route to test it against).
+    """
+    record_id = await _save_shared_essentiality(database_url)
+
+    patched = await client.patch(
+        f"/api/v1/target-biology/essentiality/{record_id}",
+        json={"classification": "non_essential"},
+    )
+    assert patched.status_code == 404, patched.text
+
+    deleted = await client.delete(f"/api/v1/target-biology/essentiality/{record_id}")
+    assert deleted.status_code == 404, deleted.text

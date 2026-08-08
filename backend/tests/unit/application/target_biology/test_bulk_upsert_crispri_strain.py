@@ -29,7 +29,7 @@ class _FakeCsRepo:
     def __init__(self) -> None:
         self.items: list[CrispriStrain] = []
 
-    async def find_by_gene(
+    async def find_owned_by_gene(
         self, workspace_id: uuid.UUID, target_gene_id: uuid.UUID
     ) -> list[CrispriStrain]:
         return [

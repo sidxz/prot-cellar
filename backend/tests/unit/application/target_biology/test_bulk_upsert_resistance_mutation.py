@@ -29,7 +29,7 @@ class _FakeRmRepo:
     def __init__(self) -> None:
         self.items: list[ResistanceMutation] = []
 
-    async def find_by_gene(
+    async def find_owned_by_gene(
         self, workspace_id: uuid.UUID, gene_id: uuid.UUID
     ) -> list[ResistanceMutation]:
         return [r for r in self.items if r.gene_id == gene_id and r.workspace_id == workspace_id]

@@ -31,7 +31,7 @@ class _FakeEssRepo:
     def __init__(self) -> None:
         self.items: list[Essentiality] = []
 
-    async def find_by_gene(
+    async def find_owned_by_gene(
         self, workspace_id: uuid.UUID, gene_id: uuid.UUID
     ) -> list[Essentiality]:
         return [e for e in self.items if e.gene_id == gene_id and e.workspace_id == workspace_id]

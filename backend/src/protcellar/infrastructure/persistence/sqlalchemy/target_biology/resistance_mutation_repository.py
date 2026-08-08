@@ -20,6 +20,7 @@ from protcellar.infrastructure.persistence.sqlalchemy.target_biology._provenance
 from protcellar.infrastructure.persistence.sqlalchemy.target_biology.models import (
     ResistanceMutationModel,
 )
+from protcellar.infrastructure.persistence.sqlalchemy.workspace_scope import owned_by, readable_by
 
 
 class SQLAlchemyResistanceMutationRepository(
@@ -64,9 +65,7 @@ class SQLAlchemyResistanceMutationRepository(
             version=aggregate.version,
         )
 
-    def _update_model(
-        self, model: ResistanceMutationModel, aggregate: ResistanceMutation
-    ) -> None:
+    def _update_model(self, model: ResistanceMutationModel, aggregate: ResistanceMutation) -> None:
         model.mutation = aggregate.mutation
         model.compound = compound_to_json(aggregate.compound)
         model.mic_shift = aggregate.mic_shift
@@ -79,10 +78,31 @@ class SQLAlchemyResistanceMutationRepository(
     async def find_by_gene(
         self, workspace_id: uuid.UUID, gene_id: uuid.UUID
     ) -> list[ResistanceMutation]:
+        """Read path only — ``readable_by``. For a caller that loads records in
+        order to mutate and save them, use ``find_owned_by_gene`` instead.
+        """
         stmt = (
             select(ResistanceMutationModel)
             .where(
-                ResistanceMutationModel.workspace_id == workspace_id,
+                readable_by(ResistanceMutationModel, workspace_id),
+                ResistanceMutationModel.gene_id == gene_id,
+            )
+            .order_by(ResistanceMutationModel.id)
+        )
+        result = await self._session.execute(stmt)
+        return [self._to_domain_tracked(m) for m in result.scalars()]
+
+    async def find_owned_by_gene(
+        self, workspace_id: uuid.UUID, gene_id: uuid.UUID
+    ) -> list[ResistanceMutation]:
+        """The mutation-safe twin of ``find_by_gene`` — ``owned_by``, for the
+        bulk-import load-then-update-then-save loop. A shared record is never
+        found here, no matter what ``workspace_id`` a future caller passes.
+        """
+        stmt = (
+            select(ResistanceMutationModel)
+            .where(
+                owned_by(ResistanceMutationModel, workspace_id),
                 ResistanceMutationModel.gene_id == gene_id,
             )
             .order_by(ResistanceMutationModel.id)

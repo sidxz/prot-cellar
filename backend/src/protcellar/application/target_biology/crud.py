@@ -23,7 +23,6 @@ from protcellar.domain.shared.errors import (
     DomainError,
     NotFoundError,
 )
-from protcellar.domain.shared.global_workspace import SHARED_WORKSPACE_ID
 
 
 class RecordKind(StrEnum):
@@ -42,9 +41,7 @@ Repos = dict[RecordKind, Any]
 
 
 class CreateTargetBiologyRecord:
-    def __init__(
-        self, uow: UnitOfWork, repos: Repos, dispatcher: EventDispatcherProtocol
-    ) -> None:
+    def __init__(self, uow: UnitOfWork, repos: Repos, dispatcher: EventDispatcherProtocol) -> None:
         self._uow, self._repos, self._dispatcher = uow, repos, dispatcher
 
     async def __call__(
@@ -59,9 +56,7 @@ class CreateTargetBiologyRecord:
 
 
 class UpdateTargetBiologyRecord:
-    def __init__(
-        self, uow: UnitOfWork, repos: Repos, dispatcher: EventDispatcherProtocol
-    ) -> None:
+    def __init__(self, uow: UnitOfWork, repos: Repos, dispatcher: EventDispatcherProtocol) -> None:
         self._uow, self._repos, self._dispatcher = uow, repos, dispatcher
 
     async def __call__(
@@ -74,7 +69,10 @@ class UpdateTargetBiologyRecord:
     ) -> Result[AggregateRoot, DomainError]:
         require_admin(auth)
         async with self._uow:
-            record = await self._repos[kind].find_owned(SHARED_WORKSPACE_ID, record_id)
+            record = await self._repos[kind].find_owned(
+                auth.workspace_id,  # type: ignore[union-attr]
+                record_id,
+            )
             if record is None:
                 return Failure(NotFoundError(kind.value, str(record_id)))
             # Opt-in: a caller that supplies no version keeps last-write-wins, so
@@ -104,9 +102,13 @@ class DeleteTargetBiologyRecord:
     ) -> Result[None, DomainError]:
         require_admin(auth)
         async with self._uow:
-            record = await self._repos[kind].find_owned(SHARED_WORKSPACE_ID, record_id)
+            record = await self._repos[kind].find_owned(
+                auth.workspace_id,  # type: ignore[union-attr]
+                record_id,
+            )
             if record is None:
                 return Failure(NotFoundError(kind.value, str(record_id)))
-            await self._repos[kind].delete(SHARED_WORKSPACE_ID, record_id)
+            workspace_id: uuid.UUID = auth.workspace_id  # type: ignore[union-attr]
+            await self._repos[kind].delete(workspace_id, record_id)
             await self._uow.commit()
         return Success(None)

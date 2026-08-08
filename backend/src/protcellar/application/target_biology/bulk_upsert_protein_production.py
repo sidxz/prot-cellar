@@ -73,7 +73,7 @@ class BulkUpsertProteinProduction:
                         )
                         continue
                     provenance = provenance_from(input.source_type, rec.pmid, rec.dataset)
-                    existing = await self._prod_repo.find_by_protein(
+                    existing = await self._prod_repo.find_owned_by_protein(
                         SHARED_WORKSPACE_ID, protein.id
                     )
                     match = next(
