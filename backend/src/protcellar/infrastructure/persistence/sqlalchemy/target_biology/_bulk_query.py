@@ -51,7 +51,9 @@ async def query_page(
     if parent_ids:
         stmt = stmt.where(parent_id_column.in_(parent_ids))
     if organism_id is not None or strain_id is not None:
-        stmt = stmt.join(parent, parent.id == parent_id_column)
+        stmt = stmt.join(parent, parent.id == parent_id_column).where(
+            readable_by(parent, workspace_id)
+        )
         if organism_id is not None:
             stmt = stmt.where(parent.organism_id == organism_id)
         if strain_id is not None:

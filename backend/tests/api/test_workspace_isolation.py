@@ -46,10 +46,14 @@ from sqlalchemy import insert, select
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
 from protcellar.application.imports.job_enqueuer import JobEnqueuer
+from protcellar.domain.protein_catalog.gene import Gene
 from protcellar.domain.shared.global_workspace import SHARED_WORKSPACE_ID
 from protcellar.domain.shared.provenance import Provenance, ProvenanceSourceType
 from protcellar.domain.target_biology.enums import EssentialityClass
 from protcellar.domain.target_biology.essentiality import Essentiality
+from protcellar.infrastructure.persistence.sqlalchemy.protein_catalog.gene_repository import (
+    SQLAlchemyGeneRepository,
+)
 from protcellar.infrastructure.persistence.sqlalchemy.target_biology.essentiality_repository import (  # noqa: E501
     SQLAlchemyEssentialityRepository,
 )
@@ -259,6 +263,69 @@ async def test_workspace_essentiality_is_invisible_to_a_second_workspaces_bulk_l
     )
     assert listed.status_code == 200, listed.text
     assert listed.json()["items"] == []
+
+
+async def _save_private_gene(database_url: str, workspace_id: uuid.UUID, organism_id: str) -> Gene:
+    """Seed a gene owned by a real (non-SHARED) workspace directly through the
+    repository. ``POST /genes`` always writes SHARED (genes are reference
+    data), so this is the only way a tenant-private gene exists at all today —
+    exactly the gap Task 10's parent validation targets, and the premise the
+    oracle test below needs.
+    """
+    engine = create_async_engine(database_url)
+    uow = AsyncUnitOfWork(async_sessionmaker(engine, expire_on_commit=False))
+    gene = Gene.create(
+        workspace_id=workspace_id, primary_name="privateGene", organism_id=uuid.UUID(organism_id)
+    )
+    async with uow:
+        await SQLAlchemyGeneRepository(uow).save(gene)
+        await uow.commit()
+    await engine.dispose()
+    return gene
+
+
+async def test_bulk_list_organism_filter_does_not_leak_another_workspaces_gene(
+    client: AsyncClient,
+    other_workspace_client: AsyncClient,
+    database_url: str,
+    workspace_id: uuid.UUID,
+) -> None:
+    """The organism_id/strain_id join (Task 9) reaches the record's parent gene
+    — that join must be scoped the same as the record itself, or organism_id
+    becomes a match/no-match oracle for a private gene's organism, a fact
+    ``GET /genes/{id}`` correctly 404s on. Task 10 (parent validation on
+    attach) hasn't landed, so nothing stops a caller from attaching a record
+    to a gene_id it cannot see in the first place — that half of the gap is
+    expected here and is Task 10's job; this test is only about whether the
+    *bulk list*'s organism filter then leaks that gene's organism/strain.
+    """
+    organism_id = await _seed_shared_organism(client)
+    # workspace_id is the fixture `client` itself authenticates as — a private
+    # gene "belonging to" the victim, unreachable via any HTTP create path.
+    victim_gene = await _save_private_gene(database_url, workspace_id, organism_id)
+
+    # The attacker (other_workspace_client) attaches a record to a gene_id it
+    # cannot see — allowed today (Task 10 not landed), not what's under test.
+    attached = await other_workspace_client.post(
+        f"/api/v1/genes/{victim_gene.id}/target-biology/essentiality",
+        json=_ISOLATION_ESSENTIALITY_BODY,
+    )
+    assert attached.status_code == 201, attached.text
+
+    # Its own record is visible by gene_id alone...
+    by_gene = await other_workspace_client.get(
+        f"/api/v1/target-biology/essentiality?gene_id={victim_gene.id}"
+    )
+    assert by_gene.status_code == 200, by_gene.text
+    assert len(by_gene.json()["items"]) == 1
+
+    # ...but organism_id must not turn into an oracle for the victim's private
+    # gene: the parent join has to be scoped too, or this returns the item.
+    by_organism = await other_workspace_client.get(
+        f"/api/v1/target-biology/essentiality?gene_id={victim_gene.id}&organism_id={organism_id}"
+    )
+    assert by_organism.status_code == 200, by_organism.text
+    assert by_organism.json()["items"] == []
 
 
 async def test_workspace_essentiality_cannot_be_mutated_by_a_second_workspace(
