@@ -7,16 +7,17 @@ branch joined to its entity table for the label. Read-only; not an aggregate.
 Two visibility rules, both adaptations from chem-cellar (see
 tag_link_repository.py for the fuller rationale):
 
-- Entity visibility is global-or-mine: a shared reference entity (protein,
-  gene, organism, strain, proteome) pinned to ``SHARED_WORKSPACE_ID`` is
-  visible from every workspace's browse, not just GLOBAL itself. chem-cellar
-  uses a strict ``== workspace_id`` because every taggable entity there is
-  workspace-owned; a strict equality here would silently drop every global
-  entity from the result.
-- Tags themselves are always workspace-scoped: a link is only surfaced if its
-  ``tag_id`` actually belongs to the caller's ``workspace_id`` (defense in
-  depth against a foreign tag_id slipping through from a caller, mirroring the
-  ``_owned`` check in ``SQLAlchemyTagLinkRepository.repoint``).
+- Entity visibility is global-or-mine, via ``readable_by``: a shared reference
+  entity (protein, gene, organism, strain, proteome) pinned to
+  ``SHARED_WORKSPACE_ID`` is visible from every workspace's browse, not just
+  SHARED itself. chem-cellar uses a strict ``== workspace_id`` because every
+  taggable entity there is workspace-owned; a strict equality here would
+  silently drop every shared entity from the result.
+- Tags themselves are always workspace-scoped, via ``owned_by``: a link is
+  only surfaced if its ``tag_id`` actually belongs to the caller's
+  ``workspace_id`` (defense in depth against a foreign tag_id slipping
+  through from a caller, mirroring the ``_owned`` check in
+  ``SQLAlchemyTagLinkRepository.repoint``).
 """
 
 from __future__ import annotations
@@ -28,7 +29,6 @@ from sqlalchemy import ColumnElement, distinct, func, literal, select, union_all
 from sqlalchemy.sql import Select
 
 from protcellar.application.workspace_config.tagging.list_tag_entities import TaggedEntityRow
-from protcellar.domain.shared.global_workspace import SHARED_WORKSPACE_ID
 from protcellar.infrastructure.persistence.sqlalchemy.protein_catalog.models import (
     GeneModel,
     ProteinModel,
@@ -48,6 +48,7 @@ from protcellar.infrastructure.persistence.sqlalchemy.taxonomy.models import (
     ProteomeModel,
     StrainModel,
 )
+from protcellar.infrastructure.persistence.sqlalchemy.workspace_scope import owned_by, readable_by
 from protcellar.infrastructure.persistence.unit_of_work import AsyncUnitOfWork
 
 
@@ -90,8 +91,8 @@ class SQLAlchemyTagBrowseRepository:
             .join(TagModel, TagModel.id == link_model.tag_id)
             .where(
                 link_model.tag_id.in_(tag_ids),
-                entity_model.workspace_id.in_([workspace_id, SHARED_WORKSPACE_ID]),
-                TagModel.workspace_id == workspace_id,
+                readable_by(entity_model, workspace_id),
+                owned_by(TagModel, workspace_id),
             )
             .group_by(entity_model.id)
         )

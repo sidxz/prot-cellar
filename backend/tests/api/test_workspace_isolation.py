@@ -13,13 +13,18 @@ tenant-owned row of theirs ever exists to prove "invisible to a different
 workspace" against. What those two contexts *can* and do demonstrate here: a
 shared row is readable by more than one workspace, and mutable by none.
 
-target_biology (this task) is the first context with genuinely tenant-owned
-rows: §1.5 is about reference data, but target-biology records are the
-private observations this whole design exists to protect (``source_type``
-has ``private_comm``/``internal``/``patent`` values, and ``Unpublished
-Structure`` is a whole record type). Its cases below demonstrate the full
-shape — invisibility, not just non-mutability — for the first time. Tagging
-(Task 5) is the one context left.
+target_biology was the first context with genuinely tenant-owned rows: §1.5
+is about reference data, but target-biology records are the private
+observations this whole design exists to protect (``source_type`` has
+``private_comm``/``internal``/``patent`` values, and ``Unpublished
+Structure`` is a whole record type). Its cases demonstrate the full shape —
+invisibility, not just non-mutability — for the first time.
+
+Tagging (Task 5) is the second and last: tags are workspace-owned
+configuration, not reference data (§1.5) — unlike every other entity this
+file tags against, a tag is never created under ``SHARED_WORKSPACE_ID``, so
+its cases below use the same invisibility shape target_biology established
+rather than the read-only-shared-row shape taxonomy/protein_catalog use.
 """
 
 from __future__ import annotations
@@ -315,3 +320,68 @@ async def test_workspace_essentiality_condition_does_not_leak_into_another_works
         f for f in schema.json()["kinds"]["essentiality"]["fields"] if f["name"] == "condition"
     )
     assert distinctive_condition not in condition_field["suggested_values"]
+
+
+# --- tagging: the second (and last) context with genuinely tenant-owned rows
+
+
+async def _create_tag(client: AsyncClient, organism_id: str, key: str) -> str:
+    """Create (and assign) a tag under ``client``'s own workspace via the
+    per-entity assignment route — tags have no standalone create endpoint;
+    ``AssignTag`` resolves the tag through ``get_or_create`` under the hood,
+    scoped to the caller's workspace (assign_tag.py).
+    """
+    resp = await client.post(
+        f"/api/v1/organisms/{organism_id}/tags", json={"key": key, "value": None}
+    )
+    assert resp.status_code == 201, resp.text
+    return resp.json()["id"]
+
+
+async def test_workspace_tag_is_invisible_to_a_second_workspace(
+    client: AsyncClient, other_workspace_client: AsyncClient
+) -> None:
+    """A tag create lands in the caller's own workspace, never SHARED — tags
+    are workspace-owned configuration (design doc §1.5), not reference data,
+    unlike the shared organism it's attached to. Workspace B must not see a
+    tag workspace A created, whether by listing tags directly or by reading
+    the shared entity's tag list.
+    """
+    organism_id = await _seed_shared_organism(client)
+    tag_id = await _create_tag(client, organism_id, f"isolation-tag-{uuid.uuid4()}")
+
+    listed = await other_workspace_client.get("/api/v1/tags")
+    assert listed.status_code == 200, listed.text
+    assert tag_id not in {t["id"] for t in listed.json()}
+
+    entity_tags = await other_workspace_client.get(f"/api/v1/organisms/{organism_id}/tags")
+    assert entity_tags.status_code == 200, entity_tags.text
+    assert entity_tags.json() == []
+
+
+async def test_workspace_tag_cannot_be_renamed_merged_or_deleted_by_a_second_workspace(
+    client: AsyncClient, other_workspace_client: AsyncClient
+) -> None:
+    """Workspace B cannot rename, merge or delete a tag workspace A owns. 404
+    on all three, not 403 — a 403 would confirm the row exists to a caller
+    who cannot see it. Merge needs a target tag B actually owns, so the
+    source lookup — the one this test cares about — is what has to 404.
+    """
+    organism_id = await _seed_shared_organism(client)
+    tag_id = await _create_tag(client, organism_id, f"isolation-tag-{uuid.uuid4()}")
+    b_tag_id = await _create_tag(
+        other_workspace_client, organism_id, f"isolation-tag-b-{uuid.uuid4()}"
+    )
+
+    renamed = await other_workspace_client.patch(
+        f"/api/v1/tags/{tag_id}", json={"key": "renamed", "value": None}
+    )
+    assert renamed.status_code == 404, renamed.text
+
+    merged = await other_workspace_client.post(
+        f"/api/v1/tags/{tag_id}/merge", json={"target_tag_id": b_tag_id}
+    )
+    assert merged.status_code == 404, merged.text
+
+    deleted = await other_workspace_client.delete(f"/api/v1/tags/{tag_id}")
+    assert deleted.status_code == 404, deleted.text

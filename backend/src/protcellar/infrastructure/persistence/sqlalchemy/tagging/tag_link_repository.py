@@ -12,8 +12,11 @@ entities (proteins/genes/organisms/strains/proteomes) are shared, pinned to
 ``StrainModel.workspace_id.in_([workspace_id, SHARED_WORKSPACE_ID])``), while
 Target is per-workspace — but tags are always workspace-scoped, so a workspace
 must be able to tag both its own entities AND the shared global ones. The
-check is therefore "global-or-mine": ``entity.workspace_id IN (workspace_id,
-SHARED_WORKSPACE_ID)``.
+check is therefore "global-or-mine" — exactly ``readable_by``'s definition —
+applied as ``readable_by(self.entity_model, workspace_id)``. Tag ownership
+itself (a link's ``tag_id`` belongs to the caller) uses ``owned_by``, since a
+tag is never shared (see ``tag.py``'s ``Tag.create`` — ``workspace_id`` is a
+required keyword with no reference-data default).
 """
 
 from __future__ import annotations
@@ -23,7 +26,6 @@ import uuid
 from sqlalchemy import delete, literal, select
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 
-from protcellar.domain.shared.global_workspace import SHARED_WORKSPACE_ID
 from protcellar.domain.workspace_config.tagging.tag import (
     AssignedTag,
     Tag,
@@ -49,6 +51,7 @@ from protcellar.infrastructure.persistence.sqlalchemy.taxonomy.models import (
     ProteomeModel,
     StrainModel,
 )
+from protcellar.infrastructure.persistence.sqlalchemy.workspace_scope import owned_by, readable_by
 from protcellar.infrastructure.persistence.unit_of_work import AsyncUnitOfWork
 
 
@@ -95,7 +98,7 @@ class SQLAlchemyTagLinkRepository:
         ``SHARED_WORKSPACE_ID`` (shared reference data)."""
         stmt = select(self.entity_model.id).where(
             self.entity_model.id == entity_id,
-            self.entity_model.workspace_id.in_([workspace_id, SHARED_WORKSPACE_ID]),
+            readable_by(self.entity_model, workspace_id),
         )
         result = await self._session.execute(stmt)
         return result.scalar_one_or_none() is not None
@@ -148,7 +151,7 @@ class SQLAlchemyTagLinkRepository:
         # only ever touch tag links this workspace owns — otherwise workspace
         # A reconciling its own tags collaterally deletes workspace B's links
         # on the same entity (cross-tenant data loss).
-        owned = select(TagModel.id).where(TagModel.workspace_id == workspace_id)
+        owned = select(TagModel.id).where(owned_by(TagModel, workspace_id))
         del_stmt = delete(self.link_model).where(
             self._entity_col == entity_id, self.link_model.tag_id.in_(owned)
         )
@@ -173,7 +176,7 @@ class SQLAlchemyTagLinkRepository:
         stmt = (
             select(TagModel)
             .join(self.link_model, TagModel.id == self.link_model.tag_id)
-            .where(self._entity_col == entity_id, TagModel.workspace_id == workspace_id)
+            .where(self._entity_col == entity_id, owned_by(TagModel, workspace_id))
             .order_by(TagModel.normalized_key, TagModel.normalized_value)
         )
         result = await self._session.execute(stmt)
@@ -185,7 +188,7 @@ class SQLAlchemyTagLinkRepository:
         stmt = (
             select(TagModel, self.link_model.assigned_by, self.link_model.assigned_at)
             .join(self.link_model, TagModel.id == self.link_model.tag_id)
-            .where(self._entity_col == entity_id, TagModel.workspace_id == workspace_id)
+            .where(self._entity_col == entity_id, owned_by(TagModel, workspace_id))
             .order_by(TagModel.normalized_key, TagModel.normalized_value)
         )
         result = await self._session.execute(stmt)
@@ -213,7 +216,7 @@ class SQLAlchemyTagLinkRepository:
 
         def _owned(tag_id: uuid.UUID):
             return select(TagModel.id).where(
-                TagModel.id == tag_id, TagModel.workspace_id == workspace_id
+                TagModel.id == tag_id, owned_by(TagModel, workspace_id)
             )
 
         col = self._entity_col
@@ -274,7 +277,7 @@ class OrganismTagLinkRepository(SQLAlchemyTagLinkRepository):
         other taggable entity model here carries a merge/soft-delete column."""
         stmt = select(OrganismModel.id).where(
             OrganismModel.id == entity_id,
-            OrganismModel.workspace_id.in_([workspace_id, SHARED_WORKSPACE_ID]),
+            readable_by(OrganismModel, workspace_id),
             OrganismModel.merged_into_id.is_(None),
             OrganismModel.is_deleted.is_(False),
         )

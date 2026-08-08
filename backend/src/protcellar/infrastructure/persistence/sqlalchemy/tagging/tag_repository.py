@@ -17,6 +17,7 @@ from protcellar.infrastructure.persistence.sqlalchemy.base_repository import (
     SQLAlchemyRepository,
 )
 from protcellar.infrastructure.persistence.sqlalchemy.tagging.models import TagModel
+from protcellar.infrastructure.persistence.sqlalchemy.workspace_scope import readable_by
 
 # Read-only handle to the cross-type assignment view (migration
 # 713bff91ff30). Declared via table()/column() so it is NOT registered in the
@@ -129,7 +130,7 @@ class SQLAlchemyTagRepository(SQLAlchemyRepository[Tag, TagModel]):
         stmt = (
             select(TagModel)
             .outerjoin(usage, usage.c.tag_id == TagModel.id)
-            .where(TagModel.workspace_id == workspace_id)
+            .where(readable_by(TagModel, workspace_id))
         )
         if q and q.strip():
             # Escape LIKE metacharacters so a literal % or _ in the query does not
