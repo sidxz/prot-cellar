@@ -44,10 +44,10 @@ class Hypomorph(AggregateRoot):
 
     @staticmethod
     def _validate(growth_defect: bool, severity: str | None) -> None:
+        if growth_defect is None:
+            raise ValidationError("Hypomorph growth_defect must not be null")
         if severity is not None and not growth_defect:
-            raise ValidationError(
-                "Hypomorph growth_defect_severity requires growth_defect=True"
-            )
+            raise ValidationError("Hypomorph growth_defect_severity requires growth_defect=True")
 
     @classmethod
     def create(

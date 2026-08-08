@@ -560,7 +560,10 @@ def _patch_updates(body: BaseModel) -> dict[str, Any]:
     for name in _VALUE_OBJECT_FIELDS & set(updates):
         value = getattr(body, name)
         if value is None:
-            updates.pop(name)
+            # provenance is domain-required and ligands' clear idiom is []:
+            # a null means "leave alone". compound is nullable — null clears it.
+            if name != "compound":
+                updates.pop(name)
         elif isinstance(value, list):
             updates[name] = [item.to_domain() for item in value]
         else:

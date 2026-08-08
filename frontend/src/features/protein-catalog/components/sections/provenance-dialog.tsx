@@ -54,6 +54,23 @@ function subFieldOrNull(raw: unknown): string | null {
   return raw == null ? null : strOrNull(String(raw));
 }
 
+function buildBody(fields: FieldDescriptor[], draft: Draft): Record<string, unknown> {
+  const body: Record<string, unknown> = {};
+  for (const f of fields) {
+    if (f.type === "list") {
+      const itemFields = f.item_fields ?? [];
+      body[f.name] = ((draft[f.name] as Row[] | undefined) ?? []).map((row) =>
+        Object.fromEntries(itemFields.map((sf) => [sf.name, subFieldOrNull(row[sf.name])])),
+      );
+    } else if (f.type === "string" || f.type === "text" || f.type === "date") {
+      body[f.name] = subFieldOrNull(draft[f.name]);
+    } else {
+      body[f.name] = draft[f.name];
+    }
+  }
+  return body;
+}
+
 interface ProvenanceDialogProps {
   open: boolean;
   fields: FieldDescriptor[];
@@ -90,18 +107,12 @@ export function ProvenanceDialog({ open, fields, value, onSave, onClose }: Prove
   }
 
   function handleSave() {
-    const body: Record<string, unknown> = {};
-    for (const f of fields) {
-      if (f.type === "list") {
-        const itemFields = f.item_fields ?? [];
-        body[f.name] = rowsOf(f).map((row) =>
-          Object.fromEntries(itemFields.map((sf) => [sf.name, subFieldOrNull(row[sf.name])])),
-        );
-      } else if (f.type === "string" || f.type === "text" || f.type === "date") {
-        body[f.name] = subFieldOrNull(draft[f.name]);
-      } else {
-        body[f.name] = draft[f.name];
-      }
+    const body = buildBody(fields, draft);
+    // An untouched save is a no-op: submitting would re-stamp generation_method
+    // to "manual", the exact re-attribution this dialog exists to prevent.
+    if (JSON.stringify(body) === JSON.stringify(buildBody(fields, initDraft(fields, value)))) {
+      onClose();
+      return;
     }
     onSave(body);
   }

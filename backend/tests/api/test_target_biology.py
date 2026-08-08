@@ -480,6 +480,71 @@ async def test_hypomorph_knockdown_strain_round_trips(
     assert created.json()["knockdown_strain_id"] == str(strain_id)
 
 
+# --- Explicit null on PATCH --------------------------------------------------
+
+
+async def test_patch_null_classification_is_422(client: AsyncClient) -> None:
+    created = await client.post(
+        f"/api/v1/genes/{uuid.uuid4()}/target-biology/essentiality",
+        json={"classification": "essential", "provenance": _INTERNAL_PROV},
+    )
+    assert created.status_code == 201, created.text
+    r = await client.patch(
+        f"/api/v1/target-biology/essentiality/{created.json()['id']}",
+        json={"classification": None},
+    )
+    assert r.status_code == 422
+
+
+async def test_patch_null_growth_defect_is_422(client: AsyncClient) -> None:
+    created = await client.post(
+        f"/api/v1/genes/{uuid.uuid4()}/target-biology/hypomorph",
+        json={"growth_defect": True, "provenance": _INTERNAL_PROV},
+    )
+    assert created.status_code == 201, created.text
+    r = await client.patch(
+        f"/api/v1/target-biology/hypomorph/{created.json()['id']}",
+        json={"growth_defect": None},
+    )
+    assert r.status_code == 422
+
+
+async def test_patch_null_clears_compound(client: AsyncClient) -> None:
+    created = await client.post(
+        f"/api/v1/genes/{uuid.uuid4()}/target-biology/resistance_mutation",
+        json={
+            "mutation": "S315T",
+            "compound": {"compound_id": str(uuid.uuid4()), "name": "isoniazid"},
+            "provenance": _INTERNAL_PROV,
+        },
+    )
+    assert created.status_code == 201, created.text
+    r = await client.patch(
+        f"/api/v1/target-biology/resistance_mutation/{created.json()['id']}",
+        json={"compound": None},
+    )
+    assert r.status_code == 200, r.text
+    assert r.json()["compound"] is None
+
+
+async def test_patch_replaces_ligands(client: AsyncClient) -> None:
+    created = await client.post(
+        f"/api/v1/proteins/{uuid.uuid4()}/target-biology/unpublished_structure",
+        json={
+            "method": "X-ray",
+            "ligands": [{"compound_id": str(uuid.uuid4()), "name": "ATP"}],
+            "provenance": _INTERNAL_PROV,
+        },
+    )
+    assert created.status_code == 201, created.text
+    r = await client.patch(
+        f"/api/v1/target-biology/unpublished_structure/{created.json()['id']}",
+        json={"ligands": [{"compound_id": str(uuid.uuid4()), "name": "GTP"}]},
+    )
+    assert r.status_code == 200, r.text
+    assert [lig["name"] for lig in r.json()["ligands"]] == ["GTP"]
+
+
 # --- Published write contract ------------------------------------------------
 
 

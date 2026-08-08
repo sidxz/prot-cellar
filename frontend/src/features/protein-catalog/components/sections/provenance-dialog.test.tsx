@@ -57,7 +57,7 @@ describe("ProvenanceDialog", () => {
     }
   });
 
-  it("keeps every citation, including DOI-only ones", () => {
+  it("keeps every citation, including DOI-only ones, across an unrelated edit", () => {
     const onSave = vi.fn();
     render(
       <ProvenanceDialog
@@ -68,6 +68,7 @@ describe("ProvenanceDialog", () => {
         onClose={vi.fn()}
       />,
     );
+    fireEvent.change(screen.getByLabelText(/note/i), { target: { value: "checked against SI" } });
     fireEvent.click(screen.getByRole("button", { name: /save/i }));
 
     const saved = onSave.mock.calls[0][0];
@@ -89,6 +90,7 @@ describe("ProvenanceDialog", () => {
         onClose={vi.fn()}
       />,
     );
+    fireEvent.change(screen.getByLabelText(/note/i), { target: { value: "edited" } });
     fireEvent.click(screen.getByRole("button", { name: /save/i }));
     expect(onSave.mock.calls[0][0]).not.toHaveProperty("generation_method");
   });
@@ -123,6 +125,23 @@ describe("ProvenanceDialog", () => {
     fireEvent.change(screen.getByLabelText(/observed on/i), { target: { value: "" } });
     fireEvent.click(screen.getByRole("button", { name: /save/i }));
     expect(onSave.mock.calls[0][0].observed_on).toBeNull();
+  });
+
+  it("treats an untouched save as a no-op — close without submitting", () => {
+    const onSave = vi.fn();
+    const onClose = vi.fn();
+    render(
+      <ProvenanceDialog
+        open
+        fields={SCHEMA_FIELDS}
+        value={EXISTING}
+        onSave={onSave}
+        onClose={onClose}
+      />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: /save/i }));
+    expect(onSave).not.toHaveBeenCalled();
+    expect(onClose).toHaveBeenCalled();
   });
 
   it("has an explicit cancel alongside save", () => {

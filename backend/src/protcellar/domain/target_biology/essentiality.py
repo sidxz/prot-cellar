@@ -87,6 +87,8 @@ class Essentiality(AggregateRoot):
             self._validate_confidence(fields["confidence"])
             self.confidence = fields["confidence"]
         if "classification" in fields:
+            if fields["classification"] is None:
+                raise ValidationError("Essentiality classification must not be null")
             self.classification = fields["classification"]
         if "condition" in fields:
             self.condition = fields["condition"]
