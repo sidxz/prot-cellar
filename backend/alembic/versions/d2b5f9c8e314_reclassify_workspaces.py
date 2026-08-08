@@ -7,7 +7,9 @@ Create Date: 2026-08-08 00:00:00.000000
 Reference data stays shared. Private observations, workspace artifacts and
 workspace-owned entities move to the workspace that owns them. This is the only
 step in the tenancy work that changes what anyone can see, and at time of
-writing it changes it for exactly one row.
+writing it changes it for four rows: one private_comm vulnerability (the
+target-biology public/private split) plus all three existing import_runs
+(globally readable via readable_by while under SHARED, workspace-only after).
 """
 import os
 from typing import Sequence, Union
@@ -72,6 +74,25 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
+    """Reverse the reclassification — but not a scoped inverse.
+
+    This moves EVERY row currently under the target workspace back to SHARED,
+    unconditionally, across all 13 tables. It cannot tell rows upgrade() moved
+    apart from rows created natively under the target workspace afterwards
+    through ordinary use (new tags, targets, import runs, private
+    target-biology records written via auth.workspace_id) — it moves all of
+    them.
+
+    Safe ONLY immediately after upgrade(), with no intervening writes. Run
+    against a database with real activity, it makes every one of those
+    workspace-private rows world-readable — the exact leak this migration
+    exists to close, in reverse. Re-running upgrade() afterwards does NOT
+    undo the damage for rows whose provenance is public: upgrade() only pulls
+    non-public-provenance rows back out of SHARED, so a natively-created
+    target-biology row that happens to carry published/preprint provenance
+    stays stranded at SHARED — readable by everyone and, since owned_by
+    excludes SHARED, no longer editable by the tenant that created it.
+    """
     target = _target_workspace()
     for table in _OBSERVATION_TABLES + _WORKSPACE_TABLES:
         op.execute(
