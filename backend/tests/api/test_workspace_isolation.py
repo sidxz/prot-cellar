@@ -267,12 +267,34 @@ async def test_workspace_essentiality_cannot_be_mutated_by_a_second_workspace(
     assert deleted.status_code == 404, deleted.text
 
 
-async def _save_shared_essentiality(database_url: str) -> uuid.UUID:
+async def test_owned_essentiality_bundle_marks_is_shared_false(client: AsyncClient) -> None:
+    """The other half of the ``is_shared`` contract: a record the caller's
+    own workspace created — neither hidden (unlike the second-workspace case
+    above) nor marked shared. Reads only ever return the caller's own rows
+    plus shared ones, so these two tests exhaust the states the field can be
+    in on a bundle the caller can actually see.
+    """
+    gene_id = uuid.uuid4()
+    created = await client.post(
+        f"/api/v1/genes/{gene_id}/target-biology/essentiality",
+        json=_ISOLATION_ESSENTIALITY_BODY,
+    )
+    assert created.status_code == 201, created.text
+
+    bundle = await client.get(f"/api/v1/genes/{gene_id}/target-biology")
+    assert bundle.status_code == 200, bundle.text
+    [item] = bundle.json()["essentiality"]
+    assert item["is_shared"] is False
+
+
+async def _save_shared_essentiality(database_url: str) -> Essentiality:
     """Seed a SHARED, published essentiality record directly through the
     repository, the same way ``test_target_biology.py``'s ``_save`` does —
     every HTTP create path now writes the caller's own workspace (see the
     module docstring), so there is no API route left that produces a shared
-    record to test PATCH/DELETE against.
+    record to test PATCH/DELETE against. Returns the saved record (not just
+    its id) so a caller needing ``gene_id`` — e.g. to fetch its bundle — does
+    not need a second, near-identical helper.
     """
     engine = create_async_engine(database_url)
     uow = AsyncUnitOfWork(async_sessionmaker(engine, expire_on_commit=False))
@@ -286,7 +308,7 @@ async def _save_shared_essentiality(database_url: str) -> uuid.UUID:
         await SQLAlchemyEssentialityRepository(uow).save(record)
         await uow.commit()
     await engine.dispose()
-    return record.id
+    return record
 
 
 async def test_shared_essentiality_cannot_be_mutated(
@@ -297,16 +319,34 @@ async def test_shared_essentiality_cannot_be_mutated(
     every other context, now also covering DELETE (organisms, genes and
     proteins have no delete route to test it against).
     """
-    record_id = await _save_shared_essentiality(database_url)
+    record = await _save_shared_essentiality(database_url)
 
     patched = await client.patch(
-        f"/api/v1/target-biology/essentiality/{record_id}",
+        f"/api/v1/target-biology/essentiality/{record.id}",
         json={"classification": "non_essential"},
     )
     assert patched.status_code == 404, patched.text
 
-    deleted = await client.delete(f"/api/v1/target-biology/essentiality/{record_id}")
+    deleted = await client.delete(f"/api/v1/target-biology/essentiality/{record.id}")
     assert deleted.status_code == 404, deleted.text
+
+
+async def test_shared_essentiality_bundle_marks_is_shared(
+    client: AsyncClient, database_url: str
+) -> None:
+    """The client needs ``is_shared`` to hide the edit/provenance/delete
+    controls it would otherwise offer in vain on a row whose mutations always
+    404 (``test_shared_essentiality_cannot_be_mutated`` above). Asserts
+    against the per-gene bundle rather than ``GET /target-biology/{kind}`` —
+    that bulk route is Task 9's and does not exist on this branch yet.
+    """
+    record = await _save_shared_essentiality(database_url)
+
+    bundle = await client.get(f"/api/v1/genes/{record.gene_id}/target-biology")
+    assert bundle.status_code == 200, bundle.text
+    [item] = bundle.json()["essentiality"]
+    assert item["id"] == str(record.id)
+    assert item["is_shared"] is True
 
 
 async def test_workspace_essentiality_condition_does_not_leak_into_another_workspaces_schema(

@@ -17,6 +17,7 @@ from protcellar.application.target_biology.get_protein_target_biology import (
     GetProteinTargetBiologyQuery,
 )
 from protcellar.domain.shared.compound_ref import CompoundRef
+from protcellar.domain.shared.global_workspace import SHARED_WORKSPACE_ID
 from protcellar.domain.shared.provenance import (
     Citation,
     GenerationMethod,
@@ -103,6 +104,7 @@ class EssentialityResponse(BaseModel):
     provenance: ProvenanceResponse
     extensions: dict[str, Any]
     version: int
+    is_shared: bool
 
     @classmethod
     def from_domain(cls, e: Essentiality) -> EssentialityResponse:
@@ -116,6 +118,7 @@ class EssentialityResponse(BaseModel):
             provenance=ProvenanceResponse.from_domain(e.provenance),
             extensions=e.extensions,
             version=e.version,
+            is_shared=(e.workspace_id == SHARED_WORKSPACE_ID),
         )
 
 
@@ -129,6 +132,7 @@ class VulnerabilityResponse(BaseModel):
     provenance: ProvenanceResponse
     extensions: dict[str, Any]
     version: int
+    is_shared: bool
 
     @classmethod
     def from_domain(cls, v: Vulnerability) -> VulnerabilityResponse:
@@ -142,6 +146,7 @@ class VulnerabilityResponse(BaseModel):
             provenance=ProvenanceResponse.from_domain(v.provenance),
             extensions=v.extensions,
             version=v.version,
+            is_shared=(v.workspace_id == SHARED_WORKSPACE_ID),
         )
 
 
@@ -156,6 +161,7 @@ class HypomorphResponse(BaseModel):
     provenance: ProvenanceResponse
     extensions: dict[str, Any]
     version: int
+    is_shared: bool
 
     @classmethod
     def from_domain(cls, h: Hypomorph) -> HypomorphResponse:
@@ -170,6 +176,7 @@ class HypomorphResponse(BaseModel):
             provenance=ProvenanceResponse.from_domain(h.provenance),
             extensions=h.extensions,
             version=h.version,
+            is_shared=(h.workspace_id == SHARED_WORKSPACE_ID),
         )
 
 
@@ -180,6 +187,7 @@ class CrispriStrainResponse(BaseModel):
     provenance: ProvenanceResponse
     extensions: dict[str, Any]
     version: int
+    is_shared: bool
 
     @classmethod
     def from_domain(cls, s: CrispriStrain) -> CrispriStrainResponse:
@@ -190,6 +198,7 @@ class CrispriStrainResponse(BaseModel):
             provenance=ProvenanceResponse.from_domain(s.provenance),
             extensions=s.extensions,
             version=s.version,
+            is_shared=(s.workspace_id == SHARED_WORKSPACE_ID),
         )
 
 
@@ -205,6 +214,7 @@ class ResistanceMutationResponse(BaseModel):
     provenance: ProvenanceResponse
     extensions: dict[str, Any]
     version: int
+    is_shared: bool
 
     @classmethod
     def from_domain(cls, m: ResistanceMutation) -> ResistanceMutationResponse:
@@ -220,6 +230,7 @@ class ResistanceMutationResponse(BaseModel):
             provenance=ProvenanceResponse.from_domain(m.provenance),
             extensions=m.extensions,
             version=m.version,
+            is_shared=(m.workspace_id == SHARED_WORKSPACE_ID),
         )
 
 
@@ -237,6 +248,7 @@ class ProteinProductionResponse(BaseModel):
     provenance: ProvenanceResponse
     extensions: dict[str, Any]
     version: int
+    is_shared: bool
 
     @classmethod
     def from_domain(cls, p: ProteinProduction) -> ProteinProductionResponse:
@@ -251,6 +263,7 @@ class ProteinProductionResponse(BaseModel):
             provenance=ProvenanceResponse.from_domain(p.provenance),
             extensions=p.extensions,
             version=p.version,
+            is_shared=(p.workspace_id == SHARED_WORKSPACE_ID),
         )
 
 
@@ -265,6 +278,7 @@ class ProteinActivityAssayResponse(BaseModel):
     provenance: ProvenanceResponse
     extensions: dict[str, Any]
     version: int
+    is_shared: bool
 
     @classmethod
     def from_domain(cls, a: ProteinActivityAssay) -> ProteinActivityAssayResponse:
@@ -279,6 +293,7 @@ class ProteinActivityAssayResponse(BaseModel):
             provenance=ProvenanceResponse.from_domain(a.provenance),
             extensions=a.extensions,
             version=a.version,
+            is_shared=(a.workspace_id == SHARED_WORKSPACE_ID),
         )
 
 
@@ -293,6 +308,7 @@ class UnpublishedStructureResponse(BaseModel):
     provenance: ProvenanceResponse
     extensions: dict[str, Any]
     version: int
+    is_shared: bool
 
     @classmethod
     def from_domain(cls, s: UnpublishedStructure) -> UnpublishedStructureResponse:
@@ -307,6 +323,7 @@ class UnpublishedStructureResponse(BaseModel):
             provenance=ProvenanceResponse.from_domain(s.provenance),
             extensions=s.extensions,
             version=s.version,
+            is_shared=(s.workspace_id == SHARED_WORKSPACE_ID),
         )
 
 

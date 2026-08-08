@@ -140,7 +140,7 @@ const TH =
 const TD = "px-2 py-1.5 align-top";
 
 interface Props<
-  R extends { id: string; version: number; provenance: object },
+  R extends { id: string; version: number; provenance: object; is_shared?: boolean },
   D extends Record<string, unknown>,
 > {
   title: string;
@@ -165,7 +165,7 @@ interface Props<
 }
 
 export function EditableRecordTable<
-  R extends { id: string; version: number; provenance: object },
+  R extends { id: string; version: number; provenance: object; is_shared?: boolean },
   D extends Record<string, unknown>,
 >({
   title,
@@ -364,39 +364,47 @@ export function EditableRecordTable<
                       </td>
                     ))}
                     <td className={`${TD} whitespace-nowrap`}>
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        className="h-7 w-7"
-                        onClick={() => {
-                          setDraft(toDraft(r));
-                          setEditingId(r.id);
-                        }}
-                        disabled={busy}
-                      >
-                        <Pencil className="h-3.5 w-3.5" />
-                        <span className="sr-only">Edit</span>
-                      </Button>
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        className="h-7 w-7"
-                        onClick={() => setProvenanceTarget(r)}
-                        disabled={busy || provenanceFields.length === 0}
-                      >
-                        <BookOpen className="h-3.5 w-3.5" />
-                        <span className="sr-only">Provenance…</span>
-                      </Button>
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        className="h-7 w-7 text-destructive hover:text-destructive"
-                        onClick={() => del(r.id)}
-                        disabled={busy}
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                        <span className="sr-only">Delete</span>
-                      </Button>
+                      {r.is_shared ? (
+                        <span className="text-xs italic text-muted-foreground">
+                          Reference data — managed by import
+                        </span>
+                      ) : (
+                        <>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-7 w-7"
+                            onClick={() => {
+                              setDraft(toDraft(r));
+                              setEditingId(r.id);
+                            }}
+                            disabled={busy}
+                          >
+                            <Pencil className="h-3.5 w-3.5" />
+                            <span className="sr-only">Edit</span>
+                          </Button>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-7 w-7"
+                            onClick={() => setProvenanceTarget(r)}
+                            disabled={busy || provenanceFields.length === 0}
+                          >
+                            <BookOpen className="h-3.5 w-3.5" />
+                            <span className="sr-only">Provenance…</span>
+                          </Button>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-7 w-7 text-destructive hover:text-destructive"
+                            onClick={() => del(r.id)}
+                            disabled={busy}
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                            <span className="sr-only">Delete</span>
+                          </Button>
+                        </>
+                      )}
                     </td>
                   </tr>
                 );

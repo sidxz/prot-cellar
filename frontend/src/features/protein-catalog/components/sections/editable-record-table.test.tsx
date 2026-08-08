@@ -20,6 +20,7 @@ interface Rec {
   kind: string;
   version: number;
   provenance: Record<string, unknown>;
+  is_shared?: boolean;
 }
 type Draft = { name: string; count: string; active: boolean; kind: string };
 
@@ -166,6 +167,22 @@ describe("EditableRecordTable", () => {
     const { onDelete } = setup([rec]);
     fireEvent.click(screen.getByRole("button", { name: /delete/i }));
     expect(onDelete).toHaveBeenCalledWith("r1");
+  });
+
+  it("hides edit/provenance/delete for a shared row and shows a reference-data marker instead", () => {
+    setup([{ ...rec, is_shared: true }]);
+    expect(screen.queryByRole("button", { name: /edit/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /provenance/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /delete/i })).not.toBeInTheDocument();
+    expect(screen.getByText(/managed by import/i)).toBeInTheDocument();
+  });
+
+  it("shows edit/provenance/delete for a row that is not shared", () => {
+    setup([{ ...rec, is_shared: false }]);
+    expect(screen.getByRole("button", { name: /edit/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /provenance/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /delete/i })).toBeInTheDocument();
+    expect(screen.queryByText(/managed by import/i)).not.toBeInTheDocument();
   });
 });
 

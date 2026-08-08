@@ -25,4 +25,5 @@ export interface StrainResponse {
   host_organism_id?: StrainResponseHostOrganismId;
   metadata?: StrainResponseMetadata;
   version: number;
+  is_shared: boolean;
 }

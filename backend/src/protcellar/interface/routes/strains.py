@@ -13,6 +13,7 @@ from protcellar.application.taxonomy.create_strain import CreateStrainCommand
 from protcellar.application.taxonomy.get_strain import GetStrainQuery
 from protcellar.application.taxonomy.list_strains import ListStrainsQuery
 from protcellar.application.taxonomy.update_strain import UpdateStrainCommand
+from protcellar.domain.shared.global_workspace import SHARED_WORKSPACE_ID
 from protcellar.domain.taxonomy.strain import Strain
 from protcellar.interface.dependencies import (
     AuthDep,
@@ -40,6 +41,7 @@ class StrainResponse(BaseModel):
     host_organism_id: uuid.UUID | None = None
     metadata: dict[str, object] | None = None
     version: int
+    is_shared: bool
 
     @classmethod
     def from_domain(cls, strain: Strain) -> StrainResponse:
@@ -56,6 +58,7 @@ class StrainResponse(BaseModel):
             host_organism_id=strain.host_organism_id,
             metadata=strain.metadata,
             version=strain.version,
+            is_shared=(strain.workspace_id == SHARED_WORKSPACE_ID),
         )
 
 

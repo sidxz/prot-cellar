@@ -14,4 +14,5 @@ export interface CrispriStrainResponse {
   provenance: ProvenanceResponse;
   extensions: CrispriStrainResponseExtensions;
   version: number;
+  is_shared: boolean;
 }

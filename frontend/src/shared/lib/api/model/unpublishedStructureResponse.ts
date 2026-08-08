@@ -21,4 +21,5 @@ export interface UnpublishedStructureResponse {
   provenance: ProvenanceResponse;
   extensions: UnpublishedStructureResponseExtensions;
   version: number;
+  is_shared: boolean;
 }

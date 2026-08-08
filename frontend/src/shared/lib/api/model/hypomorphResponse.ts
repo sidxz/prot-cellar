@@ -22,4 +22,5 @@ export interface HypomorphResponse {
   provenance: ProvenanceResponse;
   extensions: HypomorphResponseExtensions;
   version: number;
+  is_shared: boolean;
 }

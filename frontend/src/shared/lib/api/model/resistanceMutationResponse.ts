@@ -24,4 +24,5 @@ export interface ResistanceMutationResponse {
   provenance: ProvenanceResponse;
   extensions: ResistanceMutationResponseExtensions;
   version: number;
+  is_shared: boolean;
 }

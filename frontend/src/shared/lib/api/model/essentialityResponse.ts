@@ -20,4 +20,5 @@ export interface EssentialityResponse {
   provenance: ProvenanceResponse;
   extensions: EssentialityResponseExtensions;
   version: number;
+  is_shared: boolean;
 }

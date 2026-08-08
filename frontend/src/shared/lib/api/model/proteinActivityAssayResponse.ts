@@ -22,4 +22,5 @@ export interface ProteinActivityAssayResponse {
   provenance: ProvenanceResponse;
   extensions: ProteinActivityAssayResponseExtensions;
   version: number;
+  is_shared: boolean;
 }
