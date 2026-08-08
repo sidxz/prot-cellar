@@ -9,7 +9,7 @@ from typing import Any
 
 from protcellar.domain.shared.entity import AggregateRoot
 from protcellar.domain.shared.errors import ValidationError
-from protcellar.domain.shared.global_workspace import GLOBAL_WORKSPACE_ID
+from protcellar.domain.shared.global_workspace import SHARED_WORKSPACE_ID
 from protcellar.domain.taxonomy.enums import ProteomeType
 from protcellar.domain.taxonomy.events import ProteomeCreated, ProteomeUpdated
 
@@ -41,7 +41,7 @@ class Proteome(AggregateRoot):
         super().__init__(id=id, created_at=created_at, updated_at=updated_at, version=version)
         _validate_proteome_id(uniprot_proteome_id)
         # Reference data lives under the reserved GLOBAL workspace.
-        self.workspace_id = GLOBAL_WORKSPACE_ID
+        self.workspace_id = SHARED_WORKSPACE_ID
         self.uniprot_proteome_id = uniprot_proteome_id
         self.organism_id = organism_id
         self.strain_id = strain_id

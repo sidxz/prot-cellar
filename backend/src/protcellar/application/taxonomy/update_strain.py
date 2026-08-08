@@ -50,7 +50,7 @@ class UpdateStrain:
         require_same_workspace(auth, input.workspace_id)
 
         async with self._uow:
-            strain = await self._repo.find_by_id_in_workspace(input.workspace_id, input.strain_id)
+            strain = await self._repo.find_owned(input.workspace_id, input.strain_id)
             if strain is None:
                 return Failure(NotFoundError("Strain", str(input.strain_id)))
 

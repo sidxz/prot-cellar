@@ -32,7 +32,7 @@ class GetTarget:
         require_editor(auth)
         require_same_workspace(auth, input.workspace_id)
         async with self._uow:
-            target = await self._repo.find_by_id_in_workspace(input.workspace_id, input.target_id)
+            target = await self._repo.find_readable(input.workspace_id, input.target_id)
             if target is None:
                 return Failure(NotFoundError("Target", str(input.target_id)))
             return Success(target)

@@ -9,7 +9,7 @@ from protcellar.domain.protein_catalog.gene_annotation import (
     GeneAnnotation,
     GeneAnnotationAxis,
 )
-from protcellar.domain.shared.global_workspace import GLOBAL_WORKSPACE_ID
+from protcellar.domain.shared.global_workspace import SHARED_WORKSPACE_ID
 from protcellar.domain.shared.provenance import Provenance, ProvenanceSourceType
 from protcellar.domain.target_biology.enums import EssentialityClass
 from protcellar.domain.target_biology.essentiality import Essentiality
@@ -41,7 +41,7 @@ async def _seed_essentiality(database_url: str, gene_id: uuid.UUID) -> None:
     uow = AsyncUnitOfWork(factory)
     async with uow:
         rec = Essentiality.create(
-            workspace_id=GLOBAL_WORKSPACE_ID,
+            workspace_id=SHARED_WORKSPACE_ID,
             gene_id=gene_id,
             classification=EssentialityClass.ESSENTIAL,
             provenance=Provenance(source_type=ProvenanceSourceType.PUBLISHED),

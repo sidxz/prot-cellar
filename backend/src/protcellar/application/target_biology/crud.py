@@ -23,7 +23,7 @@ from protcellar.domain.shared.errors import (
     DomainError,
     NotFoundError,
 )
-from protcellar.domain.shared.global_workspace import GLOBAL_WORKSPACE_ID
+from protcellar.domain.shared.global_workspace import SHARED_WORKSPACE_ID
 
 
 class RecordKind(StrEnum):
@@ -74,9 +74,7 @@ class UpdateTargetBiologyRecord:
     ) -> Result[AggregateRoot, DomainError]:
         require_admin(auth)
         async with self._uow:
-            record = await self._repos[kind].find_by_id_in_workspace(
-                GLOBAL_WORKSPACE_ID, record_id
-            )
+            record = await self._repos[kind].find_owned(SHARED_WORKSPACE_ID, record_id)
             if record is None:
                 return Failure(NotFoundError(kind.value, str(record_id)))
             # Opt-in: a caller that supplies no version keeps last-write-wins, so
@@ -106,11 +104,9 @@ class DeleteTargetBiologyRecord:
     ) -> Result[None, DomainError]:
         require_admin(auth)
         async with self._uow:
-            record = await self._repos[kind].find_by_id_in_workspace(
-                GLOBAL_WORKSPACE_ID, record_id
-            )
+            record = await self._repos[kind].find_owned(SHARED_WORKSPACE_ID, record_id)
             if record is None:
                 return Failure(NotFoundError(kind.value, str(record_id)))
-            await self._repos[kind].delete(GLOBAL_WORKSPACE_ID, record_id)
+            await self._repos[kind].delete(SHARED_WORKSPACE_ID, record_id)
             await self._uow.commit()
         return Success(None)

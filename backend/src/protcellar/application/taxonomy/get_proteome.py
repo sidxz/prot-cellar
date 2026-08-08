@@ -11,7 +11,7 @@ from protcellar.application.auth import AuthContext, require_authenticated
 from protcellar.application.shared.query import Query
 from protcellar.application.shared.unit_of_work import UnitOfWork
 from protcellar.domain.shared.errors import DomainError, NotFoundError
-from protcellar.domain.shared.global_workspace import GLOBAL_WORKSPACE_ID
+from protcellar.domain.shared.global_workspace import SHARED_WORKSPACE_ID
 from protcellar.domain.taxonomy.proteome import Proteome
 from protcellar.domain.taxonomy.repository import ProteomeRepository
 
@@ -31,9 +31,7 @@ class GetProteome:
     ) -> Result[Proteome, DomainError]:
         require_authenticated(auth)
         async with self._uow:
-            proteome = await self._repo.find_by_id_in_workspace(
-                GLOBAL_WORKSPACE_ID, input.proteome_id
-            )
+            proteome = await self._repo.find_readable(SHARED_WORKSPACE_ID, input.proteome_id)
             if proteome is None:
                 return Failure(NotFoundError("Proteome", str(input.proteome_id)))
             return Success(proteome)

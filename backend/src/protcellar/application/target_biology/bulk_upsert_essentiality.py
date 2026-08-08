@@ -19,7 +19,7 @@ from protcellar.application.shared.unit_of_work import UnitOfWork
 from protcellar.application.target_biology._import_support import ItemResult, build_locus_index
 from protcellar.domain.protein_catalog.repository import GeneRepository
 from protcellar.domain.shared.errors import DomainError
-from protcellar.domain.shared.global_workspace import GLOBAL_WORKSPACE_ID
+from protcellar.domain.shared.global_workspace import SHARED_WORKSPACE_ID
 from protcellar.domain.shared.provenance import (
     Citation,
     GenerationMethod,
@@ -129,7 +129,7 @@ class BulkUpsertEssentiality:
                         continue
                     classification = classify(rec.classification)
                     provenance = _provenance(input.source_type, input.generation_method, rec)
-                    existing = await self._ess_repo.find_by_gene(GLOBAL_WORKSPACE_ID, gene.id)
+                    existing = await self._ess_repo.find_by_gene(SHARED_WORKSPACE_ID, gene.id)
                     match = next(
                         (
                             e
@@ -152,7 +152,7 @@ class BulkUpsertEssentiality:
                         results.append(ItemResult(index=i, status="updated", id=str(match.id)))
                     else:
                         record = Essentiality.create(
-                            workspace_id=GLOBAL_WORKSPACE_ID,
+                            workspace_id=SHARED_WORKSPACE_ID,
                             gene_id=gene.id,
                             classification=classification,
                             condition=rec.condition,

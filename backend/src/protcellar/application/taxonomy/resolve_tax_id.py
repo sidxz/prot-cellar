@@ -34,9 +34,7 @@ class ResolveTaxId:
             if org.is_deleted:
                 return Failure(GoneError(f"tax_id {input.tax_id} was deleted from NCBI Taxonomy"))
             if org.is_merged and org.merged_into_id is not None:
-                target = await self._repo.find_by_id_in_workspace(
-                    org.workspace_id, org.merged_into_id
-                )
+                target = await self._repo.find_readable(org.workspace_id, org.merged_into_id)
                 if target is not None:
                     return Success(target)
             return Success(org)

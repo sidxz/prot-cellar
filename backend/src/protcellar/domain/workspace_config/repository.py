@@ -12,9 +12,11 @@ from protcellar.domain.workspace_config.organization import Organization
 class OrganizationRepository(Protocol):
     """Repository for Organization aggregates."""
 
-    async def find_by_id_in_workspace(
+    async def find_readable(
         self, workspace_id: uuid.UUID, id: uuid.UUID
     ) -> Organization | None: ...
+
+    async def find_owned(self, workspace_id: uuid.UUID, id: uuid.UUID) -> Organization | None: ...
 
     async def save(self, aggregate: Organization) -> None: ...
 

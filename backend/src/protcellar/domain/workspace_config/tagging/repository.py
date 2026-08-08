@@ -17,9 +17,7 @@ from protcellar.domain.workspace_config.tagging.tag import (
 class TagRepository(Protocol):
     """Registry of Tag aggregates (the deduplicated set of key/value pairs)."""
 
-    async def find_by_id_in_workspace(
-        self, workspace_id: uuid.UUID, id: uuid.UUID
-    ) -> Tag | None: ...
+    async def find_owned(self, workspace_id: uuid.UUID, id: uuid.UUID) -> Tag | None: ...
 
     async def find_by_normalized(self, workspace_id: uuid.UUID, name: TagName) -> Tag | None: ...
 

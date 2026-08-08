@@ -17,6 +17,8 @@ class ImportRunRepository(Protocol):
 
     async def get(self, id: uuid.UUID) -> ImportRun | None: ...
 
+    async def get_owned(self, id: uuid.UUID) -> ImportRun | None: ...
+
     async def list(
         self,
         *,

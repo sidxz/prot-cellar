@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import uuid
 
-from protcellar.domain.shared.global_workspace import GLOBAL_WORKSPACE_ID
+from protcellar.domain.shared.global_workspace import SHARED_WORKSPACE_ID
 
 _ROLE_HIERARCHY: dict[str, int] = {"viewer": 0, "editor": 1, "admin": 2, "owner": 3}
 
@@ -23,11 +23,11 @@ class ServiceAuth:
 
     @property
     def user_id(self) -> uuid.UUID:
-        return GLOBAL_WORKSPACE_ID
+        return SHARED_WORKSPACE_ID
 
     @property
     def workspace_id(self) -> uuid.UUID:
-        return GLOBAL_WORKSPACE_ID
+        return SHARED_WORKSPACE_ID
 
     @property
     def is_admin(self) -> bool:

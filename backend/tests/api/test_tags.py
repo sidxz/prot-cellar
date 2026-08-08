@@ -9,7 +9,7 @@ from httpx import AsyncClient
 async def _organism(client: AsyncClient, tax_id: int) -> str:
     """Create (or resolve an existing) organism — the simplest taggable entity.
 
-    Organisms are always saved with ``workspace_id = GLOBAL_WORKSPACE_ID``, so
+    Organisms are always saved with ``workspace_id = SHARED_WORKSPACE_ID``, so
     they're visible for tagging under the global-or-mine rule regardless of
     the caller's own workspace.
     """

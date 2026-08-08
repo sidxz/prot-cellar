@@ -19,7 +19,7 @@ from protcellar.application.target_biology._import_support import ItemResult, pr
 from protcellar.domain.protein_catalog.repository import ProteinRepository
 from protcellar.domain.shared.compound_ref import CompoundRef
 from protcellar.domain.shared.errors import DomainError
-from protcellar.domain.shared.global_workspace import GLOBAL_WORKSPACE_ID
+from protcellar.domain.shared.global_workspace import SHARED_WORKSPACE_ID
 from protcellar.domain.shared.provenance import ProvenanceSourceType
 from protcellar.domain.target_biology.repository import UnpublishedStructureRepository
 from protcellar.domain.target_biology.unpublished_structure import UnpublishedStructure
@@ -80,7 +80,7 @@ class BulkUpsertUnpublishedStructure:
                         )
                         continue
                     provenance = provenance_from(input.source_type, rec.pmid, rec.dataset)
-                    existing = await self._st_repo.find_by_protein(GLOBAL_WORKSPACE_ID, protein.id)
+                    existing = await self._st_repo.find_by_protein(SHARED_WORKSPACE_ID, protein.id)
                     match = next((s for s in existing if s.method == rec.method), None)
                     if match is not None:
                         match.update(
@@ -95,7 +95,7 @@ class BulkUpsertUnpublishedStructure:
                         results.append(ItemResult(index=i, status="updated", id=str(match.id)))
                     else:
                         record = UnpublishedStructure.create(
-                            workspace_id=GLOBAL_WORKSPACE_ID,
+                            workspace_id=SHARED_WORKSPACE_ID,
                             protein_id=protein.id,
                             method=rec.method,
                             resolution=rec.resolution,

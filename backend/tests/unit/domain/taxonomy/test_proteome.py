@@ -7,7 +7,7 @@ import uuid
 import pytest
 
 from protcellar.domain.shared.errors import ValidationError
-from protcellar.domain.shared.global_workspace import GLOBAL_WORKSPACE_ID
+from protcellar.domain.shared.global_workspace import SHARED_WORKSPACE_ID
 from protcellar.domain.taxonomy.enums import ProteomeType
 from protcellar.domain.taxonomy.proteome import Proteome
 
@@ -20,7 +20,7 @@ def test_create_reference_proteome() -> None:
         proteome_type=ProteomeType.REFERENCE,
         is_reference=True,
     )
-    assert p.workspace_id == GLOBAL_WORKSPACE_ID
+    assert p.workspace_id == SHARED_WORKSPACE_ID
     assert p.uniprot_proteome_id == "UP000005640"
 
 

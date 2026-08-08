@@ -13,7 +13,7 @@ from protcellar.domain.imports.events import (
 )
 from protcellar.domain.imports.import_run import ImportRun
 from protcellar.domain.shared.errors import ConflictError
-from protcellar.domain.shared.global_workspace import GLOBAL_WORKSPACE_ID
+from protcellar.domain.shared.global_workspace import SHARED_WORKSPACE_ID
 
 
 def _run() -> ImportRun:
@@ -28,7 +28,7 @@ def _run() -> ImportRun:
 def test_create_is_queued_and_global_and_emits_queued() -> None:
     run = _run()
     assert run.status is ImportStatus.QUEUED
-    assert run.workspace_id == GLOBAL_WORKSPACE_ID
+    assert run.workspace_id == SHARED_WORKSPACE_ID
     assert run.target_key == "UP000001584"
     events = run.collect_events()
     assert any(isinstance(e, ImportRunQueued) for e in events)

@@ -17,7 +17,7 @@ from protcellar.domain.protein_catalog.gene import Gene
 from protcellar.domain.protein_catalog.gene_annotation import GeneAnnotation
 from protcellar.domain.protein_catalog.repository import GeneRepository
 from protcellar.domain.shared.errors import DomainError, NotFoundError
-from protcellar.domain.shared.global_workspace import GLOBAL_WORKSPACE_ID
+from protcellar.domain.shared.global_workspace import SHARED_WORKSPACE_ID
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -53,7 +53,7 @@ class UpdateGene:
         require_admin(auth)
 
         async with self._uow:
-            gene = await self._repo.find_by_id_in_workspace(GLOBAL_WORKSPACE_ID, input.gene_id)
+            gene = await self._repo.find_owned(SHARED_WORKSPACE_ID, input.gene_id)
             if gene is None:
                 return Failure(NotFoundError("Gene", str(input.gene_id)))
 

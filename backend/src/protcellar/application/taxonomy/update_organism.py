@@ -14,7 +14,7 @@ from protcellar.application.shared.event_dispatcher import EventDispatcherProtoc
 from protcellar.application.shared.sentinel import UNSET
 from protcellar.application.shared.unit_of_work import UnitOfWork
 from protcellar.domain.shared.errors import DomainError, NotFoundError, ValidationError
-from protcellar.domain.shared.global_workspace import GLOBAL_WORKSPACE_ID
+from protcellar.domain.shared.global_workspace import SHARED_WORKSPACE_ID
 from protcellar.domain.taxonomy.organism import Organism
 from protcellar.domain.taxonomy.repository import OrganismRepository, StrainRepository
 
@@ -49,7 +49,7 @@ class UpdateOrganism:
         require_admin(auth)
 
         async with self._uow:
-            org = await self._repo.find_by_id_in_workspace(GLOBAL_WORKSPACE_ID, input.organism_id)
+            org = await self._repo.find_owned(SHARED_WORKSPACE_ID, input.organism_id)
             if org is None:
                 return Failure(NotFoundError("Organism", str(input.organism_id)))
 
@@ -58,7 +58,7 @@ class UpdateOrganism:
             # and None both skip this: None is a legitimate "clear the reference".)
             ref = input.reference_strain_id
             if isinstance(ref, uuid.UUID):
-                strain = await self._strain_repo.find_visible_by_id(GLOBAL_WORKSPACE_ID, ref)
+                strain = await self._strain_repo.find_visible_by_id(SHARED_WORKSPACE_ID, ref)
                 if strain is None or strain.species_organism_id != input.organism_id:
                     return Failure(
                         ValidationError("reference_strain_id must be a strain of this organism")

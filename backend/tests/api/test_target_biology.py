@@ -10,7 +10,7 @@ from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
 from protcellar.domain.shared.compound_ref import CompoundRef
-from protcellar.domain.shared.global_workspace import GLOBAL_WORKSPACE_ID
+from protcellar.domain.shared.global_workspace import SHARED_WORKSPACE_ID
 from protcellar.domain.shared.provenance import (
     Citation,
     GenerationMethod,
@@ -36,7 +36,7 @@ from protcellar.infrastructure.persistence.sqlalchemy.target_biology.vulnerabili
 )
 from protcellar.infrastructure.persistence.unit_of_work import AsyncUnitOfWork
 
-WS = GLOBAL_WORKSPACE_ID
+WS = SHARED_WORKSPACE_ID
 
 
 async def _save(database_url: str, repo_cls: type, aggregate: object) -> None:

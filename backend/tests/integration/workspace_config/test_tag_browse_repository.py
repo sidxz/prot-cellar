@@ -11,7 +11,7 @@ import uuid
 
 import pytest
 
-from protcellar.domain.shared.global_workspace import GLOBAL_WORKSPACE_ID
+from protcellar.domain.shared.global_workspace import SHARED_WORKSPACE_ID
 from protcellar.domain.workspace_config.tagging.tag import TaggableEntityType, TagName
 from protcellar.infrastructure.persistence.sqlalchemy.tagging.tag_browse_repository import (
     SQLAlchemyTagBrowseRepository,
@@ -34,7 +34,7 @@ pytestmark = pytest.mark.asyncio(loop_scope="session")
 
 def _organism(**overrides: object) -> OrganismModel:
     defaults = dict(
-        workspace_id=GLOBAL_WORKSPACE_ID,
+        workspace_id=SHARED_WORKSPACE_ID,
         rank="species",
         scientific_name=f"Testus organismus {uuid.uuid4()}",
         source="test",

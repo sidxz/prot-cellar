@@ -17,7 +17,7 @@ from protcellar.application.target_biology.get_protein_target_biology import (
     GetProteinTargetBiologyQuery,
 )
 from protcellar.domain.shared.compound_ref import CompoundRef
-from protcellar.domain.shared.global_workspace import GLOBAL_WORKSPACE_ID
+from protcellar.domain.shared.global_workspace import SHARED_WORKSPACE_ID
 from protcellar.domain.shared.provenance import (
     Citation,
     GenerationMethod,
@@ -651,7 +651,7 @@ async def create_essentiality(
     use_case: CreateTargetBiologyRecordDep,
 ) -> EssentialityResponse:
     record = Essentiality.create(
-        workspace_id=GLOBAL_WORKSPACE_ID,
+        workspace_id=SHARED_WORKSPACE_ID,
         gene_id=gene_id,
         classification=body.classification,
         provenance=body.provenance.to_domain(),
@@ -694,7 +694,7 @@ async def create_vulnerability(
     use_case: CreateTargetBiologyRecordDep,
 ) -> VulnerabilityResponse:
     record = Vulnerability.create(
-        workspace_id=GLOBAL_WORKSPACE_ID,
+        workspace_id=SHARED_WORKSPACE_ID,
         gene_id=gene_id,
         provenance=body.provenance.to_domain(),
         vulnerability_score=body.vulnerability_score,
@@ -737,7 +737,7 @@ async def create_hypomorph(
     use_case: CreateTargetBiologyRecordDep,
 ) -> HypomorphResponse:
     record = Hypomorph.create(
-        workspace_id=GLOBAL_WORKSPACE_ID,
+        workspace_id=SHARED_WORKSPACE_ID,
         gene_id=gene_id,
         growth_defect=body.growth_defect,
         provenance=body.provenance.to_domain(),
@@ -781,7 +781,7 @@ async def create_crispri_strain(
     use_case: CreateTargetBiologyRecordDep,
 ) -> CrispriStrainResponse:
     record = CrispriStrain.create(
-        workspace_id=GLOBAL_WORKSPACE_ID,
+        workspace_id=SHARED_WORKSPACE_ID,
         name=body.name,
         target_gene_id=gene_id,
         provenance=body.provenance.to_domain(),
@@ -821,7 +821,7 @@ async def create_resistance_mutation(
     use_case: CreateTargetBiologyRecordDep,
 ) -> ResistanceMutationResponse:
     record = ResistanceMutation.create(
-        workspace_id=GLOBAL_WORKSPACE_ID,
+        workspace_id=SHARED_WORKSPACE_ID,
         gene_id=gene_id,
         mutation=body.mutation,
         provenance=body.provenance.to_domain(),
@@ -869,7 +869,7 @@ async def create_protein_production(
     use_case: CreateTargetBiologyRecordDep,
 ) -> ProteinProductionResponse:
     record = ProteinProduction.create(
-        workspace_id=GLOBAL_WORKSPACE_ID,
+        workspace_id=SHARED_WORKSPACE_ID,
         protein_id=protein_id,
         status=body.status,
         provenance=body.provenance.to_domain(),
@@ -916,7 +916,7 @@ async def create_protein_activity_assay(
     use_case: CreateTargetBiologyRecordDep,
 ) -> ProteinActivityAssayResponse:
     record = ProteinActivityAssay.create(
-        workspace_id=GLOBAL_WORKSPACE_ID,
+        workspace_id=SHARED_WORKSPACE_ID,
         protein_id=protein_id,
         activity_measured=body.activity_measured,
         provenance=body.provenance.to_domain(),
@@ -965,7 +965,7 @@ async def create_unpublished_structure(
     use_case: CreateTargetBiologyRecordDep,
 ) -> UnpublishedStructureResponse:
     record = UnpublishedStructure.create(
-        workspace_id=GLOBAL_WORKSPACE_ID,
+        workspace_id=SHARED_WORKSPACE_ID,
         protein_id=protein_id,
         provenance=body.provenance.to_domain(),
         method=body.method,

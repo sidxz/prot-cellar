@@ -16,7 +16,7 @@ from protcellar.application.shared.unit_of_work import UnitOfWork
 from protcellar.application.target_biology._import_support import ItemResult, provenance_from
 from protcellar.domain.protein_catalog.repository import ProteinRepository
 from protcellar.domain.shared.errors import DomainError
-from protcellar.domain.shared.global_workspace import GLOBAL_WORKSPACE_ID
+from protcellar.domain.shared.global_workspace import SHARED_WORKSPACE_ID
 from protcellar.domain.shared.provenance import ProvenanceSourceType
 from protcellar.domain.target_biology.protein_production import ProteinProduction
 from protcellar.domain.target_biology.repository import ProteinProductionRepository
@@ -74,7 +74,7 @@ class BulkUpsertProteinProduction:
                         continue
                     provenance = provenance_from(input.source_type, rec.pmid, rec.dataset)
                     existing = await self._prod_repo.find_by_protein(
-                        GLOBAL_WORKSPACE_ID, protein.id
+                        SHARED_WORKSPACE_ID, protein.id
                     )
                     match = next(
                         (
@@ -98,7 +98,7 @@ class BulkUpsertProteinProduction:
                         results.append(ItemResult(index=i, status="updated", id=str(match.id)))
                     else:
                         record = ProteinProduction.create(
-                            workspace_id=GLOBAL_WORKSPACE_ID,
+                            workspace_id=SHARED_WORKSPACE_ID,
                             protein_id=protein.id,
                             status=rec.status,
                             expression_host=rec.expression_host,

@@ -10,7 +10,7 @@ from sqlalchemy import select, tuple_
 from protcellar.domain.imports.enums import ImportStatus, ImportType
 from protcellar.domain.imports.import_run import ImportRun
 from protcellar.domain.imports.repository import ImportRunRepository
-from protcellar.domain.shared.global_workspace import GLOBAL_WORKSPACE_ID
+from protcellar.domain.shared.global_workspace import SHARED_WORKSPACE_ID
 from protcellar.infrastructure.persistence.sqlalchemy.base_repository import SQLAlchemyRepository
 from protcellar.infrastructure.persistence.sqlalchemy.imports.models import ImportRunModel
 
@@ -80,7 +80,15 @@ class SQLAlchemyImportRunRepository(
         model.finished_at = aggregate.finished_at
 
     async def get(self, id: uuid.UUID) -> ImportRun | None:
-        return await self.find_by_id_in_workspace(GLOBAL_WORKSPACE_ID, id)
+        """Load for a read-only caller (e.g. GetImportRun). Own workspace or shared."""
+        return await self.find_readable(SHARED_WORKSPACE_ID, id)
+
+    async def get_owned(self, id: uuid.UUID) -> ImportRun | None:
+        """Load for a caller that will mutate and save — the arq worker's
+        load -> transition -> save cycle. Own workspace only: a shared run
+        must not be loadable for a write, even though `.get()` can read it.
+        """
+        return await self.find_owned(SHARED_WORKSPACE_ID, id)
 
     async def list(
         self, *, cursor: tuple[datetime, uuid.UUID] | None = None, limit: int = 50

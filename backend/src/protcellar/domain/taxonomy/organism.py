@@ -9,7 +9,7 @@ from typing import Any
 
 from protcellar.domain.shared.entity import AggregateRoot
 from protcellar.domain.shared.errors import ValidationError
-from protcellar.domain.shared.global_workspace import GLOBAL_WORKSPACE_ID
+from protcellar.domain.shared.global_workspace import SHARED_WORKSPACE_ID
 from protcellar.domain.taxonomy.enums import NameClass, OrganismSource
 from protcellar.domain.taxonomy.events import OrganismCreated, OrganismUpdated
 
@@ -56,7 +56,7 @@ class Organism(AggregateRoot):
         if not rank or not rank.strip():
             raise ValidationError("Organism rank must not be empty")
         # Reference data lives under the reserved GLOBAL workspace.
-        self.workspace_id = GLOBAL_WORKSPACE_ID
+        self.workspace_id = SHARED_WORKSPACE_ID
         self.ncbi_tax_id = ncbi_tax_id
         self.parent_id = parent_id
         self.rank = rank.strip()

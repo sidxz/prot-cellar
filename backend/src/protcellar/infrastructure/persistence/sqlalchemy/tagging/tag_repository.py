@@ -1,6 +1,6 @@
 """SQLAlchemy repository for Tag aggregates (registry).
 
-``find_by_id_in_workspace``, ``save``, and ``delete`` come from the shared
+``find_owned``, ``save``, and ``delete`` come from the shared
 ``SQLAlchemyRepository`` base (workspace-scoped CRUD + optimistic
 concurrency) — only the tagging-specific lookups are implemented here.
 """

@@ -4,7 +4,7 @@ import uuid
 from datetime import datetime
 
 from protcellar.domain.shared.entity import AggregateRoot
-from protcellar.domain.shared.global_workspace import GLOBAL_WORKSPACE_ID
+from protcellar.domain.shared.global_workspace import SHARED_WORKSPACE_ID
 
 
 class ImportUpload(AggregateRoot):
@@ -20,7 +20,7 @@ class ImportUpload(AggregateRoot):
         version: int = 1,
     ) -> None:
         super().__init__(id=id, created_at=created_at, updated_at=updated_at, version=version)
-        self.workspace_id = GLOBAL_WORKSPACE_ID
+        self.workspace_id = SHARED_WORKSPACE_ID
         self.filename = filename
         self.content_type = content_type
         self.data = data

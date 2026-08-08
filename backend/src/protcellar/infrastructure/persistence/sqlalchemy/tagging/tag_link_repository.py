@@ -8,12 +8,12 @@ Adaptation from chem-cellar (deliberate, not a port bug): in chem-cellar every
 taggable entity is workspace-owned, so ``entity_exists_in_workspace`` checks
 ``entity.workspace_id == workspace_id`` (strict). In prot-cellar, reference
 entities (proteins/genes/organisms/strains/proteomes) are shared, pinned to
-``GLOBAL_WORKSPACE_ID`` (mirroring ``SQLAlchemyStrainRepository`` /
-``StrainModel.workspace_id.in_([workspace_id, GLOBAL_WORKSPACE_ID])``), while
+``SHARED_WORKSPACE_ID`` (mirroring ``SQLAlchemyStrainRepository`` /
+``StrainModel.workspace_id.in_([workspace_id, SHARED_WORKSPACE_ID])``), while
 Target is per-workspace — but tags are always workspace-scoped, so a workspace
 must be able to tag both its own entities AND the shared global ones. The
 check is therefore "global-or-mine": ``entity.workspace_id IN (workspace_id,
-GLOBAL_WORKSPACE_ID)``.
+SHARED_WORKSPACE_ID)``.
 """
 
 from __future__ import annotations
@@ -23,7 +23,7 @@ import uuid
 from sqlalchemy import delete, literal, select
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 
-from protcellar.domain.shared.global_workspace import GLOBAL_WORKSPACE_ID
+from protcellar.domain.shared.global_workspace import SHARED_WORKSPACE_ID
 from protcellar.domain.workspace_config.tagging.tag import (
     AssignedTag,
     Tag,
@@ -92,10 +92,10 @@ class SQLAlchemyTagLinkRepository:
         self, workspace_id: uuid.UUID, entity_id: uuid.UUID
     ) -> bool:
         """Global-or-mine: visible if owned by ``workspace_id`` OR pinned to
-        ``GLOBAL_WORKSPACE_ID`` (shared reference data)."""
+        ``SHARED_WORKSPACE_ID`` (shared reference data)."""
         stmt = select(self.entity_model.id).where(
             self.entity_model.id == entity_id,
-            self.entity_model.workspace_id.in_([workspace_id, GLOBAL_WORKSPACE_ID]),
+            self.entity_model.workspace_id.in_([workspace_id, SHARED_WORKSPACE_ID]),
         )
         result = await self._session.execute(stmt)
         return result.scalar_one_or_none() is not None
@@ -274,7 +274,7 @@ class OrganismTagLinkRepository(SQLAlchemyTagLinkRepository):
         other taggable entity model here carries a merge/soft-delete column."""
         stmt = select(OrganismModel.id).where(
             OrganismModel.id == entity_id,
-            OrganismModel.workspace_id.in_([workspace_id, GLOBAL_WORKSPACE_ID]),
+            OrganismModel.workspace_id.in_([workspace_id, SHARED_WORKSPACE_ID]),
             OrganismModel.merged_into_id.is_(None),
             OrganismModel.is_deleted.is_(False),
         )

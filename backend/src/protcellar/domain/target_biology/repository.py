@@ -17,9 +17,7 @@ from protcellar.domain.target_biology.vulnerability import Vulnerability
 
 @runtime_checkable
 class EssentialityRepository(Protocol):
-    async def find_by_id_in_workspace(
-        self, workspace_id: uuid.UUID, id: uuid.UUID
-    ) -> Essentiality | None: ...
+    async def find_owned(self, workspace_id: uuid.UUID, id: uuid.UUID) -> Essentiality | None: ...
 
     async def find_by_gene(
         self, workspace_id: uuid.UUID, gene_id: uuid.UUID
@@ -32,9 +30,7 @@ class EssentialityRepository(Protocol):
 
 @runtime_checkable
 class CrispriStrainRepository(Protocol):
-    async def find_by_id_in_workspace(
-        self, workspace_id: uuid.UUID, id: uuid.UUID
-    ) -> CrispriStrain | None: ...
+    async def find_owned(self, workspace_id: uuid.UUID, id: uuid.UUID) -> CrispriStrain | None: ...
 
     async def find_by_gene(
         self, workspace_id: uuid.UUID, target_gene_id: uuid.UUID
@@ -45,9 +41,7 @@ class CrispriStrainRepository(Protocol):
 
 @runtime_checkable
 class VulnerabilityRepository(Protocol):
-    async def find_by_id_in_workspace(
-        self, workspace_id: uuid.UUID, id: uuid.UUID
-    ) -> Vulnerability | None: ...
+    async def find_owned(self, workspace_id: uuid.UUID, id: uuid.UUID) -> Vulnerability | None: ...
 
     async def find_by_gene(
         self, workspace_id: uuid.UUID, gene_id: uuid.UUID
@@ -58,9 +52,7 @@ class VulnerabilityRepository(Protocol):
 
 @runtime_checkable
 class HypomorphRepository(Protocol):
-    async def find_by_id_in_workspace(
-        self, workspace_id: uuid.UUID, id: uuid.UUID
-    ) -> Hypomorph | None: ...
+    async def find_owned(self, workspace_id: uuid.UUID, id: uuid.UUID) -> Hypomorph | None: ...
 
     async def find_by_gene(
         self, workspace_id: uuid.UUID, gene_id: uuid.UUID
@@ -71,7 +63,7 @@ class HypomorphRepository(Protocol):
 
 @runtime_checkable
 class ResistanceMutationRepository(Protocol):
-    async def find_by_id_in_workspace(
+    async def find_owned(
         self, workspace_id: uuid.UUID, id: uuid.UUID
     ) -> ResistanceMutation | None: ...
 
@@ -84,7 +76,7 @@ class ResistanceMutationRepository(Protocol):
 
 @runtime_checkable
 class ProteinProductionRepository(Protocol):
-    async def find_by_id_in_workspace(
+    async def find_owned(
         self, workspace_id: uuid.UUID, id: uuid.UUID
     ) -> ProteinProduction | None: ...
 
@@ -97,7 +89,7 @@ class ProteinProductionRepository(Protocol):
 
 @runtime_checkable
 class ProteinActivityAssayRepository(Protocol):
-    async def find_by_id_in_workspace(
+    async def find_owned(
         self, workspace_id: uuid.UUID, id: uuid.UUID
     ) -> ProteinActivityAssay | None: ...
 
@@ -110,7 +102,7 @@ class ProteinActivityAssayRepository(Protocol):
 
 @runtime_checkable
 class UnpublishedStructureRepository(Protocol):
-    async def find_by_id_in_workspace(
+    async def find_owned(
         self, workspace_id: uuid.UUID, id: uuid.UUID
     ) -> UnpublishedStructure | None: ...
 

@@ -48,7 +48,7 @@ class UpdateOrganization:
         require_same_workspace(auth, input.workspace_id)
 
         async with self._uow:
-            org = await self._repo.find_by_id_in_workspace(input.workspace_id, input.org_id)
+            org = await self._repo.find_owned(input.workspace_id, input.org_id)
             if org is None:
                 return Failure(NotFoundError("Organization", str(input.org_id)))
 

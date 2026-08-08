@@ -24,7 +24,7 @@ from protcellar.application.target_biology._import_support import (
 from protcellar.domain.protein_catalog.repository import GeneRepository
 from protcellar.domain.shared.compound_ref import CompoundRef
 from protcellar.domain.shared.errors import DomainError
-from protcellar.domain.shared.global_workspace import GLOBAL_WORKSPACE_ID
+from protcellar.domain.shared.global_workspace import SHARED_WORKSPACE_ID
 from protcellar.domain.shared.provenance import ProvenanceSourceType
 from protcellar.domain.target_biology.repository import ResistanceMutationRepository
 from protcellar.domain.target_biology.resistance_mutation import ResistanceMutation
@@ -94,7 +94,7 @@ class BulkUpsertResistanceMutation:
                         continue
                     provenance = provenance_from(input.source_type, rec.pmid, rec.dataset)
                     compound = _compound(rec)
-                    existing = await self._rm_repo.find_by_gene(GLOBAL_WORKSPACE_ID, gene.id)
+                    existing = await self._rm_repo.find_by_gene(SHARED_WORKSPACE_ID, gene.id)
                     match = next(
                         (
                             r
@@ -118,7 +118,7 @@ class BulkUpsertResistanceMutation:
                         results.append(ItemResult(index=i, status="updated", id=str(match.id)))
                     else:
                         record = ResistanceMutation.create(
-                            workspace_id=GLOBAL_WORKSPACE_ID,
+                            workspace_id=SHARED_WORKSPACE_ID,
                             gene_id=gene.id,
                             mutation=rec.mutation,
                             compound=compound,

@@ -6,7 +6,7 @@ import uuid
 
 from protcellar.domain.imports.repository import ImportUploadRepository
 from protcellar.domain.imports.upload import ImportUpload
-from protcellar.domain.shared.global_workspace import GLOBAL_WORKSPACE_ID
+from protcellar.domain.shared.global_workspace import SHARED_WORKSPACE_ID
 from protcellar.infrastructure.persistence.sqlalchemy.base_repository import SQLAlchemyRepository
 from protcellar.infrastructure.persistence.sqlalchemy.imports.models import ImportUploadModel
 
@@ -43,4 +43,4 @@ class SQLAlchemyImportUploadRepository(
         model.data = aggregate.data
 
     async def get(self, id: uuid.UUID) -> ImportUpload | None:
-        return await self.find_by_id_in_workspace(GLOBAL_WORKSPACE_ID, id)
+        return await self.find_readable(SHARED_WORKSPACE_ID, id)

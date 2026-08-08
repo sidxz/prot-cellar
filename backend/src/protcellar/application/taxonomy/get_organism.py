@@ -11,7 +11,7 @@ from protcellar.application.auth import AuthContext, require_authenticated
 from protcellar.application.shared.query import Query
 from protcellar.application.shared.unit_of_work import UnitOfWork
 from protcellar.domain.shared.errors import DomainError, NotFoundError
-from protcellar.domain.shared.global_workspace import GLOBAL_WORKSPACE_ID
+from protcellar.domain.shared.global_workspace import SHARED_WORKSPACE_ID
 from protcellar.domain.taxonomy.organism import Organism
 from protcellar.domain.taxonomy.repository import OrganismRepository
 
@@ -31,7 +31,7 @@ class GetOrganism:
     ) -> Result[Organism, DomainError]:
         require_authenticated(auth)
         async with self._uow:
-            org = await self._repo.find_by_id_in_workspace(GLOBAL_WORKSPACE_ID, input.organism_id)
+            org = await self._repo.find_readable(SHARED_WORKSPACE_ID, input.organism_id)
             if org is None:
                 return Failure(NotFoundError("Organism", str(input.organism_id)))
             return Success(org)

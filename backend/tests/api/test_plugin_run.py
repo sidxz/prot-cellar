@@ -9,7 +9,7 @@ from protcellar.application.imports.store_upload import StoreUpload
 from protcellar.domain.imports.enums import ImportStatus, ImportType
 from protcellar.domain.imports.import_run import ImportRun
 from protcellar.domain.protein_catalog.gene import Gene
-from protcellar.domain.shared.global_workspace import GLOBAL_WORKSPACE_ID
+from protcellar.domain.shared.global_workspace import SHARED_WORKSPACE_ID
 from protcellar.domain.taxonomy.organism import Organism
 from protcellar.infrastructure.ingestion import worker as worker_mod
 from protcellar.infrastructure.messaging.event_dispatcher import EventDispatcher
@@ -97,7 +97,7 @@ async def test_dejesus_plugin_run_creates_essentiality(
             assert reloaded.summary["created"] == 1
 
             records = await SQLAlchemyEssentialityRepository(uow).find_by_gene(
-                GLOBAL_WORKSPACE_ID, gene.id
+                SHARED_WORKSPACE_ID, gene.id
             )
             assert len(records) == 1
             assert records[0].provenance.generation_method.value == "imported"

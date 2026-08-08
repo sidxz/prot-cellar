@@ -24,7 +24,7 @@ from protcellar.application.target_biology._import_support import (
 )
 from protcellar.domain.protein_catalog.repository import GeneRepository
 from protcellar.domain.shared.errors import DomainError
-from protcellar.domain.shared.global_workspace import GLOBAL_WORKSPACE_ID
+from protcellar.domain.shared.global_workspace import SHARED_WORKSPACE_ID
 from protcellar.domain.shared.provenance import ProvenanceSourceType
 from protcellar.domain.target_biology.hypomorph import Hypomorph
 from protcellar.domain.target_biology.repository import HypomorphRepository
@@ -80,7 +80,7 @@ class BulkUpsertHypomorph:
                         )
                         continue
                     provenance = provenance_from(input.source_type, rec.pmid, rec.dataset)
-                    existing = await self._hyp_repo.find_by_gene(GLOBAL_WORKSPACE_ID, gene.id)
+                    existing = await self._hyp_repo.find_by_gene(SHARED_WORKSPACE_ID, gene.id)
                     match = next(
                         (
                             h
@@ -102,7 +102,7 @@ class BulkUpsertHypomorph:
                         results.append(ItemResult(index=i, status="updated", id=str(match.id)))
                     else:
                         record = Hypomorph.create(
-                            workspace_id=GLOBAL_WORKSPACE_ID,
+                            workspace_id=SHARED_WORKSPACE_ID,
                             gene_id=gene.id,
                             growth_defect=rec.growth_defect,
                             growth_defect_severity=rec.growth_defect_severity,

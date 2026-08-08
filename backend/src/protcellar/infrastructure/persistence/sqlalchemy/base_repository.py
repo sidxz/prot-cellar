@@ -12,6 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from protcellar.domain.shared.entity import AggregateRoot, Entity
 from protcellar.domain.shared.errors import AuthorizationError, ConcurrencyConflictError
 from protcellar.infrastructure.persistence.sqlalchemy.base import Base
+from protcellar.infrastructure.persistence.sqlalchemy.workspace_scope import owned_by, readable_by
 from protcellar.infrastructure.persistence.unit_of_work import AsyncUnitOfWork
 
 
@@ -93,16 +94,31 @@ class SQLAlchemyRepository[T: AggregateRoot, ModelType: Base](ABC):
         """
         return await self._find_by_id_unscoped(id)
 
-    async def find_by_id_in_workspace(self, workspace_id: uuid.UUID, id: uuid.UUID) -> T | None:
-        """Load an aggregate by PK scoped to a workspace.
+    async def find_readable(self, workspace_id: uuid.UUID, id: uuid.UUID) -> T | None:
+        """Load an aggregate the workspace may READ: its own, or shared.
 
-        Returns ``None`` if the entity does not exist **or** belongs to a
-        different workspace.  Prefer this over ``find_by_id`` followed by a
-        manual workspace check — it pushes the filter into the SQL query.
+        Use for GET paths. Returns ``None`` when the row does not exist or
+        belongs to a different workspace.
         """
         stmt = select(self.model_class).where(
             self.model_class.id == id,  # type: ignore[attr-defined]
-            self.model_class.workspace_id == workspace_id,  # type: ignore[attr-defined]
+            readable_by(self.model_class, workspace_id),
+        )
+        result = await self._session.execute(stmt)
+        model = result.scalar_one_or_none()
+        if model is None:
+            return None
+        return self._to_domain_tracked(model)
+
+    async def find_owned(self, workspace_id: uuid.UUID, id: uuid.UUID) -> T | None:
+        """Load an aggregate the workspace may MUTATE: its own only.
+
+        Use for update and delete paths. A shared row is deliberately not found,
+        which is what makes reference data read-only through the API.
+        """
+        stmt = select(self.model_class).where(
+            self.model_class.id == id,  # type: ignore[attr-defined]
+            owned_by(self.model_class, workspace_id),
         )
         result = await self._session.execute(stmt)
         model = result.scalar_one_or_none()

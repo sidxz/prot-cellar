@@ -14,9 +14,9 @@ if TYPE_CHECKING:
 
 @runtime_checkable
 class OrganismRepository(Protocol):
-    async def find_by_id_in_workspace(
-        self, workspace_id: uuid.UUID, id: uuid.UUID
-    ) -> Organism | None: ...
+    async def find_readable(self, workspace_id: uuid.UUID, id: uuid.UUID) -> Organism | None: ...
+
+    async def find_owned(self, workspace_id: uuid.UUID, id: uuid.UUID) -> Organism | None: ...
 
     async def find_by_tax_id(self, tax_id: int) -> Organism | None: ...
 
@@ -44,9 +44,7 @@ class OrganismRepository(Protocol):
 
 @runtime_checkable
 class StrainRepository(Protocol):
-    async def find_by_id_in_workspace(
-        self, workspace_id: uuid.UUID, id: uuid.UUID
-    ) -> Strain | None: ...
+    async def find_owned(self, workspace_id: uuid.UUID, id: uuid.UUID) -> Strain | None: ...
 
     async def find_visible_by_id(
         self, workspace_id: uuid.UUID, id: uuid.UUID
@@ -71,9 +69,7 @@ class StrainRepository(Protocol):
 
 @runtime_checkable
 class ProteomeRepository(Protocol):
-    async def find_by_id_in_workspace(
-        self, workspace_id: uuid.UUID, id: uuid.UUID
-    ) -> Proteome | None: ...
+    async def find_readable(self, workspace_id: uuid.UUID, id: uuid.UUID) -> Proteome | None: ...
 
     async def find_by_proteome_id(self, uniprot_proteome_id: str) -> Proteome | None: ...
 

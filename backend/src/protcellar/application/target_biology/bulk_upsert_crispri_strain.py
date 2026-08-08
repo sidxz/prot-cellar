@@ -22,7 +22,7 @@ from protcellar.application.target_biology._import_support import (
 )
 from protcellar.domain.protein_catalog.repository import GeneRepository
 from protcellar.domain.shared.errors import DomainError
-from protcellar.domain.shared.global_workspace import GLOBAL_WORKSPACE_ID
+from protcellar.domain.shared.global_workspace import SHARED_WORKSPACE_ID
 from protcellar.domain.shared.provenance import ProvenanceSourceType
 from protcellar.domain.target_biology.crispri_strain import CrispriStrain
 from protcellar.domain.target_biology.repository import CrispriStrainRepository
@@ -75,7 +75,7 @@ class BulkUpsertCrispriStrain:
                         )
                         continue
                     provenance = provenance_from(input.source_type, rec.pmid, rec.dataset)
-                    existing = await self._cs_repo.find_by_gene(GLOBAL_WORKSPACE_ID, gene.id)
+                    existing = await self._cs_repo.find_by_gene(SHARED_WORKSPACE_ID, gene.id)
                     match = next(
                         (s for s in existing if s.name == rec.name.strip()), None
                     )
@@ -86,7 +86,7 @@ class BulkUpsertCrispriStrain:
                         results.append(ItemResult(index=i, status="updated", id=str(match.id)))
                     else:
                         record = CrispriStrain.create(
-                            workspace_id=GLOBAL_WORKSPACE_ID,
+                            workspace_id=SHARED_WORKSPACE_ID,
                             name=rec.name,
                             target_gene_id=gene.id,
                             provenance=provenance,

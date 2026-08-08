@@ -69,7 +69,7 @@ async def run_import(ctx: dict[str, Any], import_run_id: str) -> None:
     # --- 1. Load run and transition to RUNNING ---
     async with AsyncUnitOfWork(session_factory) as uow:
         repo = SQLAlchemyImportRunRepository(uow)
-        run = await repo.get(run_id)
+        run = await repo.get_owned(run_id)
         if run is None:
             raise RuntimeError(f"ImportRun {run_id} not found")
         run.start()
@@ -109,7 +109,7 @@ async def run_import(ctx: dict[str, Any], import_run_id: str) -> None:
             fail_events: list[Any] = []
             async with AsyncUnitOfWork(session_factory) as uow:
                 repo = SQLAlchemyImportRunRepository(uow)
-                failed_run = await repo.get(run_id)
+                failed_run = await repo.get_owned(run_id)
                 if failed_run is not None:
                     failed_run.fail(repr(exc))
                     await repo.save(failed_run)
@@ -122,7 +122,7 @@ async def run_import(ctx: dict[str, Any], import_run_id: str) -> None:
     # --- 6. Reload and mark SUCCEEDED ---
     async with AsyncUnitOfWork(session_factory) as uow:
         repo = SQLAlchemyImportRunRepository(uow)
-        done_run = await repo.get(run_id)
+        done_run = await repo.get_owned(run_id)
         if done_run is None:
             raise RuntimeError(f"ImportRun {run_id} vanished after adapter finished")
         done_run.succeed(summary)

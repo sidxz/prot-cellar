@@ -49,14 +49,10 @@ class MergeTags:
             return Failure(ValidationError("Cannot merge a tag into itself"))
 
         async with self._uow:
-            source = await self._tag_repo.find_by_id_in_workspace(
-                input.workspace_id, input.source_tag_id
-            )
+            source = await self._tag_repo.find_owned(input.workspace_id, input.source_tag_id)
             if source is None:
                 return Failure(NotFoundError("Tag", str(input.source_tag_id)))
-            target = await self._tag_repo.find_by_id_in_workspace(
-                input.workspace_id, input.target_tag_id
-            )
+            target = await self._tag_repo.find_owned(input.workspace_id, input.target_tag_id)
             if target is None:
                 return Failure(NotFoundError("Tag", str(input.target_tag_id)))
 

@@ -7,7 +7,7 @@ from protcellar.domain.protein_catalog.events import ProteinCreated
 from protcellar.domain.protein_catalog.protein import Protein
 from protcellar.domain.protein_catalog.value_objects import ProteinNames
 from protcellar.domain.shared.errors import ValidationError
-from protcellar.domain.shared.global_workspace import GLOBAL_WORKSPACE_ID
+from protcellar.domain.shared.global_workspace import SHARED_WORKSPACE_ID
 
 
 def test_create_protein_derives_length_and_workspace() -> None:
@@ -22,7 +22,7 @@ def test_create_protein_derives_length_and_workspace() -> None:
     )
     assert p.primary_accession == "P0DTC2"
     assert p.seq_length == len("MFVFLVLLPLVSSQ")
-    assert p.workspace_id == GLOBAL_WORKSPACE_ID
+    assert p.workspace_id == SHARED_WORKSPACE_ID
     assert p.version == 1
     events = p.collect_events()
     assert len(events) == 1 and isinstance(events[0], ProteinCreated)

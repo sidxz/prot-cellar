@@ -11,9 +11,9 @@ from protcellar.domain.target.target import Target
 
 @runtime_checkable
 class TargetRepository(Protocol):
-    async def find_by_id_in_workspace(
-        self, workspace_id: uuid.UUID, id: uuid.UUID
-    ) -> Target | None: ...
+    async def find_readable(self, workspace_id: uuid.UUID, id: uuid.UUID) -> Target | None: ...
+
+    async def find_owned(self, workspace_id: uuid.UUID, id: uuid.UUID) -> Target | None: ...
 
     async def find_by_workspace(
         self,

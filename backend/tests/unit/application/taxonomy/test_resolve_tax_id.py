@@ -15,7 +15,7 @@ from returns.result import Failure, Success
 
 from protcellar.application.taxonomy.resolve_tax_id import ResolveTaxId, ResolveTaxIdQuery
 from protcellar.domain.shared.errors import GoneError, NotFoundError
-from protcellar.domain.shared.global_workspace import GLOBAL_WORKSPACE_ID
+from protcellar.domain.shared.global_workspace import SHARED_WORKSPACE_ID
 from protcellar.domain.taxonomy.organism import Organism
 from tests.fakes.fake_auth import FakeAuth
 
@@ -71,9 +71,7 @@ class FakeOrganismRepository:
         if org.ncbi_tax_id is not None:
             self._by_tax_id[org.ncbi_tax_id] = org
 
-    async def find_by_id_in_workspace(
-        self, workspace_id: uuid.UUID, id: uuid.UUID
-    ) -> Organism | None:
+    async def find_readable(self, workspace_id: uuid.UUID, id: uuid.UUID) -> Organism | None:
         org = self._by_id.get(id)
         if org is None:
             return None
@@ -210,13 +208,13 @@ async def test_resolve_merged_organism_missing_target_returns_merged_node() -> N
 
 @pytest.mark.asyncio
 async def test_resolve_uses_global_workspace_for_merge_target_lookup() -> None:
-    """The merge target lookup must use the organism's workspace_id (GLOBAL_WORKSPACE_ID)."""
+    """The merge target lookup must use the organism's workspace_id (SHARED_WORKSPACE_ID)."""
     target = _make_organism(ncbi_tax_id=1, scientific_name="Root organism")
-    assert target.workspace_id == GLOBAL_WORKSPACE_ID
+    assert target.workspace_id == SHARED_WORKSPACE_ID
 
     merged = _make_organism(ncbi_tax_id=2, scientific_name="Merged organism")
     merged.mark_merged_into(target.id)
-    assert merged.workspace_id == GLOBAL_WORKSPACE_ID
+    assert merged.workspace_id == SHARED_WORKSPACE_ID
 
     use_case = _make_use_case([target, merged])
 

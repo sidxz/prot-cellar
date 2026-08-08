@@ -48,7 +48,7 @@ class UnassignTag:
         require_same_workspace(auth, input.workspace_id)
 
         async with self._uow:
-            tag = await self._tag_repo.find_by_id_in_workspace(input.workspace_id, input.tag_id)
+            tag = await self._tag_repo.find_owned(input.workspace_id, input.tag_id)
             if tag is None:
                 return Failure(NotFoundError("Tag", str(input.tag_id)))
 

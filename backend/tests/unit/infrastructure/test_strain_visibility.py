@@ -1,9 +1,9 @@
 """Strain read-visibility: GLOBAL reference strains are shared across workspaces.
 
-Strains imported as reference data live in ``GLOBAL_WORKSPACE_ID`` (like the
+Strains imported as reference data live in ``SHARED_WORKSPACE_ID`` (like the
 organisms/proteins/genes they accompany). Reads must surface those to every
 workspace, while a workspace's own strains stay private and the strict
-mutation path (``find_by_id_in_workspace``) keeps GLOBAL strains read-only.
+mutation path (``find_owned``) keeps GLOBAL strains read-only.
 
 Uses the function-scoped real-DB ``uow`` fixture; commits persist to the
 session container, so this test uses a unique tax id.
@@ -17,7 +17,7 @@ from collections.abc import AsyncIterator
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
-from protcellar.domain.shared.global_workspace import GLOBAL_WORKSPACE_ID
+from protcellar.domain.shared.global_workspace import SHARED_WORKSPACE_ID
 from protcellar.domain.taxonomy.enums import OrganismSource
 from protcellar.domain.taxonomy.organism import Organism
 from protcellar.domain.taxonomy.strain import Strain
@@ -65,7 +65,7 @@ async def test_global_strains_are_visible_to_any_workspace(strain_uow: AsyncUnit
     async with uow:
         strain_repo = SQLAlchemyStrainRepository(uow)
         global_strain = Strain.create(
-            workspace_id=GLOBAL_WORKSPACE_ID,
+            workspace_id=SHARED_WORKSPACE_ID,
             species_organism_id=species_id,
             name="GLOBAL ref strain",
         )
@@ -93,4 +93,4 @@ async def test_global_strains_are_visible_to_any_workspace(strain_uow: AsyncUnit
         assert await repo.find_visible_by_id(workspace_b, tenant_id) is None
 
         # Mutation path stays strict — a tenant can't load the GLOBAL strain to edit it.
-        assert await repo.find_by_id_in_workspace(workspace_b, global_id) is None
+        assert await repo.find_owned(workspace_b, global_id) is None

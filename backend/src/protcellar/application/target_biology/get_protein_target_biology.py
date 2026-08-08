@@ -16,7 +16,7 @@ from protcellar.application.auth import AuthContext, require_authenticated
 from protcellar.application.shared.query import Query
 from protcellar.application.shared.unit_of_work import UnitOfWork
 from protcellar.domain.shared.errors import DomainError
-from protcellar.domain.shared.global_workspace import GLOBAL_WORKSPACE_ID
+from protcellar.domain.shared.global_workspace import SHARED_WORKSPACE_ID
 from protcellar.domain.target_biology.protein_activity_assay import ProteinActivityAssay
 from protcellar.domain.target_biology.protein_production import ProteinProduction
 from protcellar.domain.target_biology.repository import (
@@ -56,7 +56,7 @@ class GetProteinTargetBiology:
         self, input: GetProteinTargetBiologyQuery, auth: AuthContext | None = None
     ) -> Result[ProteinTargetBiology, DomainError]:
         require_authenticated(auth)
-        ws, pid = GLOBAL_WORKSPACE_ID, input.protein_id
+        ws, pid = SHARED_WORKSPACE_ID, input.protein_id
         async with self._uow:
             return Success(
                 ProteinTargetBiology(

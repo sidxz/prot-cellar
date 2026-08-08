@@ -5,7 +5,7 @@ import pytest
 from protcellar.domain.protein_catalog.events import GeneCreated, GeneUpdated
 from protcellar.domain.protein_catalog.gene import Gene, gene_display_label
 from protcellar.domain.shared.errors import ValidationError
-from protcellar.domain.shared.global_workspace import GLOBAL_WORKSPACE_ID
+from protcellar.domain.shared.global_workspace import SHARED_WORKSPACE_ID
 
 
 def test_create_gene() -> None:
@@ -14,7 +14,7 @@ def test_create_gene() -> None:
     assert gene.primary_name == "TP53"
     assert gene.organism_id == organism
     assert gene.synonyms == ["P53", "LFS1"]
-    assert gene.workspace_id == GLOBAL_WORKSPACE_ID
+    assert gene.workspace_id == SHARED_WORKSPACE_ID
     assert gene.version == 1
     events = gene.collect_events()
     assert len(events) == 1 and isinstance(events[0], GeneCreated)

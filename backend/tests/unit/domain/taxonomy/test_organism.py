@@ -3,7 +3,7 @@ import uuid
 import pytest
 
 from protcellar.domain.shared.errors import ValidationError
-from protcellar.domain.shared.global_workspace import GLOBAL_WORKSPACE_ID
+from protcellar.domain.shared.global_workspace import SHARED_WORKSPACE_ID
 from protcellar.domain.taxonomy.enums import NameClass, OrganismSource
 from protcellar.domain.taxonomy.events import OrganismCreated
 from protcellar.domain.taxonomy.organism import Organism
@@ -17,7 +17,7 @@ def test_create_human_node() -> None:
         source=OrganismSource.NCBI,
     )
     assert org.ncbi_tax_id == 9606
-    assert org.workspace_id == GLOBAL_WORKSPACE_ID
+    assert org.workspace_id == SHARED_WORKSPACE_ID
     assert org.version == 1
     # scientific name is auto-added as a name row
     assert any(

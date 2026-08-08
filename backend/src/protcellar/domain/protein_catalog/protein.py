@@ -20,7 +20,7 @@ from protcellar.domain.protein_catalog.value_objects import (
 from protcellar.domain.shared.cross_reference import CrossReference
 from protcellar.domain.shared.entity import AggregateRoot
 from protcellar.domain.shared.errors import ValidationError
-from protcellar.domain.shared.global_workspace import GLOBAL_WORKSPACE_ID
+from protcellar.domain.shared.global_workspace import SHARED_WORKSPACE_ID
 
 # UniProtKB accession syntax (6 or 10 alphanumerics, two layouts). Mirrors the
 # registry `uniprot` prefix but kept here so the domain stays dependency-free.
@@ -76,7 +76,7 @@ class Protein(AggregateRoot):
         if not sequence or not sequence.strip():
             raise ValidationError("Protein sequence must not be empty")
         # Reference data lives under the reserved GLOBAL workspace.
-        self.workspace_id = GLOBAL_WORKSPACE_ID
+        self.workspace_id = SHARED_WORKSPACE_ID
         self.primary_accession = accession
         self.organism_id = organism_id
         self.sequence = sequence.strip()

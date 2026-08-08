@@ -18,7 +18,7 @@ from protcellar.application.auth import AuthContext, require_authenticated
 from protcellar.application.shared.query import Query
 from protcellar.application.shared.unit_of_work import UnitOfWork
 from protcellar.domain.shared.errors import DomainError
-from protcellar.domain.shared.global_workspace import GLOBAL_WORKSPACE_ID
+from protcellar.domain.shared.global_workspace import SHARED_WORKSPACE_ID
 from protcellar.domain.target_biology.crispri_strain import CrispriStrain
 from protcellar.domain.target_biology.essentiality import Essentiality
 from protcellar.domain.target_biology.hypomorph import Hypomorph
@@ -68,7 +68,7 @@ class GetGeneTargetBiology:
         self, input: GetGeneTargetBiologyQuery, auth: AuthContext | None = None
     ) -> Result[GeneTargetBiology, DomainError]:
         require_authenticated(auth)
-        ws, gid = GLOBAL_WORKSPACE_ID, input.gene_id
+        ws, gid = SHARED_WORKSPACE_ID, input.gene_id
         async with self._uow:
             return Success(
                 GeneTargetBiology(

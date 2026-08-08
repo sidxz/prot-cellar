@@ -79,7 +79,7 @@ async def test_merge_repoints_entity_links_and_deletes_source(uow: AsyncUnitOfWo
 
     # Source tag itself is gone.
     async with uow:
-        remaining = await tag_repo.find_by_id_in_workspace(ws, source.id)
+        remaining = await tag_repo.find_owned(ws, source.id)
     assert remaining is None
 
     assert any(isinstance(e, TagMerged) for e in dispatcher.dispatched)

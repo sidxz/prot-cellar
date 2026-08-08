@@ -11,7 +11,7 @@ from protcellar.domain.protein_catalog.gene_annotation import GeneAnnotation
 from protcellar.domain.shared.cross_reference import CrossReference
 from protcellar.domain.shared.entity import AggregateRoot
 from protcellar.domain.shared.errors import ValidationError
-from protcellar.domain.shared.global_workspace import GLOBAL_WORKSPACE_ID
+from protcellar.domain.shared.global_workspace import SHARED_WORKSPACE_ID
 
 
 class Gene(AggregateRoot):
@@ -48,7 +48,7 @@ class Gene(AggregateRoot):
         if not primary_name or not primary_name.strip():
             raise ValidationError("Gene primary_name must not be empty")
         # Reference data lives under the reserved GLOBAL workspace.
-        self.workspace_id = GLOBAL_WORKSPACE_ID
+        self.workspace_id = SHARED_WORKSPACE_ID
         self.primary_name = primary_name.strip()
         self.organism_id = organism_id
         self.strain_id = strain_id

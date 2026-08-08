@@ -62,7 +62,7 @@ async def test_crispri_strain_round_trip(uow: AsyncUnitOfWork) -> None:
         await SQLAlchemyCrispriStrainRepository(uow).save(strain)
         await uow.commit()
     async with uow:
-        found = await SQLAlchemyCrispriStrainRepository(uow).find_by_id_in_workspace(ws, strain.id)
+        found = await SQLAlchemyCrispriStrainRepository(uow).find_owned(ws, strain.id)
     assert found is not None and found.name == "sgRNA-rpoB-1"
 
 

@@ -1,6 +1,6 @@
 """Integration tests for SQLAlchemyTagLinkRepository — the tag-link repos are
 the ONE deliberate semantic change from chem-cellar: entity visibility is
-"global-or-mine" (an entity pinned to GLOBAL_WORKSPACE_ID is taggable from
+"global-or-mine" (an entity pinned to SHARED_WORKSPACE_ID is taggable from
 every workspace) rather than chem-cellar's strict "entity.workspace_id ==
 workspace_id". These tests prove both directions of that rule, plus the
 organism tombstone override, plus the add/remove/set round trip.
@@ -13,7 +13,7 @@ import uuid
 import pytest
 from sqlalchemy import select
 
-from protcellar.domain.shared.global_workspace import GLOBAL_WORKSPACE_ID
+from protcellar.domain.shared.global_workspace import SHARED_WORKSPACE_ID
 from protcellar.domain.workspace_config.tagging.tag import TaggableEntityType, TagName
 from protcellar.infrastructure.persistence.sqlalchemy.tagging.models import TargetTagLinkModel
 from protcellar.infrastructure.persistence.sqlalchemy.tagging.tag_link_repository import (
@@ -34,7 +34,7 @@ pytestmark = pytest.mark.asyncio(loop_scope="session")
 
 def _organism(**overrides: object) -> OrganismModel:
     defaults = dict(
-        workspace_id=GLOBAL_WORKSPACE_ID,
+        workspace_id=SHARED_WORKSPACE_ID,
         rank="species",
         scientific_name=f"Testus organismus {uuid.uuid4()}",
         source="test",
@@ -59,7 +59,7 @@ def _target(**overrides: object) -> TargetModel:
 
 
 async def test_global_entity_is_taggable_from_any_workspace(uow: AsyncUnitOfWork) -> None:
-    """An organism pinned to GLOBAL_WORKSPACE_ID (shared reference data, e.g.
+    """An organism pinned to SHARED_WORKSPACE_ID (shared reference data, e.g.
     imported from NCBI) must be a valid tag target from ANY workspace, not
     just GLOBAL itself — this is the semantic change from chem-cellar."""
     organism = _organism()

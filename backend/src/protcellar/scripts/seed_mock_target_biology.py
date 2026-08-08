@@ -28,7 +28,7 @@ import uuid
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
 from protcellar.domain.shared.compound_ref import CompoundRef
-from protcellar.domain.shared.global_workspace import GLOBAL_WORKSPACE_ID
+from protcellar.domain.shared.global_workspace import SHARED_WORKSPACE_ID
 from protcellar.domain.shared.provenance import (
     Citation,
     GenerationMethod,
@@ -82,7 +82,7 @@ def _essentiality() -> list[Essentiality]:
     ]
     return [
         Essentiality.create(
-            workspace_id=GLOBAL_WORKSPACE_ID,
+            workspace_id=SHARED_WORKSPACE_ID,
             gene_id=GENE_ID,
             classification=call,
             condition=condition,
@@ -112,7 +112,7 @@ def _vulnerability() -> list[Vulnerability]:
             extensions["score_upper"] = upper
         out.append(
             Vulnerability.create(
-                workspace_id=GLOBAL_WORKSPACE_ID,
+                workspace_id=SHARED_WORKSPACE_ID,
                 gene_id=GENE_ID,
                 condition=condition,
                 method="CRISPRi-VI",
@@ -134,7 +134,7 @@ def _resistance() -> list[ResistanceMutation]:
     ]
     return [
         ResistanceMutation.create(
-            workspace_id=GLOBAL_WORKSPACE_ID,
+            workspace_id=SHARED_WORKSPACE_ID,
             gene_id=GENE_ID,
             mutation=mutation,
             protein_coordinate=mutation,
@@ -148,9 +148,9 @@ def _resistance() -> list[ResistanceMutation]:
 
 
 async def _clear(repo, gene_id: uuid.UUID) -> int:  # type: ignore[no-untyped-def]
-    existing = await repo.find_by_gene(GLOBAL_WORKSPACE_ID, gene_id)
+    existing = await repo.find_by_gene(SHARED_WORKSPACE_ID, gene_id)
     for rec in existing:
-        await repo.delete(GLOBAL_WORKSPACE_ID, rec.id)
+        await repo.delete(SHARED_WORKSPACE_ID, rec.id)
     return len(existing)
 
 

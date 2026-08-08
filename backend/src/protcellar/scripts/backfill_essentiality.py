@@ -22,7 +22,7 @@ import uuid
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
 from protcellar.domain.protein_catalog.gene_annotation import GeneAnnotation, GeneAnnotationAxis
-from protcellar.domain.shared.global_workspace import GLOBAL_WORKSPACE_ID
+from protcellar.domain.shared.global_workspace import SHARED_WORKSPACE_ID
 from protcellar.domain.shared.provenance import Citation, Provenance, ProvenanceSourceType
 from protcellar.domain.target_biology.enums import EssentialityClass
 from protcellar.domain.target_biology.essentiality import Essentiality
@@ -66,7 +66,7 @@ def build_essentiality(gene_id: uuid.UUID, a: GeneAnnotation) -> Essentiality:
     if pmid or a.dataset:
         citations = (Citation(pmid=pmid, label=a.dataset),)
     return Essentiality.create(
-        workspace_id=GLOBAL_WORKSPACE_ID,
+        workspace_id=SHARED_WORKSPACE_ID,
         gene_id=gene_id,
         classification=classification,
         condition=a.condition,
@@ -94,7 +94,7 @@ async def backfill(
         # tag-filtered — workspace_id is unused by find_all here but required
         # by the protocol; GLOBAL is the correct scope for a full-catalog walk.
         genes = await gene_repo.find_all(
-            cursor_id=cursor, limit=_PAGE, workspace_id=GLOBAL_WORKSPACE_ID
+            cursor_id=cursor, limit=_PAGE, workspace_id=SHARED_WORKSPACE_ID
         )
         if not genes:
             break
@@ -103,7 +103,7 @@ async def backfill(
             ess = [a for a in gene.annotations if is_essentiality_annotation(a)]
             if not ess:
                 continue
-            if await essentiality_repo.find_by_gene(GLOBAL_WORKSPACE_ID, gene.id):
+            if await essentiality_repo.find_by_gene(SHARED_WORKSPACE_ID, gene.id):
                 continue  # idempotent — already seeded
             for annotation in ess:
                 await essentiality_repo.save(build_essentiality(gene.id, annotation))

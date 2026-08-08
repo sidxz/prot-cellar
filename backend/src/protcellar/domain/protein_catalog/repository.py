@@ -13,9 +13,9 @@ from protcellar.domain.protein_catalog.read_models import GeneSummaryRow, Protei
 
 @runtime_checkable
 class GeneRepository(Protocol):
-    async def find_by_id_in_workspace(
-        self, workspace_id: uuid.UUID, id: uuid.UUID
-    ) -> Gene | None: ...
+    async def find_readable(self, workspace_id: uuid.UUID, id: uuid.UUID) -> Gene | None: ...
+
+    async def find_owned(self, workspace_id: uuid.UUID, id: uuid.UUID) -> Gene | None: ...
 
     async def find_summary_rows_by_ids(
         self, ids: Sequence[uuid.UUID]
@@ -64,10 +64,6 @@ class GeneRepository(Protocol):
 
 @runtime_checkable
 class ProteinRepository(Protocol):
-    async def find_by_id_in_workspace(
-        self, workspace_id: uuid.UUID, id: uuid.UUID
-    ) -> Protein | None: ...
-
     async def find_by_accession(self, accession: str) -> Protein | None: ...
 
     async def find_by_entry_name(self, entry_name: str) -> Protein | None: ...

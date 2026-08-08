@@ -47,9 +47,7 @@ class _FakeGeneRepo:
         self._anchor = anchor
         self._neighbors = neighbors
 
-    async def find_by_id_in_workspace(
-        self, _ws: uuid.UUID, gid: uuid.UUID
-    ) -> SimpleNamespace | None:
+    async def find_readable(self, _ws: uuid.UUID, gid: uuid.UUID) -> SimpleNamespace | None:
         return self._anchor if gid == self._anchor.id else None
 
     async def find_genomic_neighbors(self, **_kw: object) -> list[SimpleNamespace]:
