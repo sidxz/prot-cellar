@@ -30,4 +30,5 @@ export interface OrganismResponse {
   source_release?: OrganismResponseSourceRelease;
   version: number;
   names: OrganismNameResponse[];
+  is_shared: boolean;
 }

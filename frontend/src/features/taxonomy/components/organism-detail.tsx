@@ -183,6 +183,7 @@ export function OrganismDetailPage({ organismId }: OrganismDetailPageProps) {
             <OrganismReferenceStrain
               organismId={organism.id}
               referenceStrainId={organism.reference_strain_id}
+              isShared={organism.is_shared}
             />
           </MetadataRow>
           {organism.source_release && (

@@ -6,7 +6,7 @@ import uuid
 from datetime import date
 from typing import Annotated, Any
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 
 from protcellar.application.protein_catalog.get_gene import GetGeneQuery
@@ -662,6 +662,18 @@ def _to_list_item(kind: RecordKind, record: Any) -> TargetBiologyListItem:
             raise AssertionError(f"unhandled RecordKind: {kind!r}")
 
 
+# Mirrors the "Gene-side"/"Protein-side" response sections above and
+# _to_list_item's dispatch: the bulk list's gene_id filter only means something
+# for these five gene-parented kinds, protein_id only for the other three.
+_PROTEIN_PARENTED_KINDS = frozenset(
+    {
+        RecordKind.PROTEIN_PRODUCTION,
+        RecordKind.PROTEIN_ACTIVITY_ASSAY,
+        RecordKind.UNPUBLISHED_STRUCTURE,
+    }
+)
+
+
 # Registered after /target-biology/schema (above) and before the parameterized
 # write routes (below): {kind} would otherwise shadow the literal "schema" path
 # segment, since both are two-segment GETs under /target-biology/.
@@ -680,7 +692,21 @@ async def list_target_biology(
     """Every record of one kind, across genes/proteins — not just one gene's
     bundle. ``kind`` is validated against ``RecordKind`` by FastAPI before this
     body runs, so an unknown kind 422s with no database round trip.
+
+    ``gene_id``/``protein_id`` are rejected with 422 for a kind they don't
+    parent — otherwise the filter is silently ignored and the caller gets back
+    the *entire* readable table for the other parent type, misread as scoped.
     """
+    if kind in _PROTEIN_PARENTED_KINDS:
+        if gene_id:
+            raise HTTPException(
+                status_code=422, detail=f"gene_id does not apply to kind={kind.value}"
+            )
+    elif protein_id:
+        raise HTTPException(
+            status_code=422, detail=f"protein_id does not apply to kind={kind.value}"
+        )
+
     query = ListTargetBiologyRecordsQuery(
         kind=kind,
         cursor_id=parse_cursor(cursor),

@@ -34,14 +34,20 @@ async def _seed_gene(database_url: str, gene: Gene) -> Gene:
     return gene
 
 
-async def _seed_essentiality(database_url: str, gene_id: uuid.UUID) -> None:
-    """Persist a target-biology Essentiality record for a gene (read-path tests)."""
+async def _seed_essentiality(
+    database_url: str, gene_id: uuid.UUID, *, workspace_id: uuid.UUID = SHARED_WORKSPACE_ID
+) -> None:
+    """Persist a target-biology Essentiality record for a gene (read-path tests).
+
+    Defaults to SHARED so existing callers are unaffected; pass a caller's own
+    ``workspace_id`` to seed a workspace-owned record instead.
+    """
     engine = create_async_engine(database_url)
     factory = async_sessionmaker(engine, expire_on_commit=False)
     uow = AsyncUnitOfWork(factory)
     async with uow:
         rec = Essentiality.create(
-            workspace_id=SHARED_WORKSPACE_ID,
+            workspace_id=workspace_id,
             gene_id=gene_id,
             classification=EssentialityClass.ESSENTIAL,
             provenance=Provenance(source_type=ProvenanceSourceType.PUBLISHED),
@@ -257,6 +263,43 @@ async def test_gene_neighborhood_returns_ordered_neighbors_with_essentiality(
     assert by_start[3000]["genomic_strand"] == "+"
     assert by_start[2000]["essentiality"] is None
     assert by_start[4000]["essentiality"] is None
+
+
+@pytest.mark.asyncio
+async def test_gene_neighborhood_shows_workspace_owned_essentiality(
+    client: AsyncClient, database_url: str, workspace_id: uuid.UUID
+) -> None:
+    """Regression: get_gene_neighborhood.py used to read a neighbor's essentiality
+    with SHARED_WORKSPACE_ID hardcoded instead of the caller's own workspace, so a
+    workspace-owned record never coloured the neighborhood strip even though the
+    same record shows up in the gene's target-biology bundle and the bulk list.
+    """
+    organism_id = uuid.UUID(
+        await _make_organism(client, ncbi_tax_id=990009, scientific_name="Locus testus theta")
+    )
+    genes = []
+    for i, start in enumerate([1000, 2000, 3000]):
+        g = Gene.create(
+            workspace_id=SHARED_WORKSPACE_ID,
+            primary_name=f"wsgene{i}",
+            organism_id=organism_id,
+            genomic_accession="NC_000964.3",
+            genomic_start=start,
+            genomic_end=start + 500,
+            genomic_strand="+",
+        )
+        await _seed_gene(database_url, g)
+        genes.append(g)
+
+    # Owned by the caller's OWN workspace (client's fake_auth), not SHARED.
+    await _seed_essentiality(database_url, genes[1].id, workspace_id=workspace_id)
+
+    center = genes[1]  # start == 2000
+    r = await client.get(f"/api/v1/genes/{center.id}/neighborhood", params={"window": 1})
+    assert r.status_code == 200
+    body = r.json()
+    by_start = {n["genomic_start"]: n for n in body["neighbors"]}
+    assert by_start[2000]["essentiality"] == "essential"
 
 
 @pytest.mark.asyncio

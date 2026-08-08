@@ -18,6 +18,7 @@ from protcellar.application.taxonomy.get_organism import GetOrganismQuery
 from protcellar.application.taxonomy.list_organisms import ListOrganismsQuery
 from protcellar.application.taxonomy.resolve_tax_id import ResolveTaxIdQuery
 from protcellar.application.taxonomy.update_organism import UpdateOrganismCommand
+from protcellar.domain.shared.global_workspace import SHARED_WORKSPACE_ID
 from protcellar.domain.taxonomy.enums import NameClass, OrganismSource
 from protcellar.domain.taxonomy.organism import Organism
 from protcellar.infrastructure.identifiers.registry import IdentifierRegistry
@@ -59,6 +60,7 @@ class OrganismResponse(BaseModel):
     source_release: str | None = None
     version: int
     names: list[OrganismNameResponse]
+    is_shared: bool
 
     @classmethod
     def from_domain(cls, org: Organism) -> OrganismResponse:
@@ -91,6 +93,7 @@ class OrganismResponse(BaseModel):
                 )
                 for n in org.names
             ],
+            is_shared=(org.workspace_id == SHARED_WORKSPACE_ID),
         )
 
 

@@ -54,4 +54,5 @@ export interface ProteinResponse {
   keyword_refs?: KeywordRefResponse[];
   citations?: CitationResponse[];
   version: number;
+  is_shared: boolean;
 }

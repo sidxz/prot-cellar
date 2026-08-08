@@ -25,13 +25,19 @@ const NONE = "__none__";
  * Designate a species' reference (preferred) strain — the default the gene
  * dashboard filters to. Only rendered for organisms that actually have strains.
  * Admin-only (the backend enforces); a 403 surfaces as a toast.
+ *
+ * Organisms are reference data (design doc §1.5) — every organism is `isShared`,
+ * so the picker is read-only there. Same treatment as strain-detail.tsx's Edit
+ * button.
  */
 export function OrganismReferenceStrain({
   organismId,
   referenceStrainId,
+  isShared,
 }: {
   organismId: string;
   referenceStrainId: string | null | undefined;
+  isShared: boolean;
 }) {
   const qc = useQueryClient();
   const { data: strainData } = useStrains({}, undefined, TAXON_FILTER_PAGE_SIZE);
@@ -54,6 +60,18 @@ export function OrganismReferenceStrain({
 
   if (strains.length === 0) {
     return <span className="text-sm text-muted-foreground">—</span>;
+  }
+
+  if (isShared) {
+    const current = strains.find((s) => s.id === referenceStrainId);
+    return (
+      <div className="flex items-center gap-2">
+        <span className="text-sm text-foreground">{current?.name ?? "None"}</span>
+        <span className="text-xs italic text-muted-foreground">
+          Reference data — managed by import
+        </span>
+      </div>
+    );
   }
 
   return (

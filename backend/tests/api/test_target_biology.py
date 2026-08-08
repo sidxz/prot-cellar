@@ -829,6 +829,23 @@ async def test_bulk_list_covers_a_protein_side_kind(
     assert items[0]["protein_id"] == str(protein_id)
 
 
+async def test_bulk_list_rejects_a_filter_that_does_not_apply_to_the_kind(
+    client: AsyncClient,
+) -> None:
+    """``essentiality`` is gene-parented — a ``protein_id`` filter would otherwise
+    be silently dropped and the caller would get back the whole readable table,
+    misread as scoped to that protein. Same the other way for a protein-parented
+    kind and ``gene_id``.
+    """
+    gene_resp = await client.get(f"/api/v1/target-biology/essentiality?protein_id={uuid.uuid4()}")
+    assert gene_resp.status_code == 422, gene_resp.text
+
+    protein_resp = await client.get(
+        f"/api/v1/target-biology/protein_production?gene_id={uuid.uuid4()}"
+    )
+    assert protein_resp.status_code == 422, protein_resp.text
+
+
 async def test_schema_route_is_not_shadowed_by_the_bulk_list_route(client: AsyncClient) -> None:
     """Regression for route-registration order: /target-biology/{kind} must not
     be registered ahead of the literal /target-biology/schema path, or "schema"

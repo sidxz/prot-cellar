@@ -42,4 +42,5 @@ export interface GeneResponse {
   length_bp?: GeneResponseLengthBp;
   annotations: GeneAnnotationResponse[];
   version: number;
+  is_shared: boolean;
 }

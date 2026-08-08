@@ -23,6 +23,7 @@ from protcellar.application.shared.sentinel import UNSET
 from protcellar.domain.protein_catalog.gene import Gene, gene_display_label
 from protcellar.domain.protein_catalog.gene_annotation import GeneAnnotation, GeneAnnotationAxis
 from protcellar.domain.shared.cross_reference import CrossReference
+from protcellar.domain.shared.global_workspace import SHARED_WORKSPACE_ID
 from protcellar.infrastructure.identifiers.registry import IdentifierRegistry
 from protcellar.interface.dependencies import (
     AuthDep,
@@ -100,6 +101,7 @@ class GeneResponse(BaseModel):
     length_bp: int | None = None
     annotations: list[GeneAnnotationResponse]
     version: int
+    is_shared: bool
 
     @classmethod
     def from_domain(cls, g: Gene) -> GeneResponse:
@@ -144,6 +146,7 @@ class GeneResponse(BaseModel):
             length_bp=g.length_bp,
             annotations=[GeneAnnotationResponse.from_domain(a) for a in g.annotations],
             version=g.version,
+            is_shared=(g.workspace_id == SHARED_WORKSPACE_ID),
         )
 
 

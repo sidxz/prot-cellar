@@ -32,6 +32,7 @@ from protcellar.domain.protein_catalog.value_objects import (
     ProteinNames,
 )
 from protcellar.domain.shared.cross_reference import CrossReference
+from protcellar.domain.shared.global_workspace import SHARED_WORKSPACE_ID
 from protcellar.infrastructure.identifiers.registry import IdentifierRegistry
 from protcellar.interface.dependencies import (
     AuthDep,
@@ -278,6 +279,7 @@ class ProteinResponse(BaseModel):
     keyword_refs: list[KeywordRefResponse] = []
     citations: list[CitationResponse] = []
     version: int
+    is_shared: bool
 
     @classmethod
     def from_domain(cls, p: Protein, gene: Gene | None = None) -> ProteinResponse:
@@ -376,6 +378,7 @@ class ProteinResponse(BaseModel):
                 for ct in p.citations
             ],
             version=p.version,
+            is_shared=(p.workspace_id == SHARED_WORKSPACE_ID),
         )
 
 

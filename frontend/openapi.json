@@ -2556,7 +2556,7 @@
           "target-biology"
         ],
         "summary": "List Target Biology",
-        "description": "Every record of one kind, across genes/proteins \u2014 not just one gene's\nbundle. ``kind`` is validated against ``RecordKind`` by FastAPI before this\nbody runs, so an unknown kind 422s with no database round trip.",
+        "description": "Every record of one kind, across genes/proteins \u2014 not just one gene's\nbundle. ``kind`` is validated against ``RecordKind`` by FastAPI before this\nbody runs, so an unknown kind 422s with no database round trip.\n\n``gene_id``/``protein_id`` are rejected with 422 for a kind they don't\nparent \u2014 otherwise the filter is silently ignored and the caller gets back\nthe *entire* readable table for the other parent type, misread as scoped.",
         "operationId": "list_target_biology_api_v1_target_biology__kind__get",
         "parameters": [
           {
@@ -6750,6 +6750,10 @@
           "version": {
             "type": "integer",
             "title": "Version"
+          },
+          "is_shared": {
+            "type": "boolean",
+            "title": "Is Shared"
           }
         },
         "type": "object",
@@ -6763,7 +6767,8 @@
           "display_label",
           "cross_references",
           "annotations",
-          "version"
+          "version",
+          "is_shared"
         ],
         "title": "GeneResponse"
       },
@@ -7678,6 +7683,10 @@
             },
             "type": "array",
             "title": "Names"
+          },
+          "is_shared": {
+            "type": "boolean",
+            "title": "Is Shared"
           }
         },
         "type": "object",
@@ -7689,7 +7698,8 @@
           "is_deleted",
           "source",
           "version",
-          "names"
+          "names",
+          "is_shared"
         ],
         "title": "OrganismResponse"
       },
@@ -9189,6 +9199,10 @@
           "version": {
             "type": "integer",
             "title": "Version"
+          },
+          "is_shared": {
+            "type": "boolean",
+            "title": "Is Shared"
           }
         },
         "type": "object",
@@ -9202,7 +9216,8 @@
           "seq_length",
           "keywords",
           "cross_references",
-          "version"
+          "version",
+          "is_shared"
         ],
         "title": "ProteinResponse"
       },

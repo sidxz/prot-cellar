@@ -20,7 +20,6 @@ from protcellar.application.shared.unit_of_work import UnitOfWork
 from protcellar.domain.protein_catalog.gene import gene_display_label
 from protcellar.domain.protein_catalog.repository import GeneRepository
 from protcellar.domain.shared.errors import DomainError, NotFoundError
-from protcellar.domain.shared.global_workspace import SHARED_WORKSPACE_ID
 from protcellar.domain.target_biology.enums import EssentialityClass
 from protcellar.domain.target_biology.essentiality import Essentiality
 from protcellar.domain.target_biology.repository import EssentialityRepository
@@ -103,7 +102,10 @@ class GetGeneNeighborhood:
             for n in neighbors:
                 # ponytail: one find_by_gene per neighbor (~2*window+1 lookups). Add a
                 # batch find_by_genes to the repo if this view ever gets slow.
-                records = await self._ess_repo.find_by_gene(SHARED_WORKSPACE_ID, n.id)
+                records = await self._ess_repo.find_by_gene(
+                    auth.workspace_id,  # type: ignore[union-attr]
+                    n.id,
+                )
                 summaries.append(
                     GeneNeighborSummary(
                         id=n.id,

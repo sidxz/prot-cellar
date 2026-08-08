@@ -161,6 +161,10 @@ export function useGetTargetBiologySchemaApiV1TargetBiologySchemaGet<TData = Awa
  * Every record of one kind, across genes/proteins — not just one gene's
 bundle. ``kind`` is validated against ``RecordKind`` by FastAPI before this
 body runs, so an unknown kind 422s with no database round trip.
+
+``gene_id``/``protein_id`` are rejected with 422 for a kind they don't
+parent — otherwise the filter is silently ignored and the caller gets back
+the *entire* readable table for the other parent type, misread as scoped.
  * @summary List Target Biology
  */
 export const listTargetBiologyApiV1TargetBiologyKindGet = (
