@@ -57,7 +57,20 @@ why the property has not been exercised. **Re-confirm it from a live token as th
 1** — it is a single field read, and the entire model rests on it. If the id turns out to be absent
 or unstable, stop: the design needs a mapping layer and this document is wrong.
 
-## 1. Tenancy backbone
+## 0b. Deployment reality: this is dev
+
+The only deployment is `saclab-dev`, and its data is reproducible — the catalog comes from UniProt,
+NCBI and Mycobrowser imports, and the target-biology records from the DeJesus dataset plus a handful
+of manual rows. **A botched migration is recoverable by re-importing.**
+
+That does not change the design — the two-migration split in §1.5 exists because the constant and its
+stored value are only correct together, and because reclassifying before reads filter is a no-op that
+*looks* like success. Both are correctness arguments, not data-safety ones.
+
+It does change how much ceremony the implementation needs: write `downgrade()` because it is cheap
+and it documents intent, but do not build elaborate rollback tooling, do not stage the migration
+across releases, and do not let fear of the data slow the work down. Live QA may be destructive;
+clean up after.
 
 ### 1.1 A distinct shared workspace id
 
