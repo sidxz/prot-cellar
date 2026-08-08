@@ -116,8 +116,16 @@ Three places, not seventy:
 
 - **`BaseRepository`** — `find_by_id_in_workspace` splits into `find_readable(workspace_id, id)` and
   `find_owned(workspace_id, id)`. Get paths use the former; update and delete use the latter. `_owns`
-  keeps `owned_by` semantics. The existing `save()` guard stays and additionally refuses an API write
-  whose target row is shared.
+  keeps `owned_by` semantics.
+
+  **`save()` is deliberately left alone.** An earlier draft of this spec had it refuse writes to
+  shared rows; that is unimplementable, because `save()` is called by the ingestion paths
+  (`bulk_upsert_genes`, `bulk_upsert_proteins`, `bulk_enrich_genes`) which legitimately write shared
+  aggregates, and the repository cannot tell an import from an API call. The real guarantee comes
+  one level up: an API mutation loads its target through `find_owned(auth.workspace_id, id)`, so a
+  shared row is simply never found and the request 404s. One enforcement point, not two. `save()`'s
+  existing workspace-mismatch guard and its `workspace_id` predicate in the UPDATE remain as
+  defence-in-depth.
 - **The six repositories with list/search methods** — `gene_repository`, `import_run_repository`,
   `tag_repository`, `organism_repository`, `proteome_repository`, `audit_repository` — apply
   `readable_by` in their query builders.
@@ -178,6 +186,13 @@ represent.
 
 The frontend hides mutate controls when `is_shared` is true and says why, rather than offering a
 control that 404s.
+
+**Where the field is actually needed**, checked against the frontend rather than assumed: the eight
+target-biology responses (the record tables render edit / provenance / delete on every row) and
+`StrainResponse` (`strain-form-dialog.tsx` exists, and strains are reference data). Genes and
+proteins have PATCH routes but **no edit form in the UI**, so they get the field for consistency and
+nothing else changes. Targets, organizations and tags become workspace-owned, so their existing
+dialogs keep working untouched.
 
 ### 1.6 Data migration — two migrations, not one
 
