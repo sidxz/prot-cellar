@@ -16,16 +16,16 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/shared/components/ui/tooltip";
-import type { ProvenanceBody } from "@/shared/lib/api/model";
-import { ProvenanceSourceType } from "@/shared/lib/api/model";
+import { showError, showSuccess } from "@/shared/lib/toast";
 import { cn } from "@/shared/lib/utils";
-import { Check, Loader2, Pencil, Plus, Trash2, X } from "lucide-react";
+import { BookOpen, Check, Loader2, Pencil, Plus, Trash2, X } from "lucide-react";
 import type { ComponentProps, ReactNode } from "react";
 import { useState } from "react";
-import { toast } from "sonner";
+
+import type { FieldDescriptor } from "../../hooks/use-target-biology-schema";
+import { ProvenanceDialog } from "./provenance-dialog";
 
 export const humanize = (s: string) => s.replace(/_/g, " ");
-export const SOURCE_OPTIONS = Object.values(ProvenanceSourceType);
 
 type BadgeVariant = NonNullable<ComponentProps<typeof Badge>["variant"]>;
 
@@ -55,34 +55,12 @@ export const strOrNull = (s: string): string | null => (s.trim() ? s.trim() : nu
 
 const NEW = "__new__";
 
-/** Draft provenance fields shared by every record type's draft.
- * A `type` (not `interface`) so record drafts satisfy the table's `Record<string, unknown>`. */
-export type ProvDraft = {
-  source_type: string;
-  pmid: string;
-  note: string;
-};
-
-export const EMPTY_PROV: ProvDraft = { source_type: "published", pmid: "", note: "" };
-
 /** Minimal provenance shape as it comes back on any record response. */
 interface ProvLike {
   source_type: string;
   generation_method: string;
   citations: { pmid?: string | null }[];
   note?: string | null;
-}
-
-export function provToDraft(p: ProvLike): ProvDraft {
-  return { source_type: p.source_type, pmid: p.citations[0]?.pmid ?? "", note: p.note ?? "" };
-}
-
-export function provToBody(d: ProvDraft): ProvenanceBody {
-  return {
-    source_type: d.source_type as ProvenanceSourceType,
-    citations: d.pmid.trim() ? [{ pmid: d.pmid.trim() }] : [],
-    note: d.note.trim() || null,
-  };
 }
 
 function PmidCell({ p }: { p: ProvLike }) {
@@ -122,28 +100,16 @@ function ProvenanceSourceBadge({ p }: { p: ProvLike }) {
   );
 }
 
-/** The three shared provenance columns appended to every record's table. */
-export function provColumns<R extends { provenance: ProvLike }>(): Column<R, ProvDraft>[] {
+/** The three shared, read-only provenance columns appended to every record's
+ * table. Provenance itself is edited through the Provenance… dialog, not
+ * inline — see the per-row action in EditableRecordTable. */
+export function provColumns<R extends { provenance: ProvLike }>() {
   return [
-    {
-      label: "Source",
-      field: "source_type",
-      type: "enum",
-      options: SOURCE_OPTIONS,
-      render: (r) => <ProvenanceSourceBadge p={r.provenance} />,
-    },
-    {
-      label: "Reference",
-      field: "pmid",
-      type: "text",
-      placeholder: "PMID",
-      render: (r) => <PmidCell p={r.provenance} />,
-    },
+    { label: "Source", render: (r: R) => <ProvenanceSourceBadge p={r.provenance} /> },
+    { label: "Reference", render: (r: R) => <PmidCell p={r.provenance} /> },
     {
       label: "Note",
-      field: "note",
-      type: "text",
-      render: (r) => <span className="text-muted-foreground">{r.provenance.note ?? "—"}</span>,
+      render: (r: R) => <span className="text-muted-foreground">{r.provenance.note ?? "—"}</span>,
     },
   ];
 }
@@ -162,7 +128,10 @@ const TH =
   "px-2 py-1.5 text-left text-xs font-medium uppercase tracking-wide text-muted-foreground";
 const TD = "px-2 py-1.5 align-top";
 
-interface Props<R extends { id: string }, D extends Record<string, unknown>> {
+interface Props<
+  R extends { id: string; version: number; provenance: object },
+  D extends Record<string, unknown>,
+> {
   title: string;
   description: string;
   records: R[];
@@ -178,15 +147,16 @@ interface Props<R extends { id: string }, D extends Record<string, unknown>> {
   visualization?: ReactNode;
   /** When true for a record, its whole row renders in dark-blue (AI provenance). */
   isAiRow?: (record: R) => boolean;
+  /** Provenance descriptor fields from the write-contract schema, used to render
+   * the per-row Provenance… dialog. Optional so the generic mechanics test
+   * doesn't need a schema fixture; real callers always pass the fetched fields. */
+  provenanceFields?: FieldDescriptor[];
 }
 
-function errMsg(e: unknown): string {
-  const detail = (e as { response?: { data?: { detail?: unknown } } })?.response?.data?.detail;
-  if (typeof detail === "string") return detail;
-  return "Could not save. You may need an admin role.";
-}
-
-export function EditableRecordTable<R extends { id: string }, D extends Record<string, unknown>>({
+export function EditableRecordTable<
+  R extends { id: string; version: number; provenance: object },
+  D extends Record<string, unknown>,
+>({
   title,
   description,
   records,
@@ -200,9 +170,11 @@ export function EditableRecordTable<R extends { id: string }, D extends Record<s
   busy,
   visualization,
   isAiRow,
+  provenanceFields = [],
 }: Props<R, D>) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draft, setDraft] = useState<D>(emptyDraft);
+  const [provenanceTarget, setProvenanceTarget] = useState<R | null>(null);
   const set = (field: string, value: unknown) => setDraft((d) => ({ ...d, [field]: value }));
 
   async function save() {
@@ -210,14 +182,14 @@ export function EditableRecordTable<R extends { id: string }, D extends Record<s
       const body = toBody(draft);
       if (editingId === NEW) {
         await onCreate(body);
-        toast.success(`${title} record added`);
+        showSuccess(`${title} record added`);
       } else if (editingId) {
         await onUpdate(editingId, body);
-        toast.success(`${title} record updated`);
+        showSuccess(`${title} record updated`);
       }
       setEditingId(null);
     } catch (e) {
-      toast.error(errMsg(e));
+      showError(e);
     }
   }
 
@@ -225,9 +197,24 @@ export function EditableRecordTable<R extends { id: string }, D extends Record<s
     if (!window.confirm(`Delete this ${title.toLowerCase()} record?`)) return;
     try {
       await onDelete(id);
-      toast.success(`${title} record deleted`);
+      showSuccess(`${title} record deleted`);
     } catch (e) {
-      toast.error(errMsg(e));
+      showError(e);
+    }
+  }
+
+  /** Persists a provenance-dialog save. Kept separate from `save()` above:
+   * this always PATCHes an existing record (never creates), and on a 409 the
+   * dialog must stay open with the user's edits intact — no silent retry,
+   * no discarding their input. */
+  async function saveProvenance(body: Record<string, unknown>) {
+    if (!provenanceTarget) return;
+    try {
+      await onUpdate(provenanceTarget.id, { provenance: body, version: provenanceTarget.version });
+      showSuccess(`${title} provenance updated`);
+      setProvenanceTarget(null);
+    } catch (e) {
+      showError(e);
     }
   }
 
@@ -382,6 +369,16 @@ export function EditableRecordTable<R extends { id: string }, D extends Record<s
                       <Button
                         size="icon"
                         variant="ghost"
+                        className="h-7 w-7"
+                        onClick={() => setProvenanceTarget(r)}
+                        disabled={busy || provenanceFields.length === 0}
+                      >
+                        <BookOpen className="h-3.5 w-3.5" />
+                        <span className="sr-only">Provenance…</span>
+                      </Button>
+                      <Button
+                        size="icon"
+                        variant="ghost"
                         className="h-7 w-7 text-destructive hover:text-destructive"
                         onClick={() => del(r.id)}
                         disabled={busy}
@@ -396,6 +393,15 @@ export function EditableRecordTable<R extends { id: string }, D extends Record<s
             </tbody>
           </table>
         </div>
+        {provenanceTarget && (
+          <ProvenanceDialog
+            open
+            fields={provenanceFields}
+            value={provenanceTarget.provenance as Record<string, unknown>}
+            onSave={saveProvenance}
+            onClose={() => setProvenanceTarget(null)}
+          />
+        )}
       </section>
     </TooltipProvider>
   );

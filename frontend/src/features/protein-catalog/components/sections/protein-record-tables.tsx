@@ -2,10 +2,13 @@
 
 import { Badge } from "@/shared/components/ui/badge";
 import type {
+  ProteinActivityAssayPatchBody,
   ProteinActivityAssayResponse,
   ProteinActivityAssayWriteBody,
+  ProteinProductionPatchBody,
   ProteinProductionResponse,
   ProteinProductionWriteBody,
+  UnpublishedStructurePatchBody,
   UnpublishedStructureResponse,
   UnpublishedStructureWriteBody,
 } from "@/shared/lib/api/model";
@@ -20,16 +23,13 @@ import {
 } from "@/shared/lib/api/target-biology/target-biology";
 
 import { useInvalidateProteinTargetBiology } from "../../hooks/use-target-biology";
+import { useTargetBiologySchema } from "../../hooks/use-target-biology-schema";
 import {
   type Column,
-  EMPTY_PROV,
   EditableRecordTable,
-  type ProvDraft,
   isAiGenerated,
   numOrNull,
   provColumns,
-  provToBody,
-  provToDraft,
   strOrNull,
 } from "./editable-record-table";
 
@@ -37,12 +37,13 @@ const dash = (v: string | null | undefined) => v ?? "—";
 
 // ── Protein production ────────────────────────────────────────────────────────
 
-type ProdDraft = ProvDraft & {
+type ProdDraft = {
   status: string;
   expression_host: string;
   purity: string;
   condition: string;
   method: string;
+  version?: number;
 };
 const PROD_EMPTY: ProdDraft = {
   status: "",
@@ -50,7 +51,6 @@ const PROD_EMPTY: ProdDraft = {
   purity: "",
   condition: "",
   method: "",
-  ...EMPTY_PROV,
 };
 const PROD_COLUMNS: Column<ProteinProductionResponse, ProdDraft>[] = [
   {
@@ -89,6 +89,7 @@ export function ProteinProductionTable({
   records: ProteinProductionResponse[];
 }) {
   const onSuccess = useInvalidateProteinTargetBiology(proteinId);
+  const { data: schema } = useTargetBiologySchema();
   const create = useCreateProteinProductionApiV1ProteinsProteinIdTargetBiologyProteinProductionPost(
     { mutation: { onSuccess } },
   );
@@ -106,27 +107,28 @@ export function ProteinProductionTable({
       isAiRow={(r) => isAiGenerated(r.provenance.generation_method)}
       columns={PROD_COLUMNS}
       emptyDraft={PROD_EMPTY}
+      provenanceFields={schema?.provenance.fields ?? []}
       toDraft={(p) => ({
         status: p.status,
         expression_host: p.expression_host ?? "",
         purity: p.purity != null ? String(p.purity) : "",
         condition: p.condition ?? "",
         method: p.method ?? "",
-        ...provToDraft(p.provenance),
+        version: p.version,
       })}
-      toBody={(d): ProteinProductionWriteBody => ({
+      toBody={(d): ProteinProductionPatchBody => ({
         status: d.status,
         expression_host: strOrNull(d.expression_host),
         purity: numOrNull(d.purity),
         condition: strOrNull(d.condition),
         method: strOrNull(d.method),
-        provenance: provToBody(d),
+        version: d.version,
       })}
       onCreate={(body) =>
         create.mutateAsync({ proteinId, data: body as ProteinProductionWriteBody })
       }
       onUpdate={(id, body) =>
-        update.mutateAsync({ recordId: id, data: body as ProteinProductionWriteBody })
+        update.mutateAsync({ recordId: id, data: body as ProteinProductionPatchBody })
       }
       onDelete={(id) => remove.mutateAsync({ kind: "protein_production", recordId: id })}
       busy={create.isPending || update.isPending || remove.isPending}
@@ -136,12 +138,13 @@ export function ProteinProductionTable({
 
 // ── Protein activity assay ────────────────────────────────────────────────────
 
-type AssayDraft = ProvDraft & {
+type AssayDraft = {
   activity_measured: string;
   readout: string;
   throughput: string;
   condition: string;
   method: string;
+  version?: number;
 };
 const ASSAY_EMPTY: AssayDraft = {
   activity_measured: "",
@@ -149,7 +152,6 @@ const ASSAY_EMPTY: AssayDraft = {
   throughput: "",
   condition: "",
   method: "",
-  ...EMPTY_PROV,
 };
 const ASSAY_COLUMNS: Column<ProteinActivityAssayResponse, AssayDraft>[] = [
   {
@@ -186,6 +188,7 @@ export function ProteinActivityAssayTable({
   records: ProteinActivityAssayResponse[];
 }) {
   const onSuccess = useInvalidateProteinTargetBiology(proteinId);
+  const { data: schema } = useTargetBiologySchema();
   const create =
     useCreateProteinActivityAssayApiV1ProteinsProteinIdTargetBiologyProteinActivityAssayPost({
       mutation: { onSuccess },
@@ -204,27 +207,28 @@ export function ProteinActivityAssayTable({
       isAiRow={(r) => isAiGenerated(r.provenance.generation_method)}
       columns={ASSAY_COLUMNS}
       emptyDraft={ASSAY_EMPTY}
+      provenanceFields={schema?.provenance.fields ?? []}
       toDraft={(a) => ({
         activity_measured: a.activity_measured,
         readout: a.readout ?? "",
         throughput: a.throughput ?? "",
         condition: a.condition ?? "",
         method: a.method ?? "",
-        ...provToDraft(a.provenance),
+        version: a.version,
       })}
-      toBody={(d): ProteinActivityAssayWriteBody => ({
+      toBody={(d): ProteinActivityAssayPatchBody => ({
         activity_measured: d.activity_measured,
         readout: strOrNull(d.readout),
         throughput: strOrNull(d.throughput),
         condition: strOrNull(d.condition),
         method: strOrNull(d.method),
-        provenance: provToBody(d),
+        version: d.version,
       })}
       onCreate={(body) =>
         create.mutateAsync({ proteinId, data: body as ProteinActivityAssayWriteBody })
       }
       onUpdate={(id, body) =>
-        update.mutateAsync({ recordId: id, data: body as ProteinActivityAssayWriteBody })
+        update.mutateAsync({ recordId: id, data: body as ProteinActivityAssayPatchBody })
       }
       onDelete={(id) => remove.mutateAsync({ kind: "protein_activity_assay", recordId: id })}
       busy={create.isPending || update.isPending || remove.isPending}
@@ -234,18 +238,18 @@ export function ProteinActivityAssayTable({
 
 // ── Unpublished structure ─────────────────────────────────────────────────────
 
-type StructDraft = ProvDraft & {
+type StructDraft = {
   method: string;
   resolution: string;
   is_published: boolean;
   is_experimental: boolean;
+  version?: number;
 };
 const STRUCT_EMPTY: StructDraft = {
   method: "",
   resolution: "",
   is_published: false,
   is_experimental: true,
-  ...EMPTY_PROV,
 };
 const STRUCT_COLUMNS: Column<UnpublishedStructureResponse, StructDraft>[] = [
   {
@@ -308,6 +312,7 @@ export function UnpublishedStructureTable({
   records: UnpublishedStructureResponse[];
 }) {
   const onSuccess = useInvalidateProteinTargetBiology(proteinId);
+  const { data: schema } = useTargetBiologySchema();
   const create =
     useCreateUnpublishedStructureApiV1ProteinsProteinIdTargetBiologyUnpublishedStructurePost({
       mutation: { onSuccess },
@@ -326,25 +331,26 @@ export function UnpublishedStructureTable({
       isAiRow={(r) => isAiGenerated(r.provenance.generation_method)}
       columns={STRUCT_COLUMNS}
       emptyDraft={STRUCT_EMPTY}
+      provenanceFields={schema?.provenance.fields ?? []}
       toDraft={(s) => ({
         method: s.method ?? "",
         resolution: s.resolution != null ? String(s.resolution) : "",
         is_published: s.is_published,
         is_experimental: s.is_experimental,
-        ...provToDraft(s.provenance),
+        version: s.version,
       })}
-      toBody={(d): UnpublishedStructureWriteBody => ({
+      toBody={(d): UnpublishedStructurePatchBody => ({
         method: strOrNull(d.method),
         resolution: numOrNull(d.resolution),
         is_published: d.is_published,
         is_experimental: d.is_experimental,
-        provenance: provToBody(d),
+        version: d.version,
       })}
       onCreate={(body) =>
         create.mutateAsync({ proteinId, data: body as UnpublishedStructureWriteBody })
       }
       onUpdate={(id, body) =>
-        update.mutateAsync({ recordId: id, data: body as UnpublishedStructureWriteBody })
+        update.mutateAsync({ recordId: id, data: body as UnpublishedStructurePatchBody })
       }
       onDelete={(id) => remove.mutateAsync({ kind: "unpublished_structure", recordId: id })}
       busy={create.isPending || update.isPending || remove.isPending}

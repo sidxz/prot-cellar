@@ -2,14 +2,19 @@
 
 import { Badge } from "@/shared/components/ui/badge";
 import type {
+  CrispriStrainPatchBody,
   CrispriStrainResponse,
   CrispriStrainWriteBody,
+  EssentialityPatchBody,
   EssentialityResponse,
   EssentialityWriteBody,
+  HypomorphPatchBody,
   HypomorphResponse,
   HypomorphWriteBody,
+  ResistanceMutationPatchBody,
   ResistanceMutationResponse,
   ResistanceMutationWriteBody,
+  VulnerabilityPatchBody,
   VulnerabilityResponse,
   VulnerabilityWriteBody,
 } from "@/shared/lib/api/model";
@@ -27,44 +32,41 @@ import {
   useUpdateResistanceMutationApiV1TargetBiologyResistanceMutationRecordIdPatch,
   useUpdateVulnerabilityApiV1TargetBiologyVulnerabilityRecordIdPatch,
 } from "@/shared/lib/api/target-biology/target-biology";
-
-import { useInvalidateGeneTargetBiology } from "../../hooks/use-target-biology";
-import { essentialityBadgeVariant } from "./axis-annotations-section";
-import {
-  type Column,
-  EMPTY_PROV,
-  EditableRecordTable,
-  type ProvDraft,
-  humanize,
-  isAiGenerated,
-  numOrNull,
-  provColumns,
-  provToBody,
-  provToDraft,
-  strOrNull,
-} from "./editable-record-table";
 import {
   EssentialityCallScale,
   ResistanceLollipop,
   VulnerabilityPanel,
 } from "@structflo/components/target-biology";
 
+import { useInvalidateGeneTargetBiology } from "../../hooks/use-target-biology";
+import { useTargetBiologySchema } from "../../hooks/use-target-biology-schema";
+import { essentialityBadgeVariant } from "./axis-annotations-section";
+import {
+  type Column,
+  EditableRecordTable,
+  humanize,
+  isAiGenerated,
+  numOrNull,
+  provColumns,
+  strOrNull,
+} from "./editable-record-table";
+
 const dash = (v: string | null | undefined) => v ?? "—";
 
 // ── Essentiality ────────────────────────────────────────────────────────────
 
-type EssDraft = ProvDraft & {
+type EssDraft = {
   classification: string;
   condition: string;
   method: string;
   confidence: string;
+  version?: number;
 };
 const ESS_EMPTY: EssDraft = {
   classification: EssentialityClass.essential,
   condition: "",
   method: "",
   confidence: "",
-  ...EMPTY_PROV,
 };
 const ESS_COLUMNS: Column<EssentialityResponse, EssDraft>[] = [
   {
@@ -101,6 +103,7 @@ export function EssentialityTable({
   records: EssentialityResponse[];
 }) {
   const onSuccess = useInvalidateGeneTargetBiology(geneId);
+  const { data: schema } = useTargetBiologySchema();
   const create = useCreateEssentialityApiV1GenesGeneIdTargetBiologyEssentialityPost({
     mutation: { onSuccess },
   });
@@ -119,23 +122,24 @@ export function EssentialityTable({
       isAiRow={(r) => isAiGenerated(r.provenance.generation_method)}
       columns={ESS_COLUMNS}
       emptyDraft={ESS_EMPTY}
+      provenanceFields={schema?.provenance.fields ?? []}
       toDraft={(e) => ({
         classification: e.classification,
         condition: e.condition ?? "",
         method: e.method ?? "",
         confidence: e.confidence != null ? String(e.confidence) : "",
-        ...provToDraft(e.provenance),
+        version: e.version,
       })}
-      toBody={(d): EssentialityWriteBody => ({
+      toBody={(d): EssentialityPatchBody => ({
         classification: d.classification as EssentialityClass,
         condition: strOrNull(d.condition),
         method: strOrNull(d.method),
         confidence: numOrNull(d.confidence),
-        provenance: provToBody(d),
+        version: d.version,
       })}
       onCreate={(body) => create.mutateAsync({ geneId, data: body as EssentialityWriteBody })}
       onUpdate={(id, body) =>
-        update.mutateAsync({ recordId: id, data: body as EssentialityWriteBody })
+        update.mutateAsync({ recordId: id, data: body as EssentialityPatchBody })
       }
       onDelete={(id) => remove.mutateAsync({ kind: "essentiality", recordId: id })}
       busy={create.isPending || update.isPending || remove.isPending}
@@ -145,18 +149,18 @@ export function EssentialityTable({
 
 // ── Vulnerability ─────────────────────────────────────────────────────────────
 
-type VulnDraft = ProvDraft & {
+type VulnDraft = {
   vulnerability_score: string;
   condition: string;
   method: string;
   confidence: string;
+  version?: number;
 };
 const VULN_EMPTY: VulnDraft = {
   vulnerability_score: "",
   condition: "",
   method: "",
   confidence: "",
-  ...EMPTY_PROV,
 };
 const VULN_COLUMNS: Column<VulnerabilityResponse, VulnDraft>[] = [
   {
@@ -186,6 +190,7 @@ export function VulnerabilityTable({
   records: VulnerabilityResponse[];
 }) {
   const onSuccess = useInvalidateGeneTargetBiology(geneId);
+  const { data: schema } = useTargetBiologySchema();
   const create = useCreateVulnerabilityApiV1GenesGeneIdTargetBiologyVulnerabilityPost({
     mutation: { onSuccess },
   });
@@ -204,23 +209,24 @@ export function VulnerabilityTable({
       isAiRow={(r) => isAiGenerated(r.provenance.generation_method)}
       columns={VULN_COLUMNS}
       emptyDraft={VULN_EMPTY}
+      provenanceFields={schema?.provenance.fields ?? []}
       toDraft={(v) => ({
         vulnerability_score: v.vulnerability_score != null ? String(v.vulnerability_score) : "",
         condition: v.condition ?? "",
         method: v.method ?? "",
         confidence: v.confidence != null ? String(v.confidence) : "",
-        ...provToDraft(v.provenance),
+        version: v.version,
       })}
-      toBody={(d): VulnerabilityWriteBody => ({
+      toBody={(d): VulnerabilityPatchBody => ({
         vulnerability_score: numOrNull(d.vulnerability_score),
         condition: strOrNull(d.condition),
         method: strOrNull(d.method),
         confidence: numOrNull(d.confidence),
-        provenance: provToBody(d),
+        version: d.version,
       })}
       onCreate={(body) => create.mutateAsync({ geneId, data: body as VulnerabilityWriteBody })}
       onUpdate={(id, body) =>
-        update.mutateAsync({ recordId: id, data: body as VulnerabilityWriteBody })
+        update.mutateAsync({ recordId: id, data: body as VulnerabilityPatchBody })
       }
       onDelete={(id) => remove.mutateAsync({ kind: "vulnerability", recordId: id })}
       busy={create.isPending || update.isPending || remove.isPending}
@@ -230,18 +236,18 @@ export function VulnerabilityTable({
 
 // ── Hypomorph ─────────────────────────────────────────────────────────────────
 
-type HypoDraft = ProvDraft & {
+type HypoDraft = {
   growth_defect: boolean;
   growth_defect_severity: string;
   condition: string;
   method: string;
+  version?: number;
 };
 const HYPO_EMPTY: HypoDraft = {
   growth_defect: true,
   growth_defect_severity: "",
   condition: "",
   method: "",
-  ...EMPTY_PROV,
 };
 const HYPO_COLUMNS: Column<HypomorphResponse, HypoDraft>[] = [
   {
@@ -273,6 +279,7 @@ export function HypomorphTable({
   records: HypomorphResponse[];
 }) {
   const onSuccess = useInvalidateGeneTargetBiology(geneId);
+  const { data: schema } = useTargetBiologySchema();
   const create = useCreateHypomorphApiV1GenesGeneIdTargetBiologyHypomorphPost({
     mutation: { onSuccess },
   });
@@ -290,23 +297,24 @@ export function HypomorphTable({
       isAiRow={(r) => isAiGenerated(r.provenance.generation_method)}
       columns={HYPO_COLUMNS}
       emptyDraft={HYPO_EMPTY}
+      provenanceFields={schema?.provenance.fields ?? []}
       toDraft={(h) => ({
         growth_defect: h.growth_defect,
         growth_defect_severity: h.growth_defect_severity ?? "",
         condition: h.condition ?? "",
         method: h.method ?? "",
-        ...provToDraft(h.provenance),
+        version: h.version,
       })}
-      toBody={(d): HypomorphWriteBody => ({
+      toBody={(d): HypomorphPatchBody => ({
         growth_defect: d.growth_defect,
         growth_defect_severity: strOrNull(d.growth_defect_severity),
         condition: strOrNull(d.condition),
         method: strOrNull(d.method),
-        provenance: provToBody(d),
+        version: d.version,
       })}
       onCreate={(body) => create.mutateAsync({ geneId, data: body as HypomorphWriteBody })}
       onUpdate={(id, body) =>
-        update.mutateAsync({ recordId: id, data: body as HypomorphWriteBody })
+        update.mutateAsync({ recordId: id, data: body as HypomorphPatchBody })
       }
       onDelete={(id) => remove.mutateAsync({ kind: "hypomorph", recordId: id })}
       busy={create.isPending || update.isPending || remove.isPending}
@@ -316,10 +324,11 @@ export function HypomorphTable({
 
 // ── CRISPRi strain ────────────────────────────────────────────────────────────
 
-type CrispriDraft = ProvDraft & {
+type CrispriDraft = {
   name: string;
+  version?: number;
 };
-const CRISPRI_EMPTY: CrispriDraft = { name: "", ...EMPTY_PROV };
+const CRISPRI_EMPTY: CrispriDraft = { name: "" };
 const CRISPRI_COLUMNS: Column<CrispriStrainResponse, CrispriDraft>[] = [
   {
     label: "Name",
@@ -339,6 +348,7 @@ export function CrispriStrainTable({
   records: CrispriStrainResponse[];
 }) {
   const onSuccess = useInvalidateGeneTargetBiology(geneId);
+  const { data: schema } = useTargetBiologySchema();
   const create = useCreateCrispriStrainApiV1GenesGeneIdTargetBiologyCrispriStrainPost({
     mutation: { onSuccess },
   });
@@ -356,11 +366,12 @@ export function CrispriStrainTable({
       isAiRow={(r) => isAiGenerated(r.provenance.generation_method)}
       columns={CRISPRI_COLUMNS}
       emptyDraft={CRISPRI_EMPTY}
-      toDraft={(s) => ({ name: s.name, ...provToDraft(s.provenance) })}
-      toBody={(d): CrispriStrainWriteBody => ({ name: d.name, provenance: provToBody(d) })}
+      provenanceFields={schema?.provenance.fields ?? []}
+      toDraft={(s) => ({ name: s.name, version: s.version })}
+      toBody={(d): CrispriStrainPatchBody => ({ name: d.name, version: d.version })}
       onCreate={(body) => create.mutateAsync({ geneId, data: body as CrispriStrainWriteBody })}
       onUpdate={(id, body) =>
-        update.mutateAsync({ recordId: id, data: body as CrispriStrainWriteBody })
+        update.mutateAsync({ recordId: id, data: body as CrispriStrainPatchBody })
       }
       onDelete={(id) => remove.mutateAsync({ kind: "crispri_strain", recordId: id })}
       busy={create.isPending || update.isPending || remove.isPending}
@@ -370,12 +381,13 @@ export function CrispriStrainTable({
 
 // ── Resistance mutation ───────────────────────────────────────────────────────
 
-type ResDraft = ProvDraft & {
+type ResDraft = {
   mutation: string;
   mic_shift: string;
   parent_strain: string;
   protein_coordinate: string;
   method: string;
+  version?: number;
 };
 const RES_EMPTY: ResDraft = {
   mutation: "",
@@ -383,7 +395,6 @@ const RES_EMPTY: ResDraft = {
   parent_strain: "",
   protein_coordinate: "",
   method: "",
-  ...EMPTY_PROV,
 };
 const RES_COLUMNS: Column<ResistanceMutationResponse, ResDraft>[] = [
   {
@@ -435,6 +446,7 @@ export function ResistanceMutationTable({
   records: ResistanceMutationResponse[];
 }) {
   const onSuccess = useInvalidateGeneTargetBiology(geneId);
+  const { data: schema } = useTargetBiologySchema();
   const create = useCreateResistanceMutationApiV1GenesGeneIdTargetBiologyResistanceMutationPost({
     mutation: { onSuccess },
   });
@@ -453,25 +465,26 @@ export function ResistanceMutationTable({
       isAiRow={(r) => isAiGenerated(r.provenance.generation_method)}
       columns={RES_COLUMNS}
       emptyDraft={RES_EMPTY}
+      provenanceFields={schema?.provenance.fields ?? []}
       toDraft={(m) => ({
         mutation: m.mutation,
         mic_shift: m.mic_shift != null ? String(m.mic_shift) : "",
         parent_strain: m.parent_strain ?? "",
         protein_coordinate: m.protein_coordinate ?? "",
         method: m.method ?? "",
-        ...provToDraft(m.provenance),
+        version: m.version,
       })}
-      toBody={(d): ResistanceMutationWriteBody => ({
+      toBody={(d): ResistanceMutationPatchBody => ({
         mutation: d.mutation,
         mic_shift: numOrNull(d.mic_shift),
         parent_strain: strOrNull(d.parent_strain),
         protein_coordinate: strOrNull(d.protein_coordinate),
         method: strOrNull(d.method),
-        provenance: provToBody(d),
+        version: d.version,
       })}
       onCreate={(body) => create.mutateAsync({ geneId, data: body as ResistanceMutationWriteBody })}
       onUpdate={(id, body) =>
-        update.mutateAsync({ recordId: id, data: body as ResistanceMutationWriteBody })
+        update.mutateAsync({ recordId: id, data: body as ResistanceMutationPatchBody })
       }
       onDelete={(id) => remove.mutateAsync({ kind: "resistance_mutation", recordId: id })}
       busy={create.isPending || update.isPending || remove.isPending}

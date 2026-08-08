@@ -17,6 +17,8 @@ interface Rec {
   count: number | null;
   active: boolean;
   kind: string;
+  version: number;
+  provenance: Record<string, unknown>;
 }
 type Draft = { name: string; count: string; active: boolean; kind: string };
 
@@ -69,7 +71,15 @@ function setup(records: Rec[]) {
   return { onCreate, onUpdate, onDelete };
 }
 
-const rec: Rec = { id: "r1", name: "foo", count: 5, active: true, kind: "beta" };
+const rec: Rec = {
+  id: "r1",
+  name: "foo",
+  count: 5,
+  active: true,
+  kind: "beta",
+  version: 1,
+  provenance: {},
+};
 
 describe("EditableRecordTable", () => {
   it("renders records including read-only columns", () => {
