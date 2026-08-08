@@ -188,7 +188,9 @@ class ProteomeImportRunner:
 
         Returns ``(organism_id, strain_id)``. ``strain_id`` is ``None`` when the
         proteome taxon is itself a species, the lineage lacks a species node, or
-        there is no workspace (auth) to scope the workspace-owned Strain under.
+        there is no auth context to attribute the strain-level import to. The
+        strain itself is always created shared (see ``_ensure_strain``) — ``auth``
+        gates *whether* one is created, not *whose workspace* it belongs to.
         """
         tax = meta.get("taxonomy") or {}
         top_tax_id = tax.get("taxonId")
@@ -215,7 +217,7 @@ class ProteomeImportRunner:
         if top_tax_id is None or top_tax_id == species.get("taxonId") or auth is None:
             return species_id, None
 
-        # Strain-level: register a workspace-owned Strain anchored to the species,
+        # Strain-level: register a shared reference Strain anchored to the species,
         # carrying the strain's NCBI taxon id as provenance. The strain is the sole
         # representation of the strain — we do NOT create a separate Organism node
         # for the strain taxon (the species Organism is the only taxonomy anchor).
@@ -223,7 +225,6 @@ class ProteomeImportRunner:
             meta,
             species_id=species_id,
             ncbi_taxon_id=top_tax_id,
-            workspace_id=auth.workspace_id,
             dry_run=dry_run,
         )
         return species_id, strain_id
@@ -275,21 +276,25 @@ class ProteomeImportRunner:
         *,
         species_id: uuid.UUID,
         ncbi_taxon_id: int | None,
-        workspace_id: uuid.UUID,
         dry_run: bool,
     ) -> uuid.UUID:
+        """Ingestion tier, same rule as ``_find_or_create_organism``: always the
+        shared catalog, never the importing caller's own workspace. A strain
+        found via this method is therefore reference data, same as an organism —
+        no tenant can own, and thus mutate, a strain created by an import.
+        """
         tax = meta.get("taxonomy") or {}
         label = meta.get("strain") or tax.get("scientificName") or "unknown strain"
         assembly = (meta.get("genomeAssembly") or {}).get("assemblyId")
         async with self._uow:
             repo = SQLAlchemyStrainRepository(self._uow)
-            for existing in await repo.find_by_species(workspace_id, species_id):
+            for existing in await repo.find_by_species(SHARED_WORKSPACE_ID, species_id):
                 if (ncbi_taxon_id is not None and existing.ncbi_taxon_id == ncbi_taxon_id) or (
                     assembly is not None and existing.assembly_acc == assembly
                 ):
                     return existing.id
             strain = Strain.create(
-                workspace_id=workspace_id,
+                workspace_id=SHARED_WORKSPACE_ID,
                 species_organism_id=species_id,
                 ncbi_taxon_id=ncbi_taxon_id,
                 name=label,

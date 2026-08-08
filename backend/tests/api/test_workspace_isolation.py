@@ -18,15 +18,11 @@ none.
 
 from __future__ import annotations
 
-import uuid
-from collections.abc import AsyncIterator
+from httpx import AsyncClient
 
-import pytest
-from httpx import ASGITransport, AsyncClient
-from sqlalchemy.ext.asyncio import AsyncEngine
-
-from tests.api.conftest import _create_test_app
-from tests.fakes.fake_auth import FakeAuth
+# other_workspace_client (a second API client under a distinct workspace) lives
+# in tests/api/conftest.py — shared with test_tag_filter.py and, per the
+# workspace-scoping plan, every context Tasks 3-6 add here.
 
 _SHARED_ORGANISM_RECORD = {
     # No ncbi_tax_id — Postgres treats multiple NULLs as distinct, so this
@@ -39,27 +35,6 @@ _SHARED_ORGANISM_RECORD = {
     "source_record_id": "workspace-isolation-fixture",
     "source_record_checksum": "workspace-isolation-fixture-checksum",
 }
-
-
-@pytest.fixture
-async def other_workspace_client(
-    database_url: str, _run_migrations: None
-) -> AsyncIterator[AsyncClient]:
-    """A second API client on the same DB, under a workspace distinct from
-    ``client`` — proves a shared row is readable from a workspace that had no
-    hand in creating it, not just whichever one happened to seed it.
-
-    Copied from ``tests/api/test_tag_filter.py``'s fixture of the same name
-    rather than imported, so this file stays self-contained for Tasks 3-6 to
-    extend; the shape is identical.
-    """
-    other_auth = FakeAuth(role="admin", workspace_id=uuid.uuid4())
-    app = _create_test_app(database_url, other_auth)
-    transport = ASGITransport(app=app)  # type: ignore[arg-type]
-    async with AsyncClient(transport=transport, base_url="http://test") as ac:
-        yield ac
-    engine = app.state.container[AsyncEngine]
-    await engine.dispose()
 
 
 async def _seed_shared_organism(client: AsyncClient) -> str:

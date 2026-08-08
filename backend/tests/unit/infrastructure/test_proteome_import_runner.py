@@ -303,7 +303,10 @@ async def test_import_resolves_species_and_strain(import_uow: AsyncUnitOfWork) -
         assert await org_repo.find_by_tax_id(771001, workspace_id=SHARED_WORKSPACE_ID) is None
 
         strain_repo = SQLAlchemyStrainRepository(import_uow)
-        strains = await strain_repo.find_by_species(auth.workspace_id, species.id)
+        # Strains are reference data (design doc §1.5), same as organisms — an
+        # import-created strain lives in SHARED, never the triggering caller's
+        # own workspace, regardless of what auth.workspace_id happens to be.
+        strains = await strain_repo.find_by_species(SHARED_WORKSPACE_ID, species.id)
         assert len(strains) == 1
         strain = strains[0]
         assert strain.assembly_acc == "GCA_TEST.1"
@@ -348,7 +351,7 @@ async def test_import_species_level_proteome_creates_no_strain(
         org = await org_repo.find_by_tax_id(772000, workspace_id=SHARED_WORKSPACE_ID)
         assert org is not None
         strain_repo = SQLAlchemyStrainRepository(import_uow)
-        assert await strain_repo.find_by_species(auth.workspace_id, org.id) == []
+        assert await strain_repo.find_by_species(SHARED_WORKSPACE_ID, org.id) == []
         p = await protein_repo.find_by_accession("P0DX10")
         assert p is not None and p.strain_id is None
 

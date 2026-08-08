@@ -14,15 +14,8 @@ id that belongs to a different workspace must not leak the tagged entity.
 
 from __future__ import annotations
 
-import uuid
-from collections.abc import AsyncIterator
-
 import pytest
-from httpx import ASGITransport, AsyncClient
-from sqlalchemy.ext.asyncio import AsyncEngine
-
-from tests.api.conftest import _create_test_app
-from tests.fakes.fake_auth import FakeAuth
+from httpx import AsyncClient
 
 
 async def _organism(client: AsyncClient, tax_id: int) -> str:
@@ -60,23 +53,6 @@ async def _tag(client: AsyncClient, collection: str, entity_id: str, key: str) -
     resp = await client.post(f"/api/v1/{collection}/{entity_id}/tags", json={"key": key})
     assert resp.status_code == 201, resp.text
     return resp.json()["id"]
-
-
-@pytest.fixture
-async def other_workspace_client(
-    database_url: str, _run_migrations: None
-) -> AsyncIterator[AsyncClient]:
-    """A second API client hitting the same DB, but under a different workspace
-    from ``client`` — used to prove a tag created in one workspace cannot be
-    used to filter entities from another.
-    """
-    other_auth = FakeAuth(role="admin", workspace_id=uuid.uuid4())
-    app = _create_test_app(database_url, other_auth)
-    transport = ASGITransport(app=app)  # type: ignore[arg-type]
-    async with AsyncClient(transport=transport, base_url="http://test") as ac:
-        yield ac
-    engine = app.state.container[AsyncEngine]
-    await engine.dispose()
 
 
 @pytest.mark.asyncio

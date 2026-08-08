@@ -149,3 +149,23 @@ async def viewer_client(
         yield ac
     engine = app.state.container[AsyncEngine]
     await engine.dispose()
+
+
+@pytest.fixture
+async def other_workspace_client(
+    database_url: str, _run_migrations: None
+) -> AsyncIterator[AsyncClient]:
+    """A second API client hitting the same DB, but under a workspace distinct
+    from ``client`` — proves something is visible/invisible/mutable-or-not from
+    a *different* tenant's perspective, not just the one that created it.
+    Shared by every cross-tenant test (``test_tag_filter.py``,
+    ``test_workspace_isolation.py`` and, per the workspace-scoping plan,
+    whichever context each of Tasks 3-6 adds next).
+    """
+    other_auth = FakeAuth(role="admin", workspace_id=uuid.uuid4())
+    app = _create_test_app(database_url, other_auth)
+    transport = ASGITransport(app=app)  # type: ignore[arg-type]
+    async with AsyncClient(transport=transport, base_url="http://test") as ac:
+        yield ac
+    engine = app.state.container[AsyncEngine]
+    await engine.dispose()
