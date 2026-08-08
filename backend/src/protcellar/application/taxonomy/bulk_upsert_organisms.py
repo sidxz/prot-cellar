@@ -12,6 +12,7 @@ from protcellar.application.shared.command import Command
 from protcellar.application.shared.event_dispatcher import EventDispatcherProtocol
 from protcellar.application.shared.unit_of_work import UnitOfWork
 from protcellar.domain.shared.errors import DomainError
+from protcellar.domain.shared.global_workspace import SHARED_WORKSPACE_ID
 from protcellar.domain.taxonomy.enums import OrganismSource
 from protcellar.domain.taxonomy.organism import Organism
 from protcellar.domain.taxonomy.repository import OrganismRepository
@@ -58,7 +59,7 @@ class BulkUpsertOrganisms:
             for i, rec in enumerate(input.records):
                 try:
                     existing = await self._repo.find_by_source_record_id(
-                        rec.source, rec.source_record_id
+                        rec.source, rec.source_record_id, workspace_id=SHARED_WORKSPACE_ID
                     )
                     if existing is not None:
                         if existing.source_record_checksum == rec.source_record_checksum:
@@ -85,6 +86,7 @@ class BulkUpsertOrganisms:
                             else OrganismSource.LOCAL
                         )
                         org = Organism.create(
+                            workspace_id=SHARED_WORKSPACE_ID,
                             ncbi_tax_id=rec.ncbi_tax_id,
                             rank=rec.rank,
                             scientific_name=rec.scientific_name,

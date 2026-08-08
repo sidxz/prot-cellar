@@ -30,6 +30,7 @@ from protcellar.application.protein_catalog.bulk_upsert_proteins import (
     BulkUpsertProteinsCommand,
     ProteinImportRecord,
 )
+from protcellar.domain.shared.global_workspace import SHARED_WORKSPACE_ID
 from protcellar.domain.taxonomy.enums import OrganismSource, ProteomeType
 from protcellar.domain.taxonomy.organism import Organism
 from protcellar.domain.taxonomy.proteome import Proteome
@@ -253,7 +254,10 @@ class ProteomeImportRunner:
                         await repo.save(existing)
                         await self._uow.commit()
                     return existing.id
+            # Ingestion always writes the shared catalog — never the triggering
+            # caller's own workspace, regardless of who started the import.
             organism = Organism.create(
+                workspace_id=SHARED_WORKSPACE_ID,
                 ncbi_tax_id=tax_id,
                 rank=rank,
                 scientific_name=scientific_name or (f"taxon {tax_id}" if tax_id else "unknown"),
@@ -321,7 +325,9 @@ class ProteomeImportRunner:
                     await repo.save(existing)
                     await self._uow.commit()
                 return existing.id
+            # Same ingestion-tier rule as _find_or_create_organism above.
             proteome = Proteome.create(
+                workspace_id=SHARED_WORKSPACE_ID,
                 uniprot_proteome_id=proteome_id,
                 organism_id=organism_id,
                 strain_id=strain_id,

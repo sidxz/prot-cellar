@@ -7,22 +7,20 @@ from httpx import AsyncClient
 
 
 async def _organism(client: AsyncClient, tax_id: int) -> str:
-    """Create (or resolve an existing) organism — the simplest taggable entity.
+    """Create a fresh organism — the simplest taggable entity.
 
-    Organisms are always saved with ``workspace_id = SHARED_WORKSPACE_ID``, so
-    they're visible for tagging under the global-or-mine rule regardless of
-    the caller's own workspace.
+    ``ncbi_tax_id`` is deliberately omitted. Organisms now save under the
+    caller's own workspace (create_organism.py), but the tax-id dedupe check
+    in that use case is still global — a tax id reused by another test file
+    would 409 and resolve to an organism owned by an unrelated workspace,
+    which then fails the tag-assignment "global-or-mine" ownership check.
+    Tagging doesn't care what identifies the organism, so skip the dedupe
+    path entirely rather than hunt for a tax id no other file has claimed.
     """
     resp = await client.post(
         "/api/v1/organisms",
-        json={
-            "ncbi_tax_id": tax_id,
-            "rank": "species",
-            "scientific_name": f"Testus organismus {tax_id}",
-        },
+        json={"rank": "species", "scientific_name": f"Testus organismus {tax_id}"},
     )
-    if resp.status_code == 409:
-        return (await client.get(f"/api/v1/organisms/resolve/{tax_id}")).json()["id"]
     assert resp.status_code == 201, resp.text
     return resp.json()["id"]
 

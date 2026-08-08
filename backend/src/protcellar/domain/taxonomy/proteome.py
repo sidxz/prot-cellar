@@ -9,7 +9,6 @@ from typing import Any
 
 from protcellar.domain.shared.entity import AggregateRoot
 from protcellar.domain.shared.errors import ValidationError
-from protcellar.domain.shared.global_workspace import SHARED_WORKSPACE_ID
 from protcellar.domain.taxonomy.enums import ProteomeType
 from protcellar.domain.taxonomy.events import ProteomeCreated, ProteomeUpdated
 
@@ -27,6 +26,7 @@ class Proteome(AggregateRoot):
         self,
         *,
         id: uuid.UUID | None = None,
+        workspace_id: uuid.UUID,
         uniprot_proteome_id: str,
         organism_id: uuid.UUID,
         strain_id: uuid.UUID | None = None,
@@ -40,8 +40,7 @@ class Proteome(AggregateRoot):
     ) -> None:
         super().__init__(id=id, created_at=created_at, updated_at=updated_at, version=version)
         _validate_proteome_id(uniprot_proteome_id)
-        # Reference data lives under the reserved GLOBAL workspace.
-        self.workspace_id = SHARED_WORKSPACE_ID
+        self.workspace_id = workspace_id
         self.uniprot_proteome_id = uniprot_proteome_id
         self.organism_id = organism_id
         self.strain_id = strain_id
@@ -54,6 +53,7 @@ class Proteome(AggregateRoot):
     def create(
         cls,
         *,
+        workspace_id: uuid.UUID,
         uniprot_proteome_id: str,
         organism_id: uuid.UUID,
         proteome_type: ProteomeType,
@@ -63,6 +63,7 @@ class Proteome(AggregateRoot):
         source_version: str | None = None,
     ) -> Proteome:
         proteome = cls(
+            workspace_id=workspace_id,
             uniprot_proteome_id=uniprot_proteome_id,
             organism_id=organism_id,
             strain_id=strain_id,

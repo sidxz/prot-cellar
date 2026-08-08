@@ -45,6 +45,7 @@ class CreateProteome:
                     ConflictError(f"Proteome with id {input.uniprot_proteome_id} already exists")
                 )
             proteome = Proteome.create(
+                workspace_id=auth.workspace_id,  # type: ignore[union-attr]
                 uniprot_proteome_id=input.uniprot_proteome_id,
                 organism_id=input.organism_id,
                 proteome_type=input.proteome_type,

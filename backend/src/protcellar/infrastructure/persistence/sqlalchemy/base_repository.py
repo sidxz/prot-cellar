@@ -77,7 +77,7 @@ class SQLAlchemyRepository[T: AggregateRoot, ModelType: Base](ABC):
 
         Reserved for aggregates whose primary key IS the workspace_id (e.g.
         ``WorkspaceSettings``). Every other repository must use
-        ``find_by_id_in_workspace`` to prevent cross-tenant reads.
+        ``find_readable`` or ``find_owned`` to prevent cross-tenant reads.
         """
         model = await self._session.get(self.model_class, id)
         if model is None:
@@ -87,8 +87,8 @@ class SQLAlchemyRepository[T: AggregateRoot, ModelType: Base](ABC):
     async def find_by_id(self, id: uuid.UUID) -> T | None:
         """DEPRECATED — kept for legacy callers and Protocol compliance.
 
-        New code MUST use ``find_by_id_in_workspace``. This method does not
-        check workspace ownership and is a cross-tenant footgun. The only
+        New code MUST use ``find_readable`` or ``find_owned``. This method does
+        not check workspace ownership and is a cross-tenant footgun. The only
         legitimate caller is ``WorkspaceSettingsRepository.find_by_workspace_id``,
         which delegates to ``_find_by_id_unscoped`` directly.
         """

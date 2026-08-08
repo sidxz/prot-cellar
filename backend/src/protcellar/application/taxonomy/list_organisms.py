@@ -38,7 +38,10 @@ class ListOrganisms:
         async with self._uow:
             if input.name is not None:
                 # Name search — no cursor pagination
-                organisms = await self._repo.find_by_name(input.name)
+                organisms = await self._repo.find_by_name(
+                    input.name,
+                    workspace_id=auth.workspace_id,  # type: ignore[union-attr]
+                )
                 if input.rank is not None:
                     organisms = [o for o in organisms if o.rank == input.rank]
                 return Success(PageResult(items=organisms, next_cursor=None))

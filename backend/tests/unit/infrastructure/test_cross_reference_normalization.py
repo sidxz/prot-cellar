@@ -14,6 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_asyn
 
 from protcellar.domain.protein_catalog.protein import Protein
 from protcellar.domain.shared.cross_reference import CrossReference
+from protcellar.domain.shared.global_workspace import SHARED_WORKSPACE_ID
 from protcellar.domain.taxonomy.organism import Organism
 from protcellar.infrastructure.persistence.sqlalchemy.protein_catalog.models import (
     ProteinCrossReferenceModel,
@@ -42,7 +43,12 @@ async def test_cross_references_persist_as_rows(xref_uow: AsyncUnitOfWork) -> No
     async with xref_uow as uow:
         org_repo = SQLAlchemyOrganismRepository(uow)
         protein_repo = SQLAlchemyProteinRepository(uow)
-        org = Organism.create(ncbi_tax_id=99920, rank="species", scientific_name="Xref testus")
+        org = Organism.create(
+            workspace_id=SHARED_WORKSPACE_ID,
+            ncbi_tax_id=99920,
+            rank="species",
+            scientific_name="Xref testus",
+        )
         await org_repo.save(org)
         protein = Protein.create(
             primary_accession="P0DV01",

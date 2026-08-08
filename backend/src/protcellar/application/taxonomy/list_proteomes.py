@@ -36,7 +36,10 @@ class ListProteomes:
         require_authenticated(auth)
         async with self._uow:
             if input.organism_id is not None:
-                proteomes = await self._repo.find_by_organism(input.organism_id)
+                proteomes = await self._repo.find_by_organism(
+                    input.organism_id,
+                    workspace_id=auth.workspace_id,  # type: ignore[union-attr]
+                )
                 return Success(PageResult(items=proteomes, next_cursor=None))
 
             effective_limit = input.limit

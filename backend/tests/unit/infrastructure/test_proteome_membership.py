@@ -14,6 +14,7 @@ import pytest
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from protcellar.domain.protein_catalog.protein import Protein
+from protcellar.domain.shared.global_workspace import SHARED_WORKSPACE_ID
 from protcellar.domain.taxonomy.enums import ProteomeType
 from protcellar.domain.taxonomy.organism import Organism
 from protcellar.domain.taxonomy.proteome import Proteome
@@ -51,11 +52,15 @@ async def test_proteome_protein_membership_is_idempotent(
         protein_repo = SQLAlchemyProteinRepository(uow)
 
         org = Organism.create(
-            ncbi_tax_id=99950, rank="species", scientific_name="Membership testus"
+            workspace_id=SHARED_WORKSPACE_ID,
+            ncbi_tax_id=99950,
+            rank="species",
+            scientific_name="Membership testus",
         )
         await org_repo.save(org)
 
         proteome = Proteome.create(
+            workspace_id=SHARED_WORKSPACE_ID,
             uniprot_proteome_id="UP000077777",
             organism_id=org.id,
             proteome_type=ProteomeType.REFERENCE,

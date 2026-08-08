@@ -16,6 +16,7 @@ from protcellar.infrastructure.persistence.sqlalchemy.taxonomy.models import (
     OrganismModel,
     OrganismNameModel,
 )
+from protcellar.infrastructure.persistence.sqlalchemy.workspace_scope import owned_by, readable_by
 
 
 class SQLAlchemyOrganismRepository(
@@ -26,6 +27,7 @@ class SQLAlchemyOrganismRepository(
     def _to_domain(self, model: OrganismModel) -> Organism:
         org = Organism(
             id=model.id,
+            workspace_id=model.workspace_id,
             ncbi_tax_id=model.ncbi_tax_id,
             parent_id=model.parent_id,
             rank=model.rank,
@@ -111,11 +113,21 @@ class SQLAlchemyOrganismRepository(
         )
 
     async def find_by_source_record_id(
-        self, source: str, source_record_id: str
+        self, source: str, source_record_id: str, *, workspace_id: uuid.UUID
     ) -> Organism | None:
+        """Look up an import-tracked organism for a read-modify-write upsert.
+
+        Scoped with ``owned_by`` (not merely readable) because every caller of
+        this method mutates and saves whatever it finds — see
+        ``BulkUpsertOrganisms``, which always passes ``SHARED_WORKSPACE_ID``.
+        Without this filter a tenant-owned organism sharing the same
+        ``(source, source_record_id)`` pair as an importer's record would be
+        silently overwritable by any workspace's bulk-import call.
+        """
         stmt = select(OrganismModel).where(
             OrganismModel.source == source,
             OrganismModel.source_record_id == source_record_id,
+            owned_by(OrganismModel, workspace_id),
         )
         model = (await self._session.execute(stmt)).scalar_one_or_none()
         return self._to_domain_tracked(model) if model else None
@@ -133,11 +145,14 @@ class SQLAlchemyOrganismRepository(
         )
         return [self._to_domain_tracked(m) for m in (await self._session.execute(stmt)).scalars()]
 
-    async def find_by_name(self, name: str) -> list[Organism]:
+    async def find_by_name(self, name: str, *, workspace_id: uuid.UUID) -> list[Organism]:
         stmt = (
             select(OrganismModel)
             .join(OrganismNameModel, OrganismNameModel.organism_id == OrganismModel.id)
-            .where(OrganismNameModel.name.ilike(f"%{name}%"))
+            .where(
+                OrganismNameModel.name.ilike(f"%{name}%"),
+                readable_by(OrganismModel, workspace_id),
+            )
             .distinct()
             .limit(50)
         )
@@ -153,7 +168,11 @@ class SQLAlchemyOrganismRepository(
         tag_ids: list[uuid.UUID] | None = None,
         match_all: bool = False,
     ) -> list[Organism]:
-        stmt = select(OrganismModel).order_by(OrganismModel.id)
+        stmt = (
+            select(OrganismModel)
+            .where(readable_by(OrganismModel, workspace_id))
+            .order_by(OrganismModel.id)
+        )
         if rank is not None:
             stmt = stmt.where(OrganismModel.rank == rank)
         if tag_ids:

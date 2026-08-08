@@ -52,6 +52,7 @@ async def test_global_strains_are_visible_to_any_workspace(strain_uow: AsyncUnit
     async with uow:
         org_repo = SQLAlchemyOrganismRepository(uow)
         species = Organism.create(
+            workspace_id=SHARED_WORKSPACE_ID,
             ncbi_tax_id=991773,
             rank="species",
             scientific_name="Visibilis testus",
@@ -89,8 +90,8 @@ async def test_global_strains_are_visible_to_any_workspace(strain_uow: AsyncUnit
         assert tenant_id not in visible_ids
 
         # Get-by-id as workspace B: GLOBAL visible, another tenant's not.
-        assert await repo.find_visible_by_id(workspace_b, global_id) is not None
-        assert await repo.find_visible_by_id(workspace_b, tenant_id) is None
+        assert await repo.find_readable(workspace_b, global_id) is not None
+        assert await repo.find_readable(workspace_b, tenant_id) is None
 
         # Mutation path stays strict — a tenant can't load the GLOBAL strain to edit it.
         assert await repo.find_owned(workspace_b, global_id) is None

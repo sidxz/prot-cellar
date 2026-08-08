@@ -44,6 +44,7 @@ class CreateOrganism:
                         ConflictError(f"Organism with tax_id {input.ncbi_tax_id} already exists")
                     )
             org = Organism.create(
+                workspace_id=auth.workspace_id,  # type: ignore[union-attr]
                 ncbi_tax_id=input.ncbi_tax_id,
                 rank=input.rank,
                 scientific_name=input.scientific_name,

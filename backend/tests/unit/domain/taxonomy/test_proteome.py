@@ -15,6 +15,7 @@ from protcellar.domain.taxonomy.proteome import Proteome
 def test_create_reference_proteome() -> None:
     org = uuid.uuid4()
     p = Proteome.create(
+        workspace_id=SHARED_WORKSPACE_ID,
         uniprot_proteome_id="UP000005640",
         organism_id=org,
         proteome_type=ProteomeType.REFERENCE,
@@ -27,6 +28,7 @@ def test_create_reference_proteome() -> None:
 def test_invalid_proteome_id_rejected() -> None:
     with pytest.raises(ValidationError):
         Proteome.create(
+            workspace_id=SHARED_WORKSPACE_ID,
             uniprot_proteome_id="NOTAPROTEOME",
             organism_id=uuid.uuid4(),
             proteome_type=ProteomeType.REFERENCE,

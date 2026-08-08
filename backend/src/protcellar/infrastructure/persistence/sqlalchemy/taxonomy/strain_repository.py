@@ -6,7 +6,6 @@ import uuid
 
 from sqlalchemy import select
 
-from protcellar.domain.shared.global_workspace import SHARED_WORKSPACE_ID
 from protcellar.domain.taxonomy.strain import Strain
 from protcellar.infrastructure.persistence.sqlalchemy.base_repository import (
     SQLAlchemyRepository,
@@ -16,6 +15,7 @@ from protcellar.infrastructure.persistence.sqlalchemy.tagging.tag_filter import 
 from protcellar.infrastructure.persistence.sqlalchemy.taxonomy.models import (
     StrainModel,
 )
+from protcellar.infrastructure.persistence.sqlalchemy.workspace_scope import readable_by
 
 
 class SQLAlchemyStrainRepository(SQLAlchemyRepository[Strain, StrainModel]):
@@ -75,15 +75,13 @@ class SQLAlchemyStrainRepository(SQLAlchemyRepository[Strain, StrainModel]):
         tag_ids: list[uuid.UUID] | None = None,
         match_all: bool = False,
     ) -> list[Strain]:
-        """Strains visible to a workspace: its own plus GLOBAL reference strains.
+        """Strains visible to a workspace: its own plus shared reference strains.
 
         Strains imported as reference data (e.g. from a UniProt proteome) live in
         ``SHARED_WORKSPACE_ID`` and are shared with every workspace, mirroring how
         organisms/proteins/genes are served. A workspace's own strains stay private.
         """
-        stmt = select(StrainModel).where(
-            StrainModel.workspace_id.in_([workspace_id, SHARED_WORKSPACE_ID])
-        )
+        stmt = select(StrainModel).where(readable_by(StrainModel, workspace_id))
         if tag_ids:
             stmt = stmt.where(
                 StrainModel.id.in_(
@@ -104,18 +102,9 @@ class SQLAlchemyStrainRepository(SQLAlchemyRepository[Strain, StrainModel]):
         result = await self._session.execute(stmt)
         return [self._to_domain_tracked(m) for m in result.scalars()]
 
-    async def find_visible_by_id(self, workspace_id: uuid.UUID, id: uuid.UUID) -> Strain | None:
-        """Load a strain by id if visible to the workspace — its own or a GLOBAL
-        reference strain. Read-only sharing: mutation paths still use the strict
-        ``find_owned`` so tenants cannot edit GLOBAL strains.
-        """
-        stmt = select(StrainModel).where(
-            StrainModel.id == id,
-            StrainModel.workspace_id.in_([workspace_id, SHARED_WORKSPACE_ID]),
-        )
-        result = await self._session.execute(stmt)
-        model = result.scalar_one_or_none()
-        return self._to_domain_tracked(model) if model is not None else None
+    # find_readable / find_owned come from SQLAlchemyRepository — a strain lookup
+    # by id needs no override, unlike find_by_workspace/find_by_species which
+    # filter on columns other than the primary key.
 
     async def find_by_species(
         self, workspace_id: uuid.UUID, species_organism_id: uuid.UUID

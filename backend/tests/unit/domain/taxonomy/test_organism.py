@@ -11,6 +11,7 @@ from protcellar.domain.taxonomy.organism import Organism
 
 def test_create_human_node() -> None:
     org = Organism.create(
+        workspace_id=SHARED_WORKSPACE_ID,
         ncbi_tax_id=9606,
         rank="species",
         scientific_name="Homo sapiens",
@@ -30,12 +31,17 @@ def test_create_human_node() -> None:
 def test_create_requires_scientific_name() -> None:
     with pytest.raises(ValidationError):
         Organism.create(
-            ncbi_tax_id=1, rank="no rank", scientific_name="  ", source=OrganismSource.NCBI
+            workspace_id=SHARED_WORKSPACE_ID,
+            ncbi_tax_id=1,
+            rank="no rank",
+            scientific_name="  ",
+            source=OrganismSource.NCBI,
         )
 
 
 def test_add_common_name() -> None:
     org = Organism.create(
+        workspace_id=SHARED_WORKSPACE_ID,
         ncbi_tax_id=9606,
         rank="species",
         scientific_name="Homo sapiens",
@@ -47,7 +53,11 @@ def test_add_common_name() -> None:
 
 def test_mark_merged_into_redirect() -> None:
     org = Organism.create(
-        ncbi_tax_id=12345, rank="species", scientific_name="Old name", source=OrganismSource.NCBI
+        workspace_id=SHARED_WORKSPACE_ID,
+        ncbi_tax_id=12345,
+        rank="species",
+        scientific_name="Old name",
+        source=OrganismSource.NCBI,
     )
     target = uuid.uuid4()
     org.mark_merged_into(target)
@@ -57,6 +67,7 @@ def test_mark_merged_into_redirect() -> None:
 
 def test_update_blank_rank_raises() -> None:
     org = Organism.create(
+        workspace_id=SHARED_WORKSPACE_ID,
         ncbi_tax_id=9606,
         rank="species",
         scientific_name="Homo sapiens",

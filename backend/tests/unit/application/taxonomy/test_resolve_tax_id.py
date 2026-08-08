@@ -115,6 +115,7 @@ class FakeOrganismRepository:
 
 def _make_organism(*, ncbi_tax_id: int, scientific_name: str = "Homo sapiens") -> Organism:
     return Organism.create(
+        workspace_id=SHARED_WORKSPACE_ID,
         ncbi_tax_id=ncbi_tax_id,
         rank="species",
         scientific_name=scientific_name,

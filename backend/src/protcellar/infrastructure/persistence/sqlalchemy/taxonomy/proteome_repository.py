@@ -18,6 +18,7 @@ from protcellar.infrastructure.persistence.sqlalchemy.taxonomy.models import (
     ProteomeModel,
     ProteomeProteinModel,
 )
+from protcellar.infrastructure.persistence.sqlalchemy.workspace_scope import readable_by
 
 
 class SQLAlchemyProteomeRepository(
@@ -28,6 +29,7 @@ class SQLAlchemyProteomeRepository(
     def _to_domain(self, model: ProteomeModel) -> Proteome:
         return Proteome(
             id=model.id,
+            workspace_id=model.workspace_id,
             uniprot_proteome_id=model.uniprot_proteome_id,
             organism_id=model.organism_id,
             strain_id=model.strain_id,
@@ -70,10 +72,15 @@ class SQLAlchemyProteomeRepository(
         model = (await self._session.execute(stmt)).scalar_one_or_none()
         return self._to_domain_tracked(model) if model else None
 
-    async def find_by_organism(self, organism_id: uuid.UUID) -> list[Proteome]:
+    async def find_by_organism(
+        self, organism_id: uuid.UUID, *, workspace_id: uuid.UUID
+    ) -> list[Proteome]:
         stmt = (
             select(ProteomeModel)
-            .where(ProteomeModel.organism_id == organism_id)
+            .where(
+                ProteomeModel.organism_id == organism_id,
+                readable_by(ProteomeModel, workspace_id),
+            )
             .order_by(ProteomeModel.id)
         )
         return [self._to_domain_tracked(m) for m in (await self._session.execute(stmt)).scalars()]
@@ -87,7 +94,11 @@ class SQLAlchemyProteomeRepository(
         tag_ids: list[uuid.UUID] | None = None,
         match_all: bool = False,
     ) -> list[Proteome]:
-        stmt = select(ProteomeModel).order_by(ProteomeModel.id)
+        stmt = (
+            select(ProteomeModel)
+            .where(readable_by(ProteomeModel, workspace_id))
+            .order_by(ProteomeModel.id)
+        )
         if tag_ids:
             stmt = stmt.where(
                 ProteomeModel.id.in_(

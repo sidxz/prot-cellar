@@ -48,7 +48,10 @@ async def test_dejesus_plugin_run_creates_essentiality(
         # Seed an organism (genes.organism_id is FK-constrained) + a gene whose
         # locus matches the TSV.
         organism = Organism.create(
-            ncbi_tax_id=83332, rank="strain", scientific_name="M. tuberculosis H37Rv (test)"
+            workspace_id=SHARED_WORKSPACE_ID,
+            ncbi_tax_id=83332,
+            rank="strain",
+            scientific_name="M. tuberculosis H37Rv (test)",
         )
         org = organism.id
         gene = Gene.create(primary_name="Rv0667", organism_id=org)

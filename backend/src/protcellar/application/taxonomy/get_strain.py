@@ -32,7 +32,7 @@ class GetStrain:
         require_workspace_role(auth, "viewer")
         require_same_workspace(auth, input.workspace_id)
         async with self._uow:
-            strain = await self._repo.find_visible_by_id(input.workspace_id, input.strain_id)
+            strain = await self._repo.find_readable(input.workspace_id, input.strain_id)
             if strain is None:
                 return Failure(NotFoundError("Strain", str(input.strain_id)))
             return Success(strain)

@@ -9,6 +9,7 @@ import pytest
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from protcellar.domain.protein_catalog.gene import Gene
+from protcellar.domain.shared.global_workspace import SHARED_WORKSPACE_ID
 from protcellar.domain.taxonomy.organism import Organism
 from protcellar.infrastructure.persistence.sqlalchemy.protein_catalog.gene_repository import (
     SQLAlchemyGeneRepository,
@@ -31,7 +32,10 @@ async def gene_uow(database_url: str, _run_migrations: None) -> AsyncIterator[As
 
 async def _seed_organism(repo: SQLAlchemyOrganismRepository) -> uuid.UUID:
     organism = Organism.create(
-        ncbi_tax_id=None, rank="species", scientific_name=f"Test organism {uuid.uuid4()}"
+        workspace_id=SHARED_WORKSPACE_ID,
+        ncbi_tax_id=None,
+        rank="species",
+        scientific_name=f"Test organism {uuid.uuid4()}",
     )
     await repo.save(organism)
     return organism.id

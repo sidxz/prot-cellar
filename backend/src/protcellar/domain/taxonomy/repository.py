@@ -21,12 +21,12 @@ class OrganismRepository(Protocol):
     async def find_by_tax_id(self, tax_id: int) -> Organism | None: ...
 
     async def find_by_source_record_id(
-        self, source: str, source_record_id: str
+        self, source: str, source_record_id: str, *, workspace_id: uuid.UUID
     ) -> Organism | None: ...
 
     async def find_children(self, parent_id: uuid.UUID) -> list[Organism]: ...
 
-    async def find_by_name(self, name: str) -> list[Organism]: ...
+    async def find_by_name(self, name: str, *, workspace_id: uuid.UUID) -> list[Organism]: ...
 
     async def find_all(
         self,
@@ -44,11 +44,9 @@ class OrganismRepository(Protocol):
 
 @runtime_checkable
 class StrainRepository(Protocol):
-    async def find_owned(self, workspace_id: uuid.UUID, id: uuid.UUID) -> Strain | None: ...
+    async def find_readable(self, workspace_id: uuid.UUID, id: uuid.UUID) -> Strain | None: ...
 
-    async def find_visible_by_id(
-        self, workspace_id: uuid.UUID, id: uuid.UUID
-    ) -> Strain | None: ...
+    async def find_owned(self, workspace_id: uuid.UUID, id: uuid.UUID) -> Strain | None: ...
 
     async def find_by_workspace(
         self,
@@ -73,7 +71,9 @@ class ProteomeRepository(Protocol):
 
     async def find_by_proteome_id(self, uniprot_proteome_id: str) -> Proteome | None: ...
 
-    async def find_by_organism(self, organism_id: uuid.UUID) -> list[Proteome]: ...
+    async def find_by_organism(
+        self, organism_id: uuid.UUID, *, workspace_id: uuid.UUID
+    ) -> list[Proteome]: ...
 
     async def find_all(
         self,
