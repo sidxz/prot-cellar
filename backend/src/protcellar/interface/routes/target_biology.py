@@ -9,6 +9,7 @@ from typing import Annotated, Any
 from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel
 
+from protcellar.application.protein_catalog.get_gene import GetGeneQuery
 from protcellar.application.target_biology.crud import RecordKind
 from protcellar.application.target_biology.get_gene_target_biology import (
     GetGeneTargetBiologyQuery,
@@ -35,9 +36,6 @@ from protcellar.domain.target_biology.protein_production import ProteinProductio
 from protcellar.domain.target_biology.resistance_mutation import ResistanceMutation
 from protcellar.domain.target_biology.unpublished_structure import UnpublishedStructure
 from protcellar.domain.target_biology.vulnerability import Vulnerability
-from protcellar.infrastructure.persistence.sqlalchemy.protein_catalog.gene_repository import (
-    SQLAlchemyGeneRepository,
-)
 from protcellar.infrastructure.persistence.sqlalchemy.protein_catalog.protein_repository import (
     SQLAlchemyProteinRepository,
 )
@@ -45,6 +43,7 @@ from protcellar.interface.dependencies import (
     AuthDep,
     CreateTargetBiologyRecordDep,
     DeleteTargetBiologyRecordDep,
+    GetGeneDep,
     GetGeneTargetBiologyDep,
     GetProteinTargetBiologyDep,
     ListTargetBiologyRecordsDep,
@@ -745,20 +744,33 @@ async def get_protein_target_biology(
 # single generic delete covers every record kind.
 
 
-async def _require_readable_gene(gene_id: uuid.UUID, auth: AuthDep, uow: UoWDep) -> None:
+async def _require_readable_gene(gene_id: uuid.UUID, auth: AuthDep, get_gene: GetGeneDep) -> None:
     """Parent-validation guard for the five gene-side creates below: 404s
     (never 403s) when ``gene_id`` doesn't exist or belongs to a workspace the
     caller cannot see. A 403 would confirm the row exists to a caller who may
     not see it — precisely the cross-tenant probe this guard closes.
+
+    Reuses the existing ``GetGene`` query use case (already ``find_readable``
+    + ``NotFoundError``, already wired as ``GetGeneDep``) rather than touching
+    a repository directly; the fetched ``Gene`` is discarded on success.
     """
-    async with uow:
-        gene = await SQLAlchemyGeneRepository(uow).find_readable(auth.workspace_id, gene_id)
-    if gene is None:
-        raise NotFoundError("Gene", str(gene_id))
+    result_to_response(await get_gene(GetGeneQuery(gene_id=gene_id), auth=auth))
 
 
 async def _require_readable_protein(protein_id: uuid.UUID, auth: AuthDep, uow: UoWDep) -> None:
-    """Same guard, for the three protein-side creates below."""
+    """Same guard, protein side.
+
+    Scoped exception: unlike ``GeneRepository``, the application-layer
+    ``ProteinRepository`` Protocol (``domain/protein_catalog/repository.py``)
+    has no id-based ``find_readable``/``find_owned`` — proteins are addressed
+    by accession everywhere else in the API (``GetProtein`` takes
+    ``accession: str``). The concrete ``SQLAlchemyProteinRepository`` has
+    ``find_readable`` via ``SQLAlchemyRepository``, so this reaches past the
+    use-case layer to it directly rather than duplicating a fix for that gap
+    here. Remove this by widening the Protocol and adding a
+    ``GetProteinById``-shaped query use case, DI registration and Dep alias
+    (~5 files) — out of scope for this task.
+    """
     async with uow:
         protein = await SQLAlchemyProteinRepository(uow).find_readable(
             auth.workspace_id, protein_id
