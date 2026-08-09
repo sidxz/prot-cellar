@@ -1,7 +1,18 @@
 import { fireEvent, render, screen } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { beforeAll, describe, expect, it, vi } from "vitest";
 
 import { ExtensionValuesDialog } from "./extension-values-dialog";
+
+// Radix Select needs pointer-event stubs in jsdom to open. Same stub used in
+// editable-record-table.test.tsx / tag-filter.test.tsx for the same reason.
+beforeAll(() => {
+  if (!Element.prototype.hasPointerCapture) {
+    Element.prototype.hasPointerCapture = vi.fn(() => false);
+  }
+  if (!Element.prototype.releasePointerCapture) {
+    Element.prototype.releasePointerCapture = vi.fn();
+  }
+});
 
 const FIELDS = [
   { name: "priority", label: "Priority", type: "string", required: false, show_in_table: true },
@@ -119,6 +130,23 @@ describe("ExtensionValuesDialog", () => {
     fireEvent.change(screen.getByLabelText("Notes"), { target: { value: "" } });
     fireEvent.click(screen.getByRole("button", { name: /save/i }));
     expect(onSave).toHaveBeenCalledWith({ notes: null });
+  });
+
+  it('clears a populated enum by picking the sentinel item — Radix disallows value=""', () => {
+    const onSave = vi.fn();
+    render(
+      <ExtensionValuesDialog
+        open
+        fields={FIELDS}
+        value={EXISTING}
+        onSave={onSave}
+        onClose={vi.fn()}
+      />,
+    );
+    fireEvent.click(screen.getByRole("combobox", { name: /tier/i }));
+    fireEvent.click(screen.getByRole("option", { name: /no value/i }));
+    fireEvent.click(screen.getByRole("button", { name: /save/i }));
+    expect(onSave).toHaveBeenCalledWith({ tier: null });
   });
 
   it("unchecking a boolean submits false, not null — a checkbox has no unset state", () => {

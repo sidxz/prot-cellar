@@ -27,6 +27,13 @@ import { humanize } from "./editable-record-table";
 
 type Draft = Record<string, unknown>;
 
+// Radix disallows `value=""` on a SelectItem, so an enum field needs a real
+// sentinel item to represent "no value" — otherwise there is no click path
+// back to "" once an option has been picked, and the clear-by-null idiom
+// (unlike every other field type, which clears through its native empty
+// state) would be unreachable for enum fields.
+const ENUM_UNSET = "__unset__";
+
 /** Seeds one draft value per declared field. Booleans always start from a
  * real `true`/`false` — a checkbox has no third "unset" state to render.
  * Everything else starts from its stored value or `""`, the same "no value"
@@ -104,11 +111,17 @@ export function ExtensionValuesDialog({
     switch (field.type) {
       case "enum":
         return (
-          <Select value={String(val ?? "")} onValueChange={(v) => set(field.name, v)}>
+          <Select
+            value={val ? String(val) : ENUM_UNSET}
+            onValueChange={(v) => set(field.name, v === ENUM_UNSET ? "" : v)}
+          >
             <SelectTrigger id={id} className="w-full capitalize">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
+              <SelectItem value={ENUM_UNSET} className="text-muted-foreground">
+                No value
+              </SelectItem>
               {(field.options ?? []).map((o) => (
                 <SelectItem key={o} value={o} className="capitalize">
                   {humanize(o)}
@@ -192,7 +205,7 @@ export function ExtensionValuesDialog({
             Cancel
           </Button>
           <Button type="button" onClick={handleSave} disabled={busy}>
-            {busy ? "Saving…" : "Save changes"}
+            {busy ? "Saving…" : "Save"}
           </Button>
         </DialogFooter>
       </DialogContent>
