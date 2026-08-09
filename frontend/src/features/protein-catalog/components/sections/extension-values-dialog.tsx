@@ -115,12 +115,15 @@ export function ExtensionValuesDialog({
             value={val ? String(val) : ENUM_UNSET}
             onValueChange={(v) => set(field.name, v === ENUM_UNSET ? "" : v)}
           >
+            {/* `capitalize` is what title-cases the raw option value here — humanize()
+                only un-snakes it. It applies to the sentinel too, so that label has to
+                stay one word or it renders "No Value". */}
             <SelectTrigger id={id} className="w-full capitalize">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value={ENUM_UNSET} className="text-muted-foreground">
-                No value
+                None
               </SelectItem>
               {(field.options ?? []).map((o) => (
                 <SelectItem key={o} value={o} className="capitalize">

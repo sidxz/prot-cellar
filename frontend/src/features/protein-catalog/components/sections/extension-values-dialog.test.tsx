@@ -144,7 +144,7 @@ describe("ExtensionValuesDialog", () => {
       />,
     );
     fireEvent.click(screen.getByRole("combobox", { name: /tier/i }));
-    fireEvent.click(screen.getByRole("option", { name: /no value/i }));
+    fireEvent.click(screen.getByRole("option", { name: /^none$/i }));
     fireEvent.click(screen.getByRole("button", { name: /save/i }));
     expect(onSave).toHaveBeenCalledWith({ tier: null });
   });
