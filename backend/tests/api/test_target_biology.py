@@ -717,8 +717,8 @@ async def test_patch_null_extensions_leaves_the_whole_bag_alone(
     exclude_unset distinguishes absent from null, but the aggregate's update() does
     a wholesale `self.extensions = dict(fields["extensions"] or {})` that would wipe
     every stored value if a bare null reached it. Removing one declared key is the
-    per-key null idiom (test_patch_rejects_an_undeclared_extension_key's sibling
-    round-trip test and the validator's own unit tests cover that)."""
+    per-key null idiom — see test_patch_per_key_null_removes_one_declared_key_and_
+    keeps_the_other below."""
     gene_id = await _seed_gene(client, database_url)
     assert (await client.post("/api/v1/extension-fields", json=_VI_BIN_FIELD)).status_code == 201
     created = await client.post(
@@ -737,6 +737,36 @@ async def test_patch_null_extensions_leaves_the_whole_bag_alone(
     )
     assert patched.status_code == 200, patched.text
     assert patched.json()["extensions"] == {"vi_bin": 3}
+
+
+async def test_patch_per_key_null_removes_one_declared_key_and_keeps_the_other(
+    client: AsyncClient, database_url: str
+) -> None:
+    """The removal idiom is a `null` on the *key inside* extensions, not on the whole
+    field (that's the previous test). Two declared keys in, one nulled, the other must
+    survive — end to end through the real DB/aggregate, not just the validator's fake-
+    repo unit tests."""
+    gene_id = await _seed_gene(client, database_url)
+    assert (await client.post("/api/v1/extension-fields", json=_VI_BIN_FIELD)).status_code == 201
+    vi_rank_field = {**_VI_BIN_FIELD, "name": "vi_rank", "label": "VI rank"}
+    assert (await client.post("/api/v1/extension-fields", json=vi_rank_field)).status_code == 201
+
+    created = await client.post(
+        f"/api/v1/genes/{gene_id}/target-biology/vulnerability",
+        json={
+            "vulnerability_score": 0.5,
+            "provenance": _INTERNAL_PROV,
+            "extensions": {"vi_bin": 3, "vi_rank": 7},
+        },
+    )
+    assert created.status_code == 201, created.text
+
+    patched = await client.patch(
+        f"/api/v1/target-biology/vulnerability/{created.json()['id']}",
+        json={"extensions": {"vi_bin": None}},
+    )
+    assert patched.status_code == 200, patched.text
+    assert patched.json()["extensions"] == {"vi_rank": 7}
 
 
 async def test_patch_of_a_declared_field_preserves_undeclared_imported_values(

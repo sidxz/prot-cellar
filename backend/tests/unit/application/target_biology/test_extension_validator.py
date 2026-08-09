@@ -113,7 +113,11 @@ async def test_number_rejects_a_bool() -> None:
 async def test_integer_accepts_a_whole_float_but_rejects_a_fraction() -> None:
     validator = _validator([_int("count")])
     ok = await validator.validate_and_merge(WS, "vulnerability", {"count": 5.0}, {})
-    assert ok.unwrap() == {"count": 5}
+    merged = ok.unwrap()
+    assert merged == {"count": 5}
+    # {"count": 5.0} == {"count": 5} is also True in Python — the equality assertion
+    # above can't catch a regression to `Success(value)` storing the raw float back.
+    assert type(merged["count"]) is int
 
     bad = await validator.validate_and_merge(WS, "vulnerability", {"count": 5.5}, {})
     assert isinstance(bad, Failure)
