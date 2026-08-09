@@ -647,6 +647,35 @@ async def test_schema_lists_every_kind_and_seeds_vocabulary(
     assert next(f["name"] for f in body["provenance"]["fields"]) == "source_type"
 
 
+async def test_a_new_declaration_appears_in_the_descriptor_immediately(
+    client: AsyncClient,
+) -> None:
+    """Field defs must not ride the suggested-values TTL cache — an admin who adds a
+    field and cannot see it would reasonably read that as a bug."""
+    before = await client.get("/api/v1/target-biology/schema")
+    assert "cache_probe" not in [
+        f["name"] for f in before.json()["kinds"]["hypomorph"]["extension_fields"]
+    ]
+
+    await client.post(
+        "/api/v1/extension-fields",
+        json={
+            "kind": "hypomorph",
+            "name": "cache_probe",
+            "label": "Cache probe",
+            "field_type": "string",
+            "options": None,
+            "position": 0,
+            "show_in_table": False,
+        },
+    )
+
+    after = await client.get("/api/v1/target-biology/schema")
+    assert "cache_probe" in [
+        f["name"] for f in after.json()["kinds"]["hypomorph"]["extension_fields"]
+    ]
+
+
 # --- Bulk list route (GET /target-biology/{kind}) ----------------------------
 
 

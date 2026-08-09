@@ -39,6 +39,9 @@ from protcellar.domain.target_biology.vulnerability import Vulnerability
 from protcellar.infrastructure.persistence.sqlalchemy.protein_catalog.protein_repository import (
     SQLAlchemyProteinRepository,
 )
+from protcellar.infrastructure.persistence.sqlalchemy.workspace_config.extension_field_def_repository import (  # noqa: E501
+    SQLAlchemyExtensionFieldDefRepository,
+)
 from protcellar.interface.dependencies import (
     AuthDep,
     CreateTargetBiologyRecordDep,
@@ -626,6 +629,7 @@ def _patch_updates(body: BaseModel) -> dict[str, Any]:
 async def get_target_biology_schema(
     auth: AuthDep,
     reader: SuggestedValuesReaderDep,
+    uow: UoWDep,
 ) -> dict[str, Any]:
     """The published write contract: what each record kind accepts, and the values
     already in use for its vocabulary fields. Requires a caller, so the write surface
@@ -634,7 +638,30 @@ async def get_target_biology_schema(
     # module, so importing it back at module level here would be circular.
     from protcellar.interface.target_biology_schema import describe_write_surface
 
-    return describe_write_surface(await reader.for_all_kinds(auth.workspace_id))
+    # Field defs reach past the use-case layer to the repository directly, same
+    # scoped exception as `_require_readable_protein` below: there is no command
+    # here, `list_all` is already workspace-scoped, and wrapping it in ListFieldDefs
+    # would only re-add UoW/RBAC ceremony this read doesn't need.
+    #
+    # Not the suggested-values cache: that TTL covers an expensive SELECT DISTINCT
+    # sweep, and this is one indexed lookup — an admin who declares a field must see
+    # it on the very next request.
+    declared: dict[str, list[dict[str, Any]]] = {}
+    async with uow:
+        field_defs = await SQLAlchemyExtensionFieldDefRepository(uow).list_all(auth.workspace_id)
+    for field_def in field_defs:
+        declared.setdefault(field_def.kind, []).append(
+            {
+                "name": field_def.name,
+                "label": field_def.label,
+                "type": field_def.field_type.value,
+                "options": field_def.options,
+                "position": field_def.position,
+                "show_in_table": field_def.show_in_table,
+            }
+        )
+
+    return describe_write_surface(await reader.for_all_kinds(auth.workspace_id), declared)
 
 
 def _to_list_item(kind: RecordKind, record: Any) -> TargetBiologyListItem:

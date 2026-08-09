@@ -63,8 +63,10 @@ _KINDS: dict[RecordKind, tuple[type[BaseModel], str, str]] = {
     ),
 }
 
-# Stored on the records but writable only through ingestion.
-_READ_ONLY: tuple[str, ...] = ("extensions",)
+# Nothing is read-only at the top level anymore: `extensions` was withheld until the
+# declared-field registry existed to validate it against; the next task makes it a
+# normal writable field.
+_READ_ONLY: tuple[str, ...] = ()
 
 # What the models cannot express. Keys are field names; values merge into the descriptor.
 # `suggested_values` is filled in at request time from the stored data.
@@ -110,8 +112,11 @@ _REFERENCE_FIELDS = frozenset({"compound", "ligands", "knockdown_strain_id"})
 
 def describe_write_surface(
     suggested: dict[tuple[str, str], list[str]],
+    declared: dict[str, list[dict[str, Any]]],
 ) -> dict[str, Any]:
-    """Build the descriptor. ``suggested`` is keyed by ``(kind, field)``."""
+    """Build the descriptor. ``suggested`` is keyed by ``(kind, field)``; ``declared`` is
+    keyed by kind value and holds that workspace's admin-defined extension fields.
+    """
     return {
         "provenance": {"fields": _describe_model(ProvenanceBody, kind=None, suggested={})},
         # PATCH bodies aren't modeled above (every field on them is optional), but all
@@ -124,10 +129,32 @@ def describe_write_surface(
                 "attaches_to": parent,
                 "fields": _describe_model(body, kind=kind.value, suggested=suggested),
                 "read_only": list(_READ_ONLY),
+                "extension_fields": [
+                    _describe_declared(d)
+                    # Sort here, once, rather than trust the caller's order: two
+                    # declarations sharing a position must still come out the same
+                    # way every time, not in whatever order they happened to arrive.
+                    for d in sorted(
+                        declared.get(kind.value, []), key=lambda d: (d["position"], d["name"])
+                    )
+                ],
             }
             for kind, (body, parent, label) in _KINDS.items()
         },
     }
+
+
+def _describe_declared(d: dict[str, Any]) -> dict[str, Any]:
+    out: dict[str, Any] = {
+        "name": d["name"],
+        "label": d["label"],
+        "type": d["type"],
+        "required": False,  # spec: `required` is deliberately out of scope
+        "show_in_table": bool(d["show_in_table"]),
+    }
+    if d.get("options"):
+        out["options"] = list(d["options"])
+    return out
 
 
 def _describe_model(
