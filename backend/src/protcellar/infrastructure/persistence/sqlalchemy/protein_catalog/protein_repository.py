@@ -307,17 +307,17 @@ class SQLAlchemyProteinRepository(SQLAlchemyRepository[Protein, ProteinModel], P
         self,
         accession: str,
         *,
-        # ponytail: defaults to shared because target_biology's per-accession
-        # importers (a sibling context, Task 4/5's scope) call this read-only
-        # with no workspace argument of their own — make required once those
-        # land on auth.workspace_id.
+        # ponytail: defaults to shared — the target_biology bulk importers that used
+        # to rely on this default now pass workspace_id explicitly (see
+        # application/target_biology/bulk_upsert_*.py); the remaining callers that
+        # omit it are read-only lookups of freshly-imported, always-shared reference
+        # proteins (proteome-import tests). Make required if a real caller needs a
+        # non-shared read without one.
         workspace_id: uuid.UUID = SHARED_WORKSPACE_ID,
     ) -> Protein | None:
         """Look up a protein for a READ path — scoped with ``readable_by``.
 
-        For the mutation path, use ``find_owned_by_accession`` instead — this
-        default is only safe because every current caller happens to pass
-        SHARED_WORKSPACE_ID, which a mutation path may not rely on.
+        For the mutation path, use ``find_owned_by_accession`` instead.
         """
         return await self._find_by_accession(accession, readable_by(ProteinModel, workspace_id))
 

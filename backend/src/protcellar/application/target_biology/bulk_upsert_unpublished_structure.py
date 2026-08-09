@@ -19,7 +19,6 @@ from protcellar.application.target_biology._import_support import ItemResult, pr
 from protcellar.domain.protein_catalog.repository import ProteinRepository
 from protcellar.domain.shared.compound_ref import CompoundRef
 from protcellar.domain.shared.errors import DomainError
-from protcellar.domain.shared.global_workspace import SHARED_WORKSPACE_ID
 from protcellar.domain.shared.provenance import ProvenanceSourceType
 from protcellar.domain.target_biology.repository import UnpublishedStructureRepository
 from protcellar.domain.target_biology.unpublished_structure import UnpublishedStructure
@@ -39,6 +38,7 @@ class UnpublishedStructureImportRecord:
 
 @dataclass(frozen=True, kw_only=True)
 class BulkUpsertUnpublishedStructureCommand(Command):
+    target_workspace_id: uuid.UUID
     records: tuple[UnpublishedStructureImportRecord, ...]
     source_type: str = ProvenanceSourceType.PUBLISHED.value
     dry_run: bool = False
@@ -69,7 +69,9 @@ class BulkUpsertUnpublishedStructure:
         async with self._uow:
             for i, rec in enumerate(input.records):
                 try:
-                    protein = await self._protein_repo.find_by_accession(rec.accession)
+                    protein = await self._protein_repo.find_by_accession(
+                        rec.accession, workspace_id=input.target_workspace_id
+                    )
                     if protein is None:
                         results.append(
                             ItemResult(
@@ -81,7 +83,7 @@ class BulkUpsertUnpublishedStructure:
                         continue
                     provenance = provenance_from(input.source_type, rec.pmid, rec.dataset)
                     existing = await self._st_repo.find_owned_by_protein(
-                        SHARED_WORKSPACE_ID, protein.id
+                        input.target_workspace_id, protein.id
                     )
                     match = next((s for s in existing if s.method == rec.method), None)
                     if match is not None:
@@ -97,7 +99,7 @@ class BulkUpsertUnpublishedStructure:
                         results.append(ItemResult(index=i, status="updated", id=str(match.id)))
                     else:
                         record = UnpublishedStructure.create(
-                            workspace_id=SHARED_WORKSPACE_ID,
+                            workspace_id=input.target_workspace_id,
                             protein_id=protein.id,
                             method=rec.method,
                             resolution=rec.resolution,

@@ -19,7 +19,6 @@ from protcellar.application.shared.unit_of_work import UnitOfWork
 from protcellar.application.target_biology._import_support import ItemResult, build_locus_index
 from protcellar.domain.protein_catalog.repository import GeneRepository
 from protcellar.domain.shared.errors import DomainError
-from protcellar.domain.shared.global_workspace import SHARED_WORKSPACE_ID
 from protcellar.domain.shared.provenance import (
     Citation,
     GenerationMethod,
@@ -65,6 +64,7 @@ class EssentialityImportRecord:
 
 @dataclass(frozen=True, kw_only=True)
 class BulkUpsertEssentialityCommand(Command):
+    target_workspace_id: uuid.UUID
     organism_id: uuid.UUID
     records: tuple[EssentialityImportRecord, ...]
     source_type: str = ProvenanceSourceType.PUBLISHED.value
@@ -116,7 +116,11 @@ class BulkUpsertEssentiality:
         require_admin(auth)
         results: list[ItemResult] = []
         async with self._uow:
-            index = build_locus_index(await self._gene_repo.list_by_organism(input.organism_id))
+            index = build_locus_index(
+                await self._gene_repo.list_by_organism(
+                    input.organism_id, workspace_id=input.target_workspace_id
+                )
+            )
             for i, rec in enumerate(input.records):
                 try:
                     gene = index.get(rec.locus_key.upper())
@@ -130,7 +134,7 @@ class BulkUpsertEssentiality:
                     classification = classify(rec.classification)
                     provenance = _provenance(input.source_type, input.generation_method, rec)
                     existing = await self._ess_repo.find_owned_by_gene(
-                        SHARED_WORKSPACE_ID, gene.id
+                        input.target_workspace_id, gene.id
                     )
                     match = next(
                         (
@@ -154,7 +158,7 @@ class BulkUpsertEssentiality:
                         results.append(ItemResult(index=i, status="updated", id=str(match.id)))
                     else:
                         record = Essentiality.create(
-                            workspace_id=SHARED_WORKSPACE_ID,
+                            workspace_id=input.target_workspace_id,
                             gene_id=gene.id,
                             classification=classification,
                             condition=rec.condition,

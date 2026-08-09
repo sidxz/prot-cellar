@@ -55,7 +55,7 @@ class GeneRepository(Protocol):
         self,
         organism_id: uuid.UUID,
         *,
-        workspace_id: uuid.UUID = SHARED_WORKSPACE_ID,
+        workspace_id: uuid.UUID,
         batch: int = 1000,
     ) -> list[Gene]: ...
 

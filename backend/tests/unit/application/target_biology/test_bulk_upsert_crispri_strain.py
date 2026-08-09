@@ -21,7 +21,9 @@ class _FakeGeneRepo:
     def __init__(self, genes: list[Gene]) -> None:
         self._genes = list(genes)
 
-    async def list_by_organism(self, organism_id: uuid.UUID, *, batch: int = 1000) -> list[Gene]:
+    async def list_by_organism(
+        self, organism_id: uuid.UUID, *, workspace_id: uuid.UUID, batch: int = 1000
+    ) -> list[Gene]:
         return [g for g in self._genes if g.organism_id == organism_id]
 
 
@@ -80,6 +82,7 @@ async def test_creates_then_updates_by_name() -> None:
     cs_repo = _FakeCsRepo()
     uc = _uc(_FakeGeneRepo([gene]), cs_repo)
     cmd = BulkUpsertCrispriStrainCommand(
+        target_workspace_id=SHARED_WORKSPACE_ID,
         organism_id=org,
         records=(CrispriStrainImportRecord(locus_key="rpoB", name="sgRNA-rpoB-1"),),
     )
@@ -100,6 +103,7 @@ async def test_different_names_create_separate_strains() -> None:
     cs_repo = _FakeCsRepo()
     uc = _uc(_FakeGeneRepo([gene]), cs_repo)
     cmd = BulkUpsertCrispriStrainCommand(
+        target_workspace_id=SHARED_WORKSPACE_ID,
         organism_id=org,
         records=(
             CrispriStrainImportRecord(locus_key="rpoB", name="strain-A"),

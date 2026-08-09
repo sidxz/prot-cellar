@@ -37,6 +37,7 @@ from protcellar.application.target_biology.bulk_upsert_essentiality import (
     BulkUpsertEssentialityCommand,
 )
 from protcellar.domain.imports.enums import ImportType
+from protcellar.domain.shared.global_workspace import SHARED_WORKSPACE_ID
 from protcellar.infrastructure.ingestion.gene_enrichment_runner import GeneEnrichmentRunner
 from protcellar.infrastructure.ingestion.go_import_runner import GoImportRunner
 from protcellar.infrastructure.ingestion.import_runner import ProteomeImportRunner
@@ -227,6 +228,7 @@ class PluginDispatchAdapter:
             if organism_id is None:
                 raise ValueError("essentiality upsert requires an organism_id")
             cmd = BulkUpsertEssentialityCommand(
+                target_workspace_id=SHARED_WORKSPACE_ID,
                 organism_id=organism_id,
                 records=tuple(records),  # type: ignore[arg-type]  # elements are EssentialityImportRecord
                 generation_method=generation_method,

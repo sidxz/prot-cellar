@@ -35,7 +35,9 @@ async def resolve_organism_id(
     async with uow:
         gene_repo = SQLAlchemyGeneRepository(uow)
         if organism_id is not None:
-            count = len(await gene_repo.list_by_organism(organism_id))
+            count = len(
+                await gene_repo.list_by_organism(organism_id, workspace_id=SHARED_WORKSPACE_ID)
+            )
             return organism_id, count
 
         org_repo = SQLAlchemyOrganismRepository(uow)
@@ -57,7 +59,7 @@ async def resolve_organism_id(
 
         best: tuple[uuid.UUID, int] | None = None
         for cand in candidates:
-            count = len(await gene_repo.list_by_organism(cand))
+            count = len(await gene_repo.list_by_organism(cand, workspace_id=SHARED_WORKSPACE_ID))
             if count > 0:
                 return cand, count
             if best is None:

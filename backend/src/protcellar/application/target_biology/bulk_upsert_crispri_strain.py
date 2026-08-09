@@ -22,7 +22,6 @@ from protcellar.application.target_biology._import_support import (
 )
 from protcellar.domain.protein_catalog.repository import GeneRepository
 from protcellar.domain.shared.errors import DomainError
-from protcellar.domain.shared.global_workspace import SHARED_WORKSPACE_ID
 from protcellar.domain.shared.provenance import ProvenanceSourceType
 from protcellar.domain.target_biology.crispri_strain import CrispriStrain
 from protcellar.domain.target_biology.repository import CrispriStrainRepository
@@ -38,6 +37,7 @@ class CrispriStrainImportRecord:
 
 @dataclass(frozen=True, kw_only=True)
 class BulkUpsertCrispriStrainCommand(Command):
+    target_workspace_id: uuid.UUID
     organism_id: uuid.UUID
     records: tuple[CrispriStrainImportRecord, ...]
     source_type: str = ProvenanceSourceType.PUBLISHED.value
@@ -63,7 +63,11 @@ class BulkUpsertCrispriStrain:
         require_admin(auth)
         results: list[ItemResult] = []
         async with self._uow:
-            index = build_locus_index(await self._gene_repo.list_by_organism(input.organism_id))
+            index = build_locus_index(
+                await self._gene_repo.list_by_organism(
+                    input.organism_id, workspace_id=input.target_workspace_id
+                )
+            )
             for i, rec in enumerate(input.records):
                 try:
                     gene = index.get(rec.locus_key.upper())
@@ -75,7 +79,9 @@ class BulkUpsertCrispriStrain:
                         )
                         continue
                     provenance = provenance_from(input.source_type, rec.pmid, rec.dataset)
-                    existing = await self._cs_repo.find_owned_by_gene(SHARED_WORKSPACE_ID, gene.id)
+                    existing = await self._cs_repo.find_owned_by_gene(
+                        input.target_workspace_id, gene.id
+                    )
                     match = next((s for s in existing if s.name == rec.name.strip()), None)
                     if match is not None:
                         match.update(provenance=provenance)
@@ -84,7 +90,7 @@ class BulkUpsertCrispriStrain:
                         results.append(ItemResult(index=i, status="updated", id=str(match.id)))
                     else:
                         record = CrispriStrain.create(
-                            workspace_id=SHARED_WORKSPACE_ID,
+                            workspace_id=input.target_workspace_id,
                             name=rec.name,
                             target_gene_id=gene.id,
                             provenance=provenance,

@@ -11,7 +11,6 @@ from sqlalchemy.sql.elements import ColumnElement
 from protcellar.domain.protein_catalog.gene import Gene
 from protcellar.domain.protein_catalog.read_models import GeneSummaryRow
 from protcellar.domain.protein_catalog.repository import GeneRepository
-from protcellar.domain.shared.global_workspace import SHARED_WORKSPACE_ID
 from protcellar.infrastructure.persistence.sqlalchemy.base_repository import SQLAlchemyRepository
 from protcellar.infrastructure.persistence.sqlalchemy.protein_catalog._annotation_json import (
     annotations_from_json,
@@ -189,18 +188,13 @@ class SQLAlchemyGeneRepository(SQLAlchemyRepository[Gene, GeneModel], GeneReposi
         self,
         organism_id: uuid.UUID,
         *,
-        # ponytail: defaults to shared because target_biology's bulk importers (a
-        # sibling context, Task 4/5's scope) call this read-only with no workspace
-        # argument of their own — make required once those land on auth.workspace_id.
-        workspace_id: uuid.UUID = SHARED_WORKSPACE_ID,
+        workspace_id: uuid.UUID,
         batch: int = 1000,
     ) -> list[Gene]:
         """Load every gene for an organism, paged by keyset (``id``) in ``batch``-sized chunks.
 
         Read path only — ``readable_by``. For a caller that loads genes in order to
-        mutate and save them, use ``list_owned_by_organism`` instead: this method's
-        default keeps it *safe only because every current caller happens to pass
-        SHARED_WORKSPACE_ID*, which is not a property a mutation path may rely on.
+        mutate and save them, use ``list_owned_by_organism`` instead.
         """
         return await self._list_by_organism(
             organism_id, readable_by(GeneModel, workspace_id), batch=batch

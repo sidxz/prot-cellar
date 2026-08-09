@@ -5,6 +5,7 @@ Upsert key is (protein_id, activity_measured, method).
 
 from __future__ import annotations
 
+import uuid
 from dataclasses import dataclass
 
 from returns.result import Result, Success
@@ -16,7 +17,6 @@ from protcellar.application.shared.unit_of_work import UnitOfWork
 from protcellar.application.target_biology._import_support import ItemResult, provenance_from
 from protcellar.domain.protein_catalog.repository import ProteinRepository
 from protcellar.domain.shared.errors import DomainError
-from protcellar.domain.shared.global_workspace import SHARED_WORKSPACE_ID
 from protcellar.domain.shared.provenance import ProvenanceSourceType
 from protcellar.domain.target_biology.protein_activity_assay import ProteinActivityAssay
 from protcellar.domain.target_biology.repository import ProteinActivityAssayRepository
@@ -36,6 +36,7 @@ class ProteinActivityAssayImportRecord:
 
 @dataclass(frozen=True, kw_only=True)
 class BulkUpsertProteinActivityAssayCommand(Command):
+    target_workspace_id: uuid.UUID
     records: tuple[ProteinActivityAssayImportRecord, ...]
     source_type: str = ProvenanceSourceType.PUBLISHED.value
     dry_run: bool = False
@@ -62,7 +63,9 @@ class BulkUpsertProteinActivityAssay:
         async with self._uow:
             for i, rec in enumerate(input.records):
                 try:
-                    protein = await self._protein_repo.find_by_accession(rec.accession)
+                    protein = await self._protein_repo.find_by_accession(
+                        rec.accession, workspace_id=input.target_workspace_id
+                    )
                     if protein is None:
                         results.append(
                             ItemResult(
@@ -74,7 +77,7 @@ class BulkUpsertProteinActivityAssay:
                         continue
                     provenance = provenance_from(input.source_type, rec.pmid, rec.dataset)
                     existing = await self._assay_repo.find_owned_by_protein(
-                        SHARED_WORKSPACE_ID, protein.id
+                        input.target_workspace_id, protein.id
                     )
                     match = next(
                         (
@@ -98,7 +101,7 @@ class BulkUpsertProteinActivityAssay:
                         results.append(ItemResult(index=i, status="updated", id=str(match.id)))
                     else:
                         record = ProteinActivityAssay.create(
-                            workspace_id=SHARED_WORKSPACE_ID,
+                            workspace_id=input.target_workspace_id,
                             protein_id=protein.id,
                             activity_measured=rec.activity_measured,
                             readout=rec.readout,

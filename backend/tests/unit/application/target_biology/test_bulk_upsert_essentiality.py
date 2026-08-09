@@ -23,7 +23,9 @@ class _FakeGeneRepo:
     def __init__(self, genes: list[Gene]) -> None:
         self._genes = list(genes)
 
-    async def list_by_organism(self, organism_id: uuid.UUID, *, batch: int = 1000) -> list[Gene]:
+    async def list_by_organism(
+        self, organism_id: uuid.UUID, *, workspace_id: uuid.UUID, batch: int = 1000
+    ) -> list[Gene]:
         return [g for g in self._genes if g.organism_id == organism_id]
 
 
@@ -80,6 +82,7 @@ async def test_creates_then_updates_idempotently() -> None:
     ess_repo = _FakeEssRepo()
     uc = _uc(_FakeGeneRepo([gene]), ess_repo)
     cmd = BulkUpsertEssentialityCommand(
+        target_workspace_id=SHARED_WORKSPACE_ID,
         organism_id=org,
         records=(
             EssentialityImportRecord(
@@ -104,6 +107,7 @@ async def test_unmatched_locus_is_reported_failed() -> None:
     org = uuid.uuid4()
     uc = _uc(_FakeGeneRepo([]), _FakeEssRepo())
     cmd = BulkUpsertEssentialityCommand(
+        target_workspace_id=SHARED_WORKSPACE_ID,
         organism_id=org,
         records=(EssentialityImportRecord(locus_key="NOPE", classification="ES"),),
     )
@@ -119,6 +123,7 @@ async def test_dry_run_writes_nothing() -> None:
     ess_repo = _FakeEssRepo()
     uc = _uc(_FakeGeneRepo([gene]), ess_repo)
     cmd = BulkUpsertEssentialityCommand(
+        target_workspace_id=SHARED_WORKSPACE_ID,
         organism_id=org,
         records=(EssentialityImportRecord(locus_key="Rv0667", classification="NE"),),
         dry_run=True,
@@ -137,6 +142,7 @@ async def test_default_generation_method_is_imported() -> None:
     ess_repo = _FakeEssRepo()
     uc = _uc(_FakeGeneRepo([gene]), ess_repo)
     cmd = BulkUpsertEssentialityCommand(
+        target_workspace_id=SHARED_WORKSPACE_ID,
         organism_id=org,
         records=(EssentialityImportRecord(locus_key="rpoB", classification="ES"),),
     )
@@ -154,6 +160,7 @@ async def test_stamps_generation_method_and_source_run_id() -> None:
     ess_repo = _FakeEssRepo()
     uc = _uc(_FakeGeneRepo([gene]), ess_repo)
     cmd = BulkUpsertEssentialityCommand(
+        target_workspace_id=SHARED_WORKSPACE_ID,
         organism_id=org,
         records=(EssentialityImportRecord(locus_key="rpoB", classification="ES"),),
         generation_method=GenerationMethod.AI_EXTRACTED.value,

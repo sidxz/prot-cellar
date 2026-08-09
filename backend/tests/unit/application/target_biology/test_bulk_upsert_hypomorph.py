@@ -21,7 +21,9 @@ class _FakeGeneRepo:
     def __init__(self, genes: list[Gene]) -> None:
         self._genes = list(genes)
 
-    async def list_by_organism(self, organism_id: uuid.UUID, *, batch: int = 1000) -> list[Gene]:
+    async def list_by_organism(
+        self, organism_id: uuid.UUID, *, workspace_id: uuid.UUID, batch: int = 1000
+    ) -> list[Gene]:
         return [g for g in self._genes if g.organism_id == organism_id]
 
 
@@ -76,6 +78,7 @@ async def test_creates_then_updates_idempotently() -> None:
     hyp_repo = _FakeHypRepo()
     uc = _uc(_FakeGeneRepo([gene]), hyp_repo)
     cmd = BulkUpsertHypomorphCommand(
+        target_workspace_id=SHARED_WORKSPACE_ID,
         organism_id=org,
         records=(
             HypomorphImportRecord(
@@ -101,6 +104,7 @@ async def test_severity_without_defect_reported_failed() -> None:
     gene = Gene.create(workspace_id=SHARED_WORKSPACE_ID, primary_name="Rv0667", organism_id=org)
     uc = _uc(_FakeGeneRepo([gene]), _FakeHypRepo())
     cmd = BulkUpsertHypomorphCommand(
+        target_workspace_id=SHARED_WORKSPACE_ID,
         organism_id=org,
         records=(
             HypomorphImportRecord(

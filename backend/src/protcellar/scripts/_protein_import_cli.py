@@ -16,6 +16,7 @@ from typing import Any
 
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
+from protcellar.domain.shared.global_workspace import SHARED_WORKSPACE_ID
 from protcellar.infrastructure.persistence.settings import DatabaseSettings
 from protcellar.infrastructure.persistence.sqlalchemy.protein_catalog.protein_repository import (
     SQLAlchemyProteinRepository,
@@ -39,7 +40,9 @@ async def run_protein_import(
     uow = AsyncUnitOfWork(factory)
     try:
         records = parse(file.read_text(encoding="utf-8"))
-        command = command_cls(records=tuple(records), dry_run=dry_run)
+        command = command_cls(
+            target_workspace_id=SHARED_WORKSPACE_ID, records=tuple(records), dry_run=dry_run
+        )
         use_case = use_case_cls(
             uow, SQLAlchemyProteinRepository(uow), record_repo_cls(uow), _NoopDispatcher()
         )

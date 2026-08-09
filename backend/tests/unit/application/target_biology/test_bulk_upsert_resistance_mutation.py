@@ -21,7 +21,9 @@ class _FakeGeneRepo:
     def __init__(self, genes: list[Gene]) -> None:
         self._genes = list(genes)
 
-    async def list_by_organism(self, organism_id: uuid.UUID, *, batch: int = 1000) -> list[Gene]:
+    async def list_by_organism(
+        self, organism_id: uuid.UUID, *, workspace_id: uuid.UUID, batch: int = 1000
+    ) -> list[Gene]:
         return [g for g in self._genes if g.organism_id == organism_id]
 
 
@@ -79,6 +81,7 @@ async def test_upsert_by_mutation_and_compound() -> None:
 
     # Same mutation, two different compounds -> two distinct records.
     cmd = BulkUpsertResistanceMutationCommand(
+        target_workspace_id=SHARED_WORKSPACE_ID,
         organism_id=org,
         records=(
             ResistanceMutationImportRecord(locus_key="katG", mutation="S315T", compound_id=c1),
@@ -91,6 +94,7 @@ async def test_upsert_by_mutation_and_compound() -> None:
 
     # Re-run first row -> updated in place (same gene+mutation+compound).
     cmd2 = BulkUpsertResistanceMutationCommand(
+        target_workspace_id=SHARED_WORKSPACE_ID,
         organism_id=org,
         records=(
             ResistanceMutationImportRecord(
@@ -109,6 +113,7 @@ async def test_empty_mutation_reported_failed() -> None:
     gene = Gene.create(workspace_id=SHARED_WORKSPACE_ID, primary_name="katG", organism_id=org)
     uc = _uc(_FakeGeneRepo([gene]), _FakeRmRepo())
     cmd = BulkUpsertResistanceMutationCommand(
+        target_workspace_id=SHARED_WORKSPACE_ID,
         organism_id=org,
         records=(ResistanceMutationImportRecord(locus_key="katG", mutation="   "),),
     )

@@ -32,7 +32,9 @@ class _FakeProteinRepo:
     def __init__(self, proteins: list[Protein]) -> None:
         self._by_acc = {p.primary_accession: p for p in proteins}
 
-    async def find_by_accession(self, accession: str) -> Protein | None:
+    async def find_by_accession(
+        self, accession: str, *, workspace_id: uuid.UUID
+    ) -> Protein | None:
         return self._by_acc.get(accession)
 
 
@@ -95,11 +97,12 @@ async def test_production_create_then_update() -> None:
         _FakeUoW(), _FakeProteinRepo([_protein()]), repo, _NoopDispatcher()
     )
     cmd = BulkUpsertProteinProductionCommand(
+        target_workspace_id=SHARED_WORKSPACE_ID,
         records=(
             ProteinProductionImportRecord(
                 accession=_ACC, status="produced", expression_host="E. coli", method="IMAC"
             ),
-        )
+        ),
     )
     res = (await uc(cmd, auth=_admin())).unwrap()
     assert [r.status for r in res] == ["created"]
@@ -114,7 +117,8 @@ async def test_production_unmatched_accession_failed() -> None:
         _FakeUoW(), _FakeProteinRepo([]), _FakeRecordRepo(), _NoopDispatcher()
     )
     cmd = BulkUpsertProteinProductionCommand(
-        records=(ProteinProductionImportRecord(accession="Q00000", status="produced"),)
+        target_workspace_id=SHARED_WORKSPACE_ID,
+        records=(ProteinProductionImportRecord(accession="Q00000", status="produced"),),
     )
     res = (await uc(cmd, auth=_admin())).unwrap()
     assert res[0].status == "failed"
@@ -128,11 +132,12 @@ async def test_activity_assay_create_then_update() -> None:
         _FakeUoW(), _FakeProteinRepo([_protein()]), repo, _NoopDispatcher()
     )
     cmd = BulkUpsertProteinActivityAssayCommand(
+        target_workspace_id=SHARED_WORKSPACE_ID,
         records=(
             ProteinActivityAssayImportRecord(
                 accession=_ACC, activity_measured="ATPase", method="fluorescence"
             ),
-        )
+        ),
     )
     assert [r.status for r in (await uc(cmd, auth=_admin())).unwrap()] == ["created"]
     assert [r.status for r in (await uc(cmd, auth=_admin())).unwrap()] == ["updated"]
@@ -147,12 +152,13 @@ async def test_structure_ligands_and_bad_resolution() -> None:
     )
     ligand = uuid.uuid4()
     cmd = BulkUpsertUnpublishedStructureCommand(
+        target_workspace_id=SHARED_WORKSPACE_ID,
         records=(
             UnpublishedStructureImportRecord(
                 accession=_ACC, method="X-ray", resolution=1.9, ligand_ids=(ligand,)
             ),
             UnpublishedStructureImportRecord(accession=_ACC, method="cryo-EM", resolution=0.0),
-        )
+        ),
     )
     res = (await uc(cmd, auth=_admin())).unwrap()
     assert res[0].status == "created"

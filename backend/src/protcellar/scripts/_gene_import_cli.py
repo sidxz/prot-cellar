@@ -18,6 +18,7 @@ from typing import Any
 
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
+from protcellar.domain.shared.global_workspace import SHARED_WORKSPACE_ID
 from protcellar.infrastructure.ingestion.organism_resolver import resolve_organism_id
 from protcellar.infrastructure.persistence.settings import DatabaseSettings
 from protcellar.infrastructure.persistence.sqlalchemy.protein_catalog.gene_repository import (
@@ -53,7 +54,12 @@ async def run_gene_import(
                 f"Organism {resolved_id} (tax {tax_id}) has 0 genes — import the proteome first."
             )
         records = parse(file.read_text(encoding="utf-8"))
-        command = command_cls(organism_id=resolved_id, records=tuple(records), dry_run=dry_run)
+        command = command_cls(
+            target_workspace_id=SHARED_WORKSPACE_ID,
+            organism_id=resolved_id,
+            records=tuple(records),
+            dry_run=dry_run,
+        )
         use_case = use_case_cls(
             uow, SQLAlchemyGeneRepository(uow), record_repo_cls(uow), _NoopDispatcher()
         )
