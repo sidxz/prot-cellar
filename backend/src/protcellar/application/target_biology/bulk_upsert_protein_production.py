@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import uuid
 from dataclasses import dataclass
+from typing import Any
 
 from returns.result import Result, Success
 
@@ -32,6 +33,7 @@ class ProteinProductionImportRecord:
     method: str | None = None
     pmid: str | None = None
     dataset: str | None = None
+    extensions: dict[str, Any] | None = None
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -88,14 +90,17 @@ class BulkUpsertProteinProduction:
                         None,
                     )
                     if match is not None:
-                        match.update(
-                            status=rec.status,
-                            expression_host=rec.expression_host,
-                            purity=rec.purity,
-                            condition=rec.condition,
-                            method=rec.method,
-                            provenance=provenance,
-                        )
+                        fields: dict[str, Any] = {
+                            "status": rec.status,
+                            "expression_host": rec.expression_host,
+                            "purity": rec.purity,
+                            "condition": rec.condition,
+                            "method": rec.method,
+                            "provenance": provenance,
+                        }
+                        if rec.extensions is not None:
+                            fields["extensions"] = {**(match.extensions or {}), **rec.extensions}
+                        match.update(**fields)
                         if not input.dry_run:
                             await self._prod_repo.save(match)
                         results.append(ItemResult(index=i, status="updated", id=str(match.id)))
@@ -109,6 +114,7 @@ class BulkUpsertProteinProduction:
                             condition=rec.condition,
                             method=rec.method,
                             provenance=provenance,
+                            extensions=rec.extensions,
                         )
                         if not input.dry_run:
                             await self._prod_repo.save(record)

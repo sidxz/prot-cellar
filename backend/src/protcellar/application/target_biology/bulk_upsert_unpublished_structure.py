@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import uuid
 from dataclasses import dataclass
+from typing import Any
 
 from returns.result import Result, Success
 
@@ -34,6 +35,7 @@ class UnpublishedStructureImportRecord:
     is_experimental: bool = True
     pmid: str | None = None
     dataset: str | None = None
+    extensions: dict[str, Any] | None = None
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -87,13 +89,16 @@ class BulkUpsertUnpublishedStructure:
                     )
                     match = next((s for s in existing if s.method == rec.method), None)
                     if match is not None:
-                        match.update(
-                            resolution=rec.resolution,
-                            ligands=_ligands(rec),
-                            is_published=rec.is_published,
-                            is_experimental=rec.is_experimental,
-                            provenance=provenance,
-                        )
+                        fields: dict[str, Any] = {
+                            "resolution": rec.resolution,
+                            "ligands": _ligands(rec),
+                            "is_published": rec.is_published,
+                            "is_experimental": rec.is_experimental,
+                            "provenance": provenance,
+                        }
+                        if rec.extensions is not None:
+                            fields["extensions"] = {**(match.extensions or {}), **rec.extensions}
+                        match.update(**fields)
                         if not input.dry_run:
                             await self._st_repo.save(match)
                         results.append(ItemResult(index=i, status="updated", id=str(match.id)))
@@ -107,6 +112,7 @@ class BulkUpsertUnpublishedStructure:
                             is_published=rec.is_published,
                             is_experimental=rec.is_experimental,
                             provenance=provenance,
+                            extensions=rec.extensions,
                         )
                         if not input.dry_run:
                             await self._st_repo.save(record)

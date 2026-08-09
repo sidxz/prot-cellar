@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import uuid
 from dataclasses import dataclass
+from typing import Any
 
 from returns.result import Result, Success
 
@@ -41,6 +42,7 @@ class ResistanceMutationImportRecord:
     method: str | None = None
     pmid: str | None = None
     dataset: str | None = None
+    extensions: dict[str, Any] | None = None
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -111,14 +113,17 @@ class BulkUpsertResistanceMutation:
                         None,
                     )
                     if match is not None:
-                        match.update(
-                            compound=compound,
-                            mic_shift=rec.mic_shift,
-                            parent_strain=rec.parent_strain,
-                            protein_coordinate=rec.protein_coordinate,
-                            method=rec.method,
-                            provenance=provenance,
-                        )
+                        fields: dict[str, Any] = {
+                            "compound": compound,
+                            "mic_shift": rec.mic_shift,
+                            "parent_strain": rec.parent_strain,
+                            "protein_coordinate": rec.protein_coordinate,
+                            "method": rec.method,
+                            "provenance": provenance,
+                        }
+                        if rec.extensions is not None:
+                            fields["extensions"] = {**(match.extensions or {}), **rec.extensions}
+                        match.update(**fields)
                         if not input.dry_run:
                             await self._rm_repo.save(match)
                         results.append(ItemResult(index=i, status="updated", id=str(match.id)))
@@ -133,6 +138,7 @@ class BulkUpsertResistanceMutation:
                             protein_coordinate=rec.protein_coordinate,
                             method=rec.method,
                             provenance=provenance,
+                            extensions=rec.extensions,
                         )
                         if not input.dry_run:
                             await self._rm_repo.save(record)

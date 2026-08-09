@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import uuid
 from dataclasses import dataclass
+from typing import Any
 
 from returns.result import Result, Success
 
@@ -32,6 +33,7 @@ class ProteinActivityAssayImportRecord:
     method: str | None = None
     pmid: str | None = None
     dataset: str | None = None
+    extensions: dict[str, Any] | None = None
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -89,13 +91,16 @@ class BulkUpsertProteinActivityAssay:
                         None,
                     )
                     if match is not None:
-                        match.update(
-                            readout=rec.readout,
-                            throughput=rec.throughput,
-                            condition=rec.condition,
-                            method=rec.method,
-                            provenance=provenance,
-                        )
+                        fields: dict[str, Any] = {
+                            "readout": rec.readout,
+                            "throughput": rec.throughput,
+                            "condition": rec.condition,
+                            "method": rec.method,
+                            "provenance": provenance,
+                        }
+                        if rec.extensions is not None:
+                            fields["extensions"] = {**(match.extensions or {}), **rec.extensions}
+                        match.update(**fields)
                         if not input.dry_run:
                             await self._assay_repo.save(match)
                         results.append(ItemResult(index=i, status="updated", id=str(match.id)))
@@ -109,6 +114,7 @@ class BulkUpsertProteinActivityAssay:
                             condition=rec.condition,
                             method=rec.method,
                             provenance=provenance,
+                            extensions=rec.extensions,
                         )
                         if not input.dry_run:
                             await self._assay_repo.save(record)

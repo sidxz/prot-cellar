@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import uuid
 from dataclasses import dataclass
+from typing import Any
 
 from returns.result import Result, Success
 
@@ -33,6 +34,7 @@ class CrispriStrainImportRecord:
     name: str
     pmid: str | None = None
     dataset: str | None = None
+    extensions: dict[str, Any] | None = None
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -84,7 +86,10 @@ class BulkUpsertCrispriStrain:
                     )
                     match = next((s for s in existing if s.name == rec.name.strip()), None)
                     if match is not None:
-                        match.update(provenance=provenance)
+                        fields: dict[str, Any] = {"provenance": provenance}
+                        if rec.extensions is not None:
+                            fields["extensions"] = {**(match.extensions or {}), **rec.extensions}
+                        match.update(**fields)
                         if not input.dry_run:
                             await self._cs_repo.save(match)
                         results.append(ItemResult(index=i, status="updated", id=str(match.id)))
@@ -94,6 +99,7 @@ class BulkUpsertCrispriStrain:
                             name=rec.name,
                             target_gene_id=gene.id,
                             provenance=provenance,
+                            extensions=rec.extensions,
                         )
                         if not input.dry_run:
                             await self._cs_repo.save(record)

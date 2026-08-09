@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import uuid
 from dataclasses import dataclass
+from typing import Any
 
 from returns.result import Result, Success
 
@@ -60,6 +61,7 @@ class EssentialityImportRecord:
     confidence: float | None = None
     pmid: str | None = None
     dataset: str | None = None
+    extensions: dict[str, Any] | None = None
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -145,13 +147,20 @@ class BulkUpsertEssentiality:
                         None,
                     )
                     if match is not None:
+                        # Stored bag first (keeps declared keys no importer regenerates),
+                        # then the helper's own raw_call/source_run_id (always refreshed),
+                        # then rec.extensions last so the record can override either.
                         match.update(
                             classification=classification,
                             condition=rec.condition,
                             method=rec.method,
                             confidence=rec.confidence,
                             provenance=provenance,
-                            extensions=_extensions(rec, input.source_run_id),
+                            extensions={
+                                **(match.extensions or {}),
+                                **_extensions(rec, input.source_run_id),
+                                **(rec.extensions or {}),
+                            },
                         )
                         if not input.dry_run:
                             await self._ess_repo.save(match)
@@ -165,7 +174,10 @@ class BulkUpsertEssentiality:
                             method=rec.method,
                             confidence=rec.confidence,
                             provenance=provenance,
-                            extensions=_extensions(rec, input.source_run_id),
+                            extensions={
+                                **_extensions(rec, input.source_run_id),
+                                **(rec.extensions or {}),
+                            },
                         )
                         if not input.dry_run:
                             await self._ess_repo.save(record)

@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import uuid
 from dataclasses import dataclass
+from typing import Any
 
 from returns.result import Result, Success
 
@@ -38,6 +39,7 @@ class HypomorphImportRecord:
     method: str | None = None
     pmid: str | None = None
     dataset: str | None = None
+    extensions: dict[str, Any] | None = None
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -96,13 +98,16 @@ class BulkUpsertHypomorph:
                         None,
                     )
                     if match is not None:
-                        match.update(
-                            growth_defect=rec.growth_defect,
-                            growth_defect_severity=rec.growth_defect_severity,
-                            condition=rec.condition,
-                            method=rec.method,
-                            provenance=provenance,
-                        )
+                        fields: dict[str, Any] = {
+                            "growth_defect": rec.growth_defect,
+                            "growth_defect_severity": rec.growth_defect_severity,
+                            "condition": rec.condition,
+                            "method": rec.method,
+                            "provenance": provenance,
+                        }
+                        if rec.extensions is not None:
+                            fields["extensions"] = {**(match.extensions or {}), **rec.extensions}
+                        match.update(**fields)
                         if not input.dry_run:
                             await self._hyp_repo.save(match)
                         results.append(ItemResult(index=i, status="updated", id=str(match.id)))
@@ -115,6 +120,7 @@ class BulkUpsertHypomorph:
                             condition=rec.condition,
                             method=rec.method,
                             provenance=provenance,
+                            extensions=rec.extensions,
                         )
                         if not input.dry_run:
                             await self._hyp_repo.save(record)
