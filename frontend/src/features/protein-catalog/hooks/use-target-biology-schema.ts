@@ -48,8 +48,11 @@ export interface TargetBiologySchema {
   concurrency: { field: string };
 }
 
-/** The published write contract. It changes only on a deploy, so it never goes stale
- *  within a session — refetching it on focus would be pure noise.
+/** The published write contract. `staleTime: Infinity` is safe even though the
+ *  admin-declared part of it (`extension_fields`) can change at runtime, because the
+ *  one mutation path that changes it — declaring, editing, or deleting an extension
+ *  field (`use-field-defs.ts`) — explicitly invalidates this query's key. Anything
+ *  else refetching it on focus would be pure noise.
  *
  * The generated hook types its response as `{[key: string]: unknown}` (orval
  * can't know the shape of a schema endpoint's payload); narrow it once here

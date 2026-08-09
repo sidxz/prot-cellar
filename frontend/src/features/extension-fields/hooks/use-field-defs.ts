@@ -8,6 +8,7 @@ import {
   useUpdateFieldDefApiV1ExtensionFieldsFieldDefIdPatch,
 } from "@/shared/lib/api/extension-fields/extension-fields";
 import type { RecordKind } from "@/shared/lib/api/model";
+import { getGetTargetBiologySchemaApiV1TargetBiologySchemaGetQueryKey } from "@/shared/lib/api/target-biology/target-biology";
 import { showSuccess } from "@/shared/lib/toast";
 
 /** List extension field declarations, optionally scoped to one record kind.
@@ -20,7 +21,9 @@ export function useFieldDefs(kind?: RecordKind) {
 /**
  * Declare a new extension field.
  * On success: invalidates every field-defs list (all-kinds and per-kind alike
- * share the same key prefix) and shows a success toast.
+ * share the same key prefix) plus the published schema — which embeds these same
+ * declarations as `extension_fields` and is cached indefinitely otherwise (see
+ * `use-target-biology-schema.ts`) — then shows a success toast.
  * No onError — the global MutationCache handles the error toast.
  */
 export function useCreateFieldDef() {
@@ -31,6 +34,9 @@ export function useCreateFieldDef() {
         queryClient.invalidateQueries({
           queryKey: getListFieldDefsApiV1ExtensionFieldsGetQueryKey(),
         });
+        queryClient.invalidateQueries({
+          queryKey: getGetTargetBiologySchemaApiV1TargetBiologySchemaGetQueryKey(),
+        });
         showSuccess("Field added");
       },
     },
@@ -39,7 +45,8 @@ export function useCreateFieldDef() {
 
 /**
  * Update an existing extension field's label, shape, position, or table visibility.
- * On success: invalidates every field-defs list and shows a success toast.
+ * On success: invalidates every field-defs list plus the published schema (see
+ * `useCreateFieldDef`) and shows a success toast.
  * No onError — the global MutationCache handles the error toast.
  */
 export function useUpdateFieldDef() {
@@ -50,6 +57,9 @@ export function useUpdateFieldDef() {
         queryClient.invalidateQueries({
           queryKey: getListFieldDefsApiV1ExtensionFieldsGetQueryKey(),
         });
+        queryClient.invalidateQueries({
+          queryKey: getGetTargetBiologySchemaApiV1TargetBiologySchemaGetQueryKey(),
+        });
         showSuccess("Field updated");
       },
     },
@@ -59,7 +69,8 @@ export function useUpdateFieldDef() {
 /**
  * Delete a field declaration. Values already stored under its name in any
  * record's `extensions` bag are kept — they are not touched, only orphaned.
- * On success: invalidates every field-defs list and shows a success toast.
+ * On success: invalidates every field-defs list plus the published schema (see
+ * `useCreateFieldDef`) and shows a success toast.
  * No onError — the global MutationCache handles the error toast.
  */
 export function useDeleteFieldDef() {
@@ -69,6 +80,9 @@ export function useDeleteFieldDef() {
       onSuccess: () => {
         queryClient.invalidateQueries({
           queryKey: getListFieldDefsApiV1ExtensionFieldsGetQueryKey(),
+        });
+        queryClient.invalidateQueries({
+          queryKey: getGetTargetBiologySchemaApiV1TargetBiologySchemaGetQueryKey(),
         });
         showSuccess("Field deleted");
       },
