@@ -112,8 +112,11 @@ Three consequences to carry through:
   *"make required once those land on auth.workspace_id"* — and this work retires it.
 - **The match lookup becomes workspace-scoped**: `find_owned_by_gene(target_workspace, gene.id)`, so
   a tenant import can never update a shared record.
-- **`_ensure_strain` creates its strain in the target workspace**, not the caller's. It creates in
-  the importing tenant's workspace today, which is right by accident and wrong by construction.
+*(Corrected during Task 1: an earlier draft of this section claimed `_ensure_strain` creates a strain
+in the importing tenant's workspace and should follow the target. No such call exists on the
+hypomorph path — the only `_ensure_strain` in the repository is a taxonomic-strain helper in
+`import_runner.py` which already resolves against the shared catalogue. `Hypomorph.knockdown_strain_id`
+exists but is dormant: nothing on the bulk path populates it. §5 is where that gets built.)*
 
 ## 4. Extensions on import
 
