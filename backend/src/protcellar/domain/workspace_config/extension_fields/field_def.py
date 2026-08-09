@@ -56,7 +56,9 @@ class ExtensionFieldDef(AggregateRoot):
     ``name`` is the key inside that kind's ``extensions`` JSONB bag. It is
     immutable once created — renaming it would orphan every stored value — so it
     is exposed as a read-only property backed by a private attribute; assigning
-    to it raises ``AttributeError``.
+    to it raises ``AttributeError``. ``kind`` is immutable for the same reason
+    ``name`` is: both are part of the ``(workspace_id, kind, name)`` identity, and
+    neither ``create`` nor ``update`` offers a way to change either one.
     """
 
     def __init__(
@@ -77,13 +79,17 @@ class ExtensionFieldDef(AggregateRoot):
     ) -> None:
         super().__init__(id=id, created_at=created_at, updated_at=updated_at, version=version)
         self.workspace_id = workspace_id
-        self.kind = kind
+        self._kind = kind
         self._name = name
         self.label = label
         self.field_type = field_type
         self.options = options
         self.position = position
         self.show_in_table = show_in_table
+
+    @property
+    def kind(self) -> str:
+        return self._kind
 
     @property
     def name(self) -> str:

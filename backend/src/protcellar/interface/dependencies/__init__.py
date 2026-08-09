@@ -67,10 +67,13 @@ from protcellar.interface.dependencies._taxonomy import (
 )
 from protcellar.interface.dependencies._workspace_config import (
     AssignTagDep,
+    CreateFieldDefDep,
     CreateOrganizationDep,
+    DeleteFieldDefDep,
     DeleteTagDep,
     GetOrganizationDep,
     GetTagsForEntityDep,
+    ListFieldDefsDep,
     ListOrganizationsDep,
     ListTagEntitiesDep,
     ListTagsDep,
@@ -78,6 +81,7 @@ from protcellar.interface.dependencies._workspace_config import (
     RenameTagDep,
     SetEntityTagsDep,
     UnassignTagDep,
+    UpdateFieldDefDep,
     UpdateOrganizationDep,
 )
 
@@ -87,6 +91,7 @@ __all__ = [
     "BulkUpsertGenesDep",
     "BulkUpsertOrganismsDep",
     "BulkUpsertProteinsDep",
+    "CreateFieldDefDep",
     "CreateGeneDep",
     "CreateOrganismDep",
     "CreateOrganizationDep",
@@ -95,6 +100,7 @@ __all__ = [
     "CreateStrainDep",
     "CreateTargetBiologyRecordDep",
     "CreateTargetDep",
+    "DeleteFieldDefDep",
     "DeleteTagDep",
     "DeleteTargetBiologyRecordDep",
     "EventDispatcherDep",
@@ -112,6 +118,7 @@ __all__ = [
     "GetTargetDep",
     "GetUploadDep",
     "ListEnabledPluginIdsDep",
+    "ListFieldDefsDep",
     "ListGenesDep",
     "ListImportRunsDep",
     "ListOrganismsDep",
@@ -134,6 +141,7 @@ __all__ = [
     "SuggestedValuesReaderDep",
     "UnassignTagDep",
     "UoWDep",
+    "UpdateFieldDefDep",
     "UpdateGeneDep",
     "UpdateOrganismDep",
     "UpdateOrganizationDep",

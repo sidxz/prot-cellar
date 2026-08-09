@@ -136,6 +136,10 @@ def create_app() -> FastAPI:
     app.include_router(tags_router)
     app.include_router(tags_assignment_router)
 
+    from protcellar.interface.routes.extension_fields import router as extension_fields_router
+
+    app.include_router(extension_fields_router)
+
     return app
 
 

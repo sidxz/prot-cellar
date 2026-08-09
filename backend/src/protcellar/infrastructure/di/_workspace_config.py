@@ -8,6 +8,16 @@ from lagom import Container
 from sqlalchemy.ext.asyncio import async_sessionmaker
 
 from protcellar.application.workspace_config.create_organization import CreateOrganization
+from protcellar.application.workspace_config.extension_fields.create_field_def import (
+    CreateFieldDef,
+)
+from protcellar.application.workspace_config.extension_fields.delete_field_def import (
+    DeleteFieldDef,
+)
+from protcellar.application.workspace_config.extension_fields.list_field_defs import ListFieldDefs
+from protcellar.application.workspace_config.extension_fields.update_field_def import (
+    UpdateFieldDef,
+)
 from protcellar.application.workspace_config.get_organization import GetOrganization
 from protcellar.application.workspace_config.list_organizations import ListOrganizations
 from protcellar.application.workspace_config.tagging.assign_tag import AssignTag
@@ -29,6 +39,9 @@ from protcellar.infrastructure.persistence.sqlalchemy.tagging.tag_link_repositor
 )
 from protcellar.infrastructure.persistence.sqlalchemy.tagging.tag_repository import (
     SQLAlchemyTagRepository,
+)
+from protcellar.infrastructure.persistence.sqlalchemy.workspace_config.extension_field_def_repository import (  # noqa: E501
+    SQLAlchemyExtensionFieldDefRepository,
 )
 from protcellar.infrastructure.persistence.sqlalchemy.workspace_config.organization_repository import (  # noqa: E501
     SQLAlchemyOrganizationRepository,
@@ -104,3 +117,23 @@ def register_workspace_config(container: Container) -> None:
     container.define(GetTagsForEntity, _get_tags_for_entity)
     container.define(ListTags, _list_tags)
     container.define(ListTagEntities, _list_tag_entities)
+
+    # --- Extension field registry ---
+    def _field_def_cmd(uc_cls: type) -> Any:
+        def _f(c: Container) -> Any:
+            uow = AsyncUnitOfWork(c[async_sessionmaker])
+            return uc_cls(uow, SQLAlchemyExtensionFieldDefRepository(uow), c[EventDispatcher])
+
+        return _f
+
+    def _field_def_query(uc_cls: type) -> Any:
+        def _f(c: Container) -> Any:
+            uow = AsyncUnitOfWork(c[async_sessionmaker])
+            return uc_cls(uow, SQLAlchemyExtensionFieldDefRepository(uow))
+
+        return _f
+
+    container.define(CreateFieldDef, _field_def_cmd(CreateFieldDef))
+    container.define(UpdateFieldDef, _field_def_cmd(UpdateFieldDef))
+    container.define(DeleteFieldDef, _field_def_cmd(DeleteFieldDef))
+    container.define(ListFieldDefs, _field_def_query(ListFieldDefs))

@@ -7,6 +7,16 @@ from typing import Annotated
 from fastapi import Depends
 
 from protcellar.application.workspace_config.create_organization import CreateOrganization
+from protcellar.application.workspace_config.extension_fields.create_field_def import (
+    CreateFieldDef,
+)
+from protcellar.application.workspace_config.extension_fields.delete_field_def import (
+    DeleteFieldDef,
+)
+from protcellar.application.workspace_config.extension_fields.list_field_defs import ListFieldDefs
+from protcellar.application.workspace_config.extension_fields.update_field_def import (
+    UpdateFieldDef,
+)
 from protcellar.application.workspace_config.get_organization import GetOrganization
 from protcellar.application.workspace_config.list_organizations import ListOrganizations
 from protcellar.application.workspace_config.tagging.assign_tag import AssignTag
@@ -24,10 +34,13 @@ from ._core import _get_use_case
 
 __all__ = [
     "AssignTagDep",
+    "CreateFieldDefDep",
     "CreateOrganizationDep",
+    "DeleteFieldDefDep",
     "DeleteTagDep",
     "GetOrganizationDep",
     "GetTagsForEntityDep",
+    "ListFieldDefsDep",
     "ListOrganizationsDep",
     "ListTagEntitiesDep",
     "ListTagsDep",
@@ -35,6 +48,7 @@ __all__ = [
     "RenameTagDep",
     "SetEntityTagsDep",
     "UnassignTagDep",
+    "UpdateFieldDefDep",
     "UpdateOrganizationDep",
 ]
 
@@ -54,3 +68,9 @@ RenameTagDep = Annotated[RenameTag, Depends(_get_use_case(RenameTag))]
 MergeTagsDep = Annotated[MergeTags, Depends(_get_use_case(MergeTags))]
 DeleteTagDep = Annotated[DeleteTag, Depends(_get_use_case(DeleteTag))]
 ListTagEntitiesDep = Annotated[ListTagEntities, Depends(_get_use_case(ListTagEntities))]
+
+# --- Extension field registry ---
+CreateFieldDefDep = Annotated[CreateFieldDef, Depends(_get_use_case(CreateFieldDef))]
+UpdateFieldDefDep = Annotated[UpdateFieldDef, Depends(_get_use_case(UpdateFieldDef))]
+DeleteFieldDefDep = Annotated[DeleteFieldDef, Depends(_get_use_case(DeleteFieldDef))]
+ListFieldDefsDep = Annotated[ListFieldDefs, Depends(_get_use_case(ListFieldDefs))]

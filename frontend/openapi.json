@@ -4219,6 +4219,185 @@
           }
         }
       }
+    },
+    "/api/v1/extension-fields": {
+      "get": {
+        "tags": [
+          "extension-fields"
+        ],
+        "summary": "List Field Defs",
+        "operationId": "list_field_defs_api_v1_extension_fields_get",
+        "parameters": [
+          {
+            "name": "kind",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/RecordKind"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Kind"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ExtensionFieldDefResponse"
+                  },
+                  "title": "Response List Field Defs Api V1 Extension Fields Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "extension-fields"
+        ],
+        "summary": "Create Field Def",
+        "operationId": "create_field_def_api_v1_extension_fields_post",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateFieldDefBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExtensionFieldDefResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/extension-fields/{field_def_id}": {
+      "patch": {
+        "tags": [
+          "extension-fields"
+        ],
+        "summary": "Update Field Def",
+        "operationId": "update_field_def_api_v1_extension_fields__field_def_id__patch",
+        "parameters": [
+          {
+            "name": "field_def_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Field Def Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateFieldDefBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExtensionFieldDefResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "extension-fields"
+        ],
+        "summary": "Delete Field Def",
+        "operationId": "delete_field_def_api_v1_extension_fields__field_def_id__delete",
+        "parameters": [
+          {
+            "name": "field_def_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Field Def Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -4906,6 +5085,56 @@
           "compound_id"
         ],
         "title": "CompoundRefResponse"
+      },
+      "CreateFieldDefBody": {
+        "properties": {
+          "kind": {
+            "$ref": "#/components/schemas/RecordKind"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "field_type": {
+            "$ref": "#/components/schemas/ExtensionFieldType"
+          },
+          "options": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Options"
+          },
+          "position": {
+            "type": "integer",
+            "title": "Position"
+          },
+          "show_in_table": {
+            "type": "boolean",
+            "title": "Show In Table"
+          }
+        },
+        "type": "object",
+        "required": [
+          "kind",
+          "name",
+          "label",
+          "field_type",
+          "position",
+          "show_in_table"
+        ],
+        "title": "CreateFieldDefBody"
       },
       "CreateGeneBody": {
         "properties": {
@@ -5963,6 +6192,83 @@
           "provenance"
         ],
         "title": "EssentialityWriteBody"
+      },
+      "ExtensionFieldDefResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "kind": {
+            "type": "string",
+            "title": "Kind"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "field_type": {
+            "type": "string",
+            "title": "Field Type"
+          },
+          "options": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Options"
+          },
+          "position": {
+            "type": "integer",
+            "title": "Position"
+          },
+          "show_in_table": {
+            "type": "boolean",
+            "title": "Show In Table"
+          },
+          "version": {
+            "type": "integer",
+            "title": "Version"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "kind",
+          "name",
+          "label",
+          "field_type",
+          "options",
+          "position",
+          "show_in_table",
+          "version"
+        ],
+        "title": "ExtensionFieldDefResponse"
+      },
+      "ExtensionFieldType": {
+        "type": "string",
+        "enum": [
+          "string",
+          "text",
+          "number",
+          "integer",
+          "boolean",
+          "date",
+          "enum"
+        ],
+        "title": "ExtensionFieldType"
       },
       "FeatureBody": {
         "properties": {
@@ -10575,6 +10881,71 @@
           "provenance"
         ],
         "title": "UnpublishedStructureWriteBody"
+      },
+      "UpdateFieldDefBody": {
+        "properties": {
+          "label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Label"
+          },
+          "field_type": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ExtensionFieldType"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "options": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Options"
+          },
+          "position": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Position"
+          },
+          "show_in_table": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Show In Table"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "UpdateFieldDefBody",
+        "description": "``name`` (and ``kind``) are deliberately absent: renaming would orphan every\nstored value already keyed under the old name, and moving a declaration to a\ndifferent kind isn't a supported edit. Omitting the field from the body \u2014 not\na hand-rolled guard in the use case \u2014 is what turns a client's attempt to send\n``name`` into a 422 (``extra=\"forbid\"``), matching ``UpdateGeneBody``."
       },
       "UpdateGeneBody": {
         "properties": {
