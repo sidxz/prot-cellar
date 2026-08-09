@@ -304,6 +304,16 @@ describe("extensionColumns", () => {
     expect(col.render({ extensions: { flag: true } })).toBe("Yes");
     expect(col.render({ extensions: {} })).toBe("—");
   });
+
+  it("keys columns by field name, not label — two declarations may share a label", () => {
+    const dup: FieldDescriptor[] = [
+      { name: "method_a", label: "Method", type: "string", required: false, show_in_table: true },
+      { name: "method_b", label: "Method", type: "string", required: false, show_in_table: true },
+    ];
+    const cols = extensionColumns<{ extensions?: Record<string, unknown> }>(dup);
+    expect(cols.map((c) => c.key)).toEqual(["method_a", "method_b"]);
+    expect(cols.map((c) => c.label)).toEqual(["Method", "Method"]);
+  });
 });
 
 describe("generationMethodBadgeVariant", () => {

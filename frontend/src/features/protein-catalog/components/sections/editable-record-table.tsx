@@ -150,6 +150,12 @@ export function extensionColumns<R extends { extensions?: Record<string, unknown
   return fields
     .filter((f) => f.show_in_table)
     .map((f) => ({
+      // `f.name` is unique per kind by construction (DB constraint on
+      // (workspace_id, kind, name)); `f.label` is admin-entered free text
+      // with no uniqueness check anywhere, so it can't safely be the React
+      // key — two declarations sharing a label, or one colliding with a
+      // hardcoded core column's label (e.g. "Method"), would collide.
+      key: f.name,
       label: f.label,
       render: (r: R) => renderExtensionValue(f.type, r.extensions?.[f.name]),
     }));
@@ -157,6 +163,10 @@ export function extensionColumns<R extends { extensions?: Record<string, unknown
 
 export interface Column<R, D> {
   label: string;
+  /** React key when `label` alone isn't safely unique (see `extensionColumns`
+   * above); falls back to `label` when omitted, which every hardcoded core
+   * column does. */
+  key?: string;
   /** Draft key this cell edits; omit for a read-only column (e.g. a compound ref). */
   field?: Extract<keyof D, string>;
   type?: "text" | "number" | "enum" | "bool";
@@ -380,7 +390,7 @@ export function EditableRecordTable<
   const editRow = (key: string) => (
     <tr key={key} className="border-t border-border bg-muted/30">
       {columns.map((col) => (
-        <td key={col.label} className={TD}>
+        <td key={col.key ?? col.label} className={TD}>
           {editCell(col)}
         </td>
       ))}
@@ -431,7 +441,7 @@ export function EditableRecordTable<
             <thead>
               <tr className="bg-muted/40">
                 {columns.map((col) => (
-                  <th key={col.label} className={TH}>
+                  <th key={col.key ?? col.label} className={TH}>
                     {col.label}
                   </th>
                 ))}
@@ -462,7 +472,7 @@ export function EditableRecordTable<
                     )}
                   >
                     {columns.map((col) => (
-                      <td key={col.label} className={cn(TD, !ai && "text-foreground")}>
+                      <td key={col.key ?? col.label} className={cn(TD, !ai && "text-foreground")}>
                         {col.render(r)}
                       </td>
                     ))}
