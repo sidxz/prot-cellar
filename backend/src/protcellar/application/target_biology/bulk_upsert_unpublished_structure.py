@@ -1,7 +1,11 @@
 """Idempotent bulk upsert of UnpublishedStructure records, resolving proteins by accession.
 
-Upsert key is (protein_id, method). ``ligand_ids`` are portable chem-cellar
-molecule ids; resolution (Å) must be positive (the aggregate enforces it).
+Upsert key is (protein_id, method, ligands) — a protein can hold many structures
+distinguished only by what is bound, so ligands are part of the key, not
+incidental detail. Compared via ``_ligand_key`` below: a sorted, case-folded
+tuple of compound ids, so column order in the source file never matters.
+``ligand_ids`` are portable chem-cellar molecule ids; resolution (Å) must be
+positive (the aggregate enforces it).
 """
 
 from __future__ import annotations
@@ -50,6 +54,13 @@ def _ligands(rec: UnpublishedStructureImportRecord) -> tuple[CompoundRef, ...]:
     return tuple(CompoundRef(compound_id=lid) for lid in rec.ligand_ids)
 
 
+def _ligand_key(ligands: tuple[CompoundRef, ...]) -> tuple[str, ...]:
+    """Order-independent identity for a ligand set, keyed on compound id (the
+    only field that identifies a ligand — ``name`` is display-only). Sorted and
+    case-folded so ``[A, B]`` and ``[B, A]`` compare equal."""
+    return tuple(sorted(str(ref.compound_id).lower() for ref in ligands))
+
+
 class BulkUpsertUnpublishedStructure:
     def __init__(
         self,
@@ -84,14 +95,23 @@ class BulkUpsertUnpublishedStructure:
                         )
                         continue
                     provenance = provenance_from(input.source_type, rec.pmid, rec.dataset)
+                    ligands = _ligands(rec)
+                    ligand_key = _ligand_key(ligands)
                     existing = await self._st_repo.find_owned_by_protein(
                         input.target_workspace_id, protein.id
                     )
-                    match = next((s for s in existing if s.method == rec.method), None)
+                    match = next(
+                        (
+                            s
+                            for s in existing
+                            if s.method == rec.method and _ligand_key(s.ligands) == ligand_key
+                        ),
+                        None,
+                    )
                     if match is not None:
                         fields: dict[str, Any] = {
                             "resolution": rec.resolution,
-                            "ligands": _ligands(rec),
+                            "ligands": ligands,
                             "is_published": rec.is_published,
                             "is_experimental": rec.is_experimental,
                             "provenance": provenance,
@@ -108,7 +128,7 @@ class BulkUpsertUnpublishedStructure:
                             protein_id=protein.id,
                             method=rec.method,
                             resolution=rec.resolution,
-                            ligands=_ligands(rec),
+                            ligands=ligands,
                             is_published=rec.is_published,
                             is_experimental=rec.is_experimental,
                             provenance=provenance,

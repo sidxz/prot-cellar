@@ -37,10 +37,16 @@ async def run_gene_import(
     command_cls: Any,
     use_case_cls: Any,
     record_repo_cls: Any,
+    extra_repo_cls: Any | None = None,
     tax_id: int = _DEFAULT_TAX_ID,
     organism_id: uuid.UUID | None = None,
     dry_run: bool = False,
 ) -> Counter[str]:
+    """``extra_repo_cls`` is for use cases needing more than one repository —
+    today only ``BulkUpsertHypomorph``, which resolves ``knockdown_strain`` names
+    against ``CrispriStrainRepository``. Omitted, the call shape is unchanged for
+    the other four gene-side importers.
+    """
     settings = DatabaseSettings()  # type: ignore[call-arg]
     engine = create_async_engine(settings.database_url)
     factory = async_sessionmaker(engine, expire_on_commit=False)
@@ -60,8 +66,12 @@ async def run_gene_import(
             records=tuple(records),
             dry_run=dry_run,
         )
-        use_case = use_case_cls(
-            uow, SQLAlchemyGeneRepository(uow), record_repo_cls(uow), _NoopDispatcher()
+        gene_repo = SQLAlchemyGeneRepository(uow)
+        record_repo = record_repo_cls(uow)
+        use_case = (
+            use_case_cls(uow, gene_repo, record_repo, extra_repo_cls(uow), _NoopDispatcher())
+            if extra_repo_cls is not None
+            else use_case_cls(uow, gene_repo, record_repo, _NoopDispatcher())
         )
         results = (await use_case(command, auth=_ServiceAuth())).unwrap()
         return Counter(r.status for r in results)
@@ -76,6 +86,7 @@ def gene_import_main(
     command_cls: Any,
     use_case_cls: Any,
     record_repo_cls: Any,
+    extra_repo_cls: Any | None = None,
 ) -> None:
     parser = argparse.ArgumentParser(description=description)
     parser.add_argument("--file", type=Path, required=True, help="CSV/TSV file to import.")
@@ -92,6 +103,7 @@ def gene_import_main(
             command_cls=command_cls,
             use_case_cls=use_case_cls,
             record_repo_cls=record_repo_cls,
+            extra_repo_cls=extra_repo_cls,
             tax_id=args.tax_id,
             organism_id=args.organism_id,
             dry_run=args.dry_run,

@@ -13,6 +13,7 @@ from protcellar.application.target_biology.bulk_upsert_hypomorph import (
 )
 from protcellar.domain.protein_catalog.gene import Gene
 from protcellar.domain.shared.global_workspace import SHARED_WORKSPACE_ID
+from protcellar.domain.target_biology.crispri_strain import CrispriStrain
 from protcellar.domain.target_biology.hypomorph import Hypomorph
 from tests.fakes.fake_auth import FakeAuth
 
@@ -44,6 +45,27 @@ class _FakeHypRepo:
         self.items.append(agg)
 
 
+class _FakeCsRepo:
+    def __init__(self, strains: list[CrispriStrain] | None = None) -> None:
+        self.items: list[CrispriStrain] = list(strains or [])
+
+    async def find_by_gene(
+        self, workspace_id: uuid.UUID, target_gene_id: uuid.UUID
+    ) -> list[CrispriStrain]:
+        return [
+            s
+            for s in self.items
+            if s.target_gene_id == target_gene_id and s.workspace_id == workspace_id
+        ]
+
+    async def save(self, agg: CrispriStrain) -> None:
+        for i, s in enumerate(self.items):
+            if s.id == agg.id:
+                self.items[i] = agg
+                return
+        self.items.append(agg)
+
+
 class _FakeUoW:
     async def commit(self) -> list:
         return []
@@ -63,8 +85,12 @@ class _NoopDispatcher:
         return None
 
 
-def _uc(gene_repo: _FakeGeneRepo, hyp_repo: _FakeHypRepo) -> BulkUpsertHypomorph:
-    return BulkUpsertHypomorph(_FakeUoW(), gene_repo, hyp_repo, _NoopDispatcher())  # type: ignore[arg-type]
+def _uc(
+    gene_repo: _FakeGeneRepo, hyp_repo: _FakeHypRepo, cs_repo: _FakeCsRepo | None = None
+) -> BulkUpsertHypomorph:
+    return BulkUpsertHypomorph(  # type: ignore[arg-type]
+        _FakeUoW(), gene_repo, hyp_repo, cs_repo or _FakeCsRepo(), _NoopDispatcher()
+    )
 
 
 def _admin() -> FakeAuth:

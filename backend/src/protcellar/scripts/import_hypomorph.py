@@ -7,6 +7,9 @@ from protcellar.application.target_biology.bulk_upsert_hypomorph import (
     BulkUpsertHypomorphCommand,
 )
 from protcellar.infrastructure.ingestion.hypomorph_csv import parse_hypomorph_csv
+from protcellar.infrastructure.persistence.sqlalchemy.target_biology.crispri_strain_repository import (  # noqa: E501
+    SQLAlchemyCrispriStrainRepository,
+)
 from protcellar.infrastructure.persistence.sqlalchemy.target_biology.hypomorph_repository import (
     SQLAlchemyHypomorphRepository,
 )
@@ -19,4 +22,5 @@ if __name__ == "__main__":
         command_cls=BulkUpsertHypomorphCommand,
         use_case_cls=BulkUpsertHypomorph,
         record_repo_cls=SQLAlchemyHypomorphRepository,
+        extra_repo_cls=SQLAlchemyCrispriStrainRepository,
     )
