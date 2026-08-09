@@ -28,6 +28,7 @@ import {
   type Column,
   EditableRecordTable,
   defaultProvenance,
+  extensionColumns,
   isAiGenerated,
   numOrNull,
   provColumns,
@@ -79,7 +80,6 @@ const PROD_COLUMNS: Column<ProteinProductionResponse, ProdDraft>[] = [
   },
   { label: "Condition", field: "condition", type: "text", render: (r) => dash(r.condition) },
   { label: "Method", field: "method", type: "text", render: (r) => dash(r.method) },
-  ...provColumns<ProteinProductionResponse>(),
 ];
 
 export function ProteinProductionTable({
@@ -92,6 +92,7 @@ export function ProteinProductionTable({
   const onSuccess = useInvalidateProteinTargetBiology(proteinId);
   const { data: schema } = useTargetBiologySchema();
   const provenanceFields = schema?.provenance.fields ?? [];
+  const extensionFields = schema?.kinds.protein_production?.extension_fields ?? [];
   const create = useCreateProteinProductionApiV1ProteinsProteinIdTargetBiologyProteinProductionPost(
     { mutation: { onSuccess } },
   );
@@ -107,9 +108,14 @@ export function ProteinProductionTable({
       description="Recombinant expression / purification record for this protein."
       records={records}
       isAiRow={(r) => isAiGenerated(r.provenance.generation_method)}
-      columns={PROD_COLUMNS}
+      columns={[
+        ...PROD_COLUMNS,
+        ...extensionColumns<ProteinProductionResponse>(extensionFields),
+        ...provColumns<ProteinProductionResponse>(),
+      ]}
       emptyDraft={PROD_EMPTY}
       provenanceFields={provenanceFields}
+      extensionFields={extensionFields}
       toDraft={(p) => ({
         status: p.status,
         expression_host: p.expression_host ?? "",
@@ -185,7 +191,6 @@ const ASSAY_COLUMNS: Column<ProteinActivityAssayResponse, AssayDraft>[] = [
   { label: "Throughput", field: "throughput", type: "text", render: (r) => dash(r.throughput) },
   { label: "Condition", field: "condition", type: "text", render: (r) => dash(r.condition) },
   { label: "Method", field: "method", type: "text", render: (r) => dash(r.method) },
-  ...provColumns<ProteinActivityAssayResponse>(),
 ];
 
 export function ProteinActivityAssayTable({
@@ -198,6 +203,7 @@ export function ProteinActivityAssayTable({
   const onSuccess = useInvalidateProteinTargetBiology(proteinId);
   const { data: schema } = useTargetBiologySchema();
   const provenanceFields = schema?.provenance.fields ?? [];
+  const extensionFields = schema?.kinds.protein_activity_assay?.extension_fields ?? [];
   const create =
     useCreateProteinActivityAssayApiV1ProteinsProteinIdTargetBiologyProteinActivityAssayPost({
       mutation: { onSuccess },
@@ -214,9 +220,14 @@ export function ProteinActivityAssayTable({
       description="A biochemical assay defined to measure this protein's activity."
       records={records}
       isAiRow={(r) => isAiGenerated(r.provenance.generation_method)}
-      columns={ASSAY_COLUMNS}
+      columns={[
+        ...ASSAY_COLUMNS,
+        ...extensionColumns<ProteinActivityAssayResponse>(extensionFields),
+        ...provColumns<ProteinActivityAssayResponse>(),
+      ]}
       emptyDraft={ASSAY_EMPTY}
       provenanceFields={provenanceFields}
+      extensionFields={extensionFields}
       toDraft={(a) => ({
         activity_measured: a.activity_measured,
         readout: a.readout ?? "",
@@ -316,7 +327,6 @@ const STRUCT_COLUMNS: Column<UnpublishedStructureResponse, StructDraft>[] = [
     type: "bool",
     render: (r) => (r.is_experimental ? "Yes" : "Predicted"),
   },
-  ...provColumns<UnpublishedStructureResponse>(),
 ];
 
 export function UnpublishedStructureTable({
@@ -329,6 +339,7 @@ export function UnpublishedStructureTable({
   const onSuccess = useInvalidateProteinTargetBiology(proteinId);
   const { data: schema } = useTargetBiologySchema();
   const provenanceFields = schema?.provenance.fields ?? [];
+  const extensionFields = schema?.kinds.unpublished_structure?.extension_fields ?? [];
   const create =
     useCreateUnpublishedStructureApiV1ProteinsProteinIdTargetBiologyUnpublishedStructurePost({
       mutation: { onSuccess },
@@ -345,9 +356,14 @@ export function UnpublishedStructureTable({
       description="An internal / unpublished structural model (ligand links are read-only for now)."
       records={records}
       isAiRow={(r) => isAiGenerated(r.provenance.generation_method)}
-      columns={STRUCT_COLUMNS}
+      columns={[
+        ...STRUCT_COLUMNS,
+        ...extensionColumns<UnpublishedStructureResponse>(extensionFields),
+        ...provColumns<UnpublishedStructureResponse>(),
+      ]}
       emptyDraft={STRUCT_EMPTY}
       provenanceFields={provenanceFields}
+      extensionFields={extensionFields}
       toDraft={(s) => ({
         method: s.method ?? "",
         resolution: s.resolution != null ? String(s.resolution) : "",

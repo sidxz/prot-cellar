@@ -45,6 +45,7 @@ import {
   type Column,
   EditableRecordTable,
   defaultProvenance,
+  extensionColumns,
   humanize,
   isAiGenerated,
   numOrNull,
@@ -93,7 +94,6 @@ const ESS_COLUMNS: Column<EssentialityResponse, EssDraft>[] = [
     placeholder: "0–1",
     render: (r) => (r.confidence != null ? r.confidence.toFixed(2) : "—"),
   },
-  ...provColumns<EssentialityResponse>(),
 ];
 
 export function EssentialityTable({
@@ -106,6 +106,7 @@ export function EssentialityTable({
   const onSuccess = useInvalidateGeneTargetBiology(geneId);
   const { data: schema } = useTargetBiologySchema();
   const provenanceFields = schema?.provenance.fields ?? [];
+  const extensionFields = schema?.kinds.essentiality?.extension_fields ?? [];
   const create = useCreateEssentialityApiV1GenesGeneIdTargetBiologyEssentialityPost({
     mutation: { onSuccess },
   });
@@ -122,9 +123,14 @@ export function EssentialityTable({
       records={records}
       visualization={<EssentialityCallScale records={records} />}
       isAiRow={(r) => isAiGenerated(r.provenance.generation_method)}
-      columns={ESS_COLUMNS}
+      columns={[
+        ...ESS_COLUMNS,
+        ...extensionColumns<EssentialityResponse>(extensionFields),
+        ...provColumns<EssentialityResponse>(),
+      ]}
       emptyDraft={ESS_EMPTY}
       provenanceFields={provenanceFields}
+      extensionFields={extensionFields}
       toDraft={(e) => ({
         classification: e.classification,
         condition: e.condition ?? "",
@@ -189,7 +195,6 @@ const VULN_COLUMNS: Column<VulnerabilityResponse, VulnDraft>[] = [
     placeholder: "0–1",
     render: (r) => (r.confidence != null ? r.confidence.toFixed(2) : "—"),
   },
-  ...provColumns<VulnerabilityResponse>(),
 ];
 
 export function VulnerabilityTable({
@@ -202,6 +207,7 @@ export function VulnerabilityTable({
   const onSuccess = useInvalidateGeneTargetBiology(geneId);
   const { data: schema } = useTargetBiologySchema();
   const provenanceFields = schema?.provenance.fields ?? [];
+  const extensionFields = schema?.kinds.vulnerability?.extension_fields ?? [];
   const create = useCreateVulnerabilityApiV1GenesGeneIdTargetBiologyVulnerabilityPost({
     mutation: { onSuccess },
   });
@@ -218,9 +224,14 @@ export function VulnerabilityTable({
       records={records}
       visualization={<VulnerabilityPanel records={records} />}
       isAiRow={(r) => isAiGenerated(r.provenance.generation_method)}
-      columns={VULN_COLUMNS}
+      columns={[
+        ...VULN_COLUMNS,
+        ...extensionColumns<VulnerabilityResponse>(extensionFields),
+        ...provColumns<VulnerabilityResponse>(),
+      ]}
       emptyDraft={VULN_EMPTY}
       provenanceFields={provenanceFields}
+      extensionFields={extensionFields}
       toDraft={(v) => ({
         vulnerability_score: v.vulnerability_score != null ? String(v.vulnerability_score) : "",
         condition: v.condition ?? "",
@@ -287,7 +298,6 @@ const HYPO_COLUMNS: Column<HypomorphResponse, HypoDraft>[] = [
   },
   { label: "Condition", field: "condition", type: "text", render: (r) => dash(r.condition) },
   { label: "Method", field: "method", type: "text", render: (r) => dash(r.method) },
-  ...provColumns<HypomorphResponse>(),
 ];
 
 export function HypomorphTable({
@@ -300,6 +310,7 @@ export function HypomorphTable({
   const onSuccess = useInvalidateGeneTargetBiology(geneId);
   const { data: schema } = useTargetBiologySchema();
   const provenanceFields = schema?.provenance.fields ?? [];
+  const extensionFields = schema?.kinds.hypomorph?.extension_fields ?? [];
   const create = useCreateHypomorphApiV1GenesGeneIdTargetBiologyHypomorphPost({
     mutation: { onSuccess },
   });
@@ -315,9 +326,14 @@ export function HypomorphTable({
       description="Knockdown phenotype — a partial loss-of-function growth defect."
       records={records}
       isAiRow={(r) => isAiGenerated(r.provenance.generation_method)}
-      columns={HYPO_COLUMNS}
+      columns={[
+        ...HYPO_COLUMNS,
+        ...extensionColumns<HypomorphResponse>(extensionFields),
+        ...provColumns<HypomorphResponse>(),
+      ]}
       emptyDraft={HYPO_EMPTY}
       provenanceFields={provenanceFields}
+      extensionFields={extensionFields}
       toDraft={(h) => ({
         growth_defect: h.growth_defect,
         growth_defect_severity: h.growth_defect_severity ?? "",
@@ -365,7 +381,6 @@ const CRISPRI_COLUMNS: Column<CrispriStrainResponse, CrispriDraft>[] = [
     placeholder: "strain name",
     render: (r) => <span className="font-mono text-xs">{r.name}</span>,
   },
-  ...provColumns<CrispriStrainResponse>(),
 ];
 
 export function CrispriStrainTable({
@@ -378,6 +393,7 @@ export function CrispriStrainTable({
   const onSuccess = useInvalidateGeneTargetBiology(geneId);
   const { data: schema } = useTargetBiologySchema();
   const provenanceFields = schema?.provenance.fields ?? [];
+  const extensionFields = schema?.kinds.crispri_strain?.extension_fields ?? [];
   const create = useCreateCrispriStrainApiV1GenesGeneIdTargetBiologyCrispriStrainPost({
     mutation: { onSuccess },
   });
@@ -393,9 +409,14 @@ export function CrispriStrainTable({
       description="A physical knockdown reagent (sgRNA strain) targeting this gene."
       records={records}
       isAiRow={(r) => isAiGenerated(r.provenance.generation_method)}
-      columns={CRISPRI_COLUMNS}
+      columns={[
+        ...CRISPRI_COLUMNS,
+        ...extensionColumns<CrispriStrainResponse>(extensionFields),
+        ...provColumns<CrispriStrainResponse>(),
+      ]}
       emptyDraft={CRISPRI_EMPTY}
       provenanceFields={provenanceFields}
+      extensionFields={extensionFields}
       toDraft={(s) => ({ name: s.name, version: s.version })}
       toBody={(d): CrispriStrainPatchBody => ({ name: d.name, version: d.version })}
       onCreate={(body) =>
@@ -472,7 +493,6 @@ const RES_COLUMNS: Column<ResistanceMutationResponse, ResDraft>[] = [
     render: (r) => dash(r.protein_coordinate),
   },
   { label: "Method", field: "method", type: "text", render: (r) => dash(r.method) },
-  ...provColumns<ResistanceMutationResponse>(),
 ];
 
 export function ResistanceMutationTable({
@@ -485,6 +505,7 @@ export function ResistanceMutationTable({
   const onSuccess = useInvalidateGeneTargetBiology(geneId);
   const { data: schema } = useTargetBiologySchema();
   const provenanceFields = schema?.provenance.fields ?? [];
+  const extensionFields = schema?.kinds.resistance_mutation?.extension_fields ?? [];
   const create = useCreateResistanceMutationApiV1GenesGeneIdTargetBiologyResistanceMutationPost({
     mutation: { onSuccess },
   });
@@ -501,9 +522,14 @@ export function ResistanceMutationTable({
       records={records}
       visualization={<ResistanceLollipop records={records} />}
       isAiRow={(r) => isAiGenerated(r.provenance.generation_method)}
-      columns={RES_COLUMNS}
+      columns={[
+        ...RES_COLUMNS,
+        ...extensionColumns<ResistanceMutationResponse>(extensionFields),
+        ...provColumns<ResistanceMutationResponse>(),
+      ]}
       emptyDraft={RES_EMPTY}
       provenanceFields={provenanceFields}
+      extensionFields={extensionFields}
       toDraft={(m) => ({
         mutation: m.mutation,
         mic_shift: m.mic_shift != null ? String(m.mic_shift) : "",

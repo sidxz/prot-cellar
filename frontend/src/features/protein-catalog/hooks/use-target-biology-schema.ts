@@ -26,6 +26,9 @@ export interface FieldDescriptor {
   item_fields?: FieldDescriptor[];
   /** Referenced resource type for a "reference" field. */
   target?: string;
+  /** Extension-field declarations only: whether it renders as a record-table
+   *  column. Absent on core fields. */
+  show_in_table?: boolean;
 }
 
 export interface KindDescriptor {
@@ -33,6 +36,9 @@ export interface KindDescriptor {
   attaches_to: string;
   fields: FieldDescriptor[];
   read_only?: string[];
+  /** This workspace's admin-defined extra fields for the kind, already
+   *  ordered by `position` (ties broken by name) — see `extension-fields`. */
+  extension_fields: FieldDescriptor[];
 }
 
 /** The published `GET /target-biology/schema` write contract. */

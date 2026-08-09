@@ -3,6 +3,7 @@
 import { Badge } from "@/shared/components/ui/badge";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
+import { Popover, PopoverContent, PopoverTrigger } from "@/shared/components/ui/popover";
 import {
   Select,
   SelectContent,
@@ -19,7 +20,7 @@ import {
 import type { ProvenanceBody, ProvenanceSourceType } from "@/shared/lib/api/model";
 import { showError, showSuccess } from "@/shared/lib/toast";
 import { cn } from "@/shared/lib/utils";
-import { BookOpen, Check, Loader2, Pencil, Plus, Trash2, X } from "lucide-react";
+import { BookOpen, Check, Info, Loader2, Pencil, Plus, Trash2, X } from "lucide-react";
 import type { ComponentProps, ReactNode } from "react";
 import { useState } from "react";
 
@@ -125,6 +126,35 @@ export function provColumns<R extends { provenance: ProvLike }>() {
   ];
 }
 
+/** Render a declared or unmapped extension value the way the table already
+ * formats core fields of that type: Yes/No for boolean, humanized text for
+ * enum, the raw value otherwise. `type` is `undefined` for an unmapped
+ * (undeclared) key — there is no declaration to key off, so it renders as-is. */
+function renderExtensionValue(type: string | undefined, value: unknown): ReactNode {
+  if (value === null || value === undefined || value === "") return "—";
+  if (type === "boolean") return value ? "Yes" : "No";
+  if (type === "enum") return humanize(String(value));
+  if (typeof value === "object") return JSON.stringify(value);
+  return String(value);
+}
+
+/** Read-only columns for a kind's `show_in_table` extension-field declarations,
+ * in the descriptor's own `position` order. Spread these in after the core
+ * columns and before `provColumns()` — see any of the per-kind tables.
+ * Declared fields that aren't `show_in_table`, and undeclared ("unmapped")
+ * keys, don't get a column; both still surface in the per-row detail popover
+ * instead (the table's `extensionFields` prop, same array passed here). */
+export function extensionColumns<R extends { extensions?: Record<string, unknown> }>(
+  fields: FieldDescriptor[],
+) {
+  return fields
+    .filter((f) => f.show_in_table)
+    .map((f) => ({
+      label: f.label,
+      render: (r: R) => renderExtensionValue(f.type, r.extensions?.[f.name]),
+    }));
+}
+
 export interface Column<R, D> {
   label: string;
   /** Draft key this cell edits; omit for a read-only column (e.g. a compound ref). */
@@ -139,8 +169,68 @@ const TH =
   "px-2 py-1.5 text-left text-xs font-medium uppercase tracking-wide text-muted-foreground";
 const TD = "px-2 py-1.5 align-top";
 
+/** Every declared extension field's current value, plus any stored key with
+ * no matching declaration ("unmapped"). The one place a curator can see the
+ * complete `extensions` bag, not just whatever happens to be a table column.
+ * Read-only — an edit affordance is a later pass, not this one. */
+function ExtensionDetail({
+  fields,
+  extensions,
+}: {
+  fields: FieldDescriptor[];
+  extensions: Record<string, unknown>;
+}) {
+  const declared = new Set(fields.map((f) => f.name));
+  const unmapped = Object.keys(extensions).filter((k) => !declared.has(k));
+  return (
+    <PopoverContent className="w-72 text-xs" align="end">
+      <div className="flex flex-col gap-2">
+        {fields.length === 0 && unmapped.length === 0 && (
+          <p className="text-muted-foreground">No extension values.</p>
+        )}
+        {fields.map((f) => (
+          <div key={f.name} className="flex items-baseline justify-between gap-3">
+            <span className="text-muted-foreground">{f.label}</span>
+            <span className="text-right text-foreground">
+              {renderExtensionValue(f.type, extensions[f.name])}
+            </span>
+          </div>
+        ))}
+        {unmapped.length > 0 && (
+          <div
+            className={cn(
+              "flex flex-col gap-2",
+              fields.length > 0 && "border-t border-border pt-2",
+            )}
+          >
+            {unmapped.map((key) => (
+              <div key={key} className="flex items-baseline justify-between gap-3">
+                <span className="flex items-center gap-1.5 text-muted-foreground">
+                  {key}
+                  <Badge variant="outline" className="font-normal">
+                    Unmapped
+                  </Badge>
+                </span>
+                <span className="text-right text-foreground">
+                  {renderExtensionValue(undefined, extensions[key])}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </PopoverContent>
+  );
+}
+
 interface Props<
-  R extends { id: string; version: number; provenance: object; is_shared?: boolean },
+  R extends {
+    id: string;
+    version: number;
+    provenance: object;
+    is_shared?: boolean;
+    extensions?: Record<string, unknown>;
+  },
   D extends Record<string, unknown>,
 > {
   title: string;
@@ -162,10 +252,22 @@ interface Props<
    * the per-row Provenance… dialog. Optional so the generic mechanics test
    * doesn't need a schema fixture; real callers always pass the fetched fields. */
   provenanceFields?: FieldDescriptor[];
+  /** This kind's declared extension fields — all of them, any `show_in_table`
+   * value — used to list every declared value (plus unmapped stored keys) in
+   * the per-row detail popover. `extensionColumns()` above turns the
+   * `show_in_table` subset into actual columns; pass the same array to both.
+   * Optional for the same reason `provenanceFields` is. */
+  extensionFields?: FieldDescriptor[];
 }
 
 export function EditableRecordTable<
-  R extends { id: string; version: number; provenance: object; is_shared?: boolean },
+  R extends {
+    id: string;
+    version: number;
+    provenance: object;
+    is_shared?: boolean;
+    extensions?: Record<string, unknown>;
+  },
   D extends Record<string, unknown>,
 >({
   title,
@@ -182,6 +284,7 @@ export function EditableRecordTable<
   visualization,
   isAiRow,
   provenanceFields = [],
+  extensionFields = [],
 }: Props<R, D>) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draft, setDraft] = useState<D>(emptyDraft);
@@ -364,6 +467,21 @@ export function EditableRecordTable<
                       </td>
                     ))}
                     <td className={`${TD} whitespace-nowrap`}>
+                      {(extensionFields.length > 0 ||
+                        Object.keys(r.extensions ?? {}).length > 0) && (
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button size="icon" variant="ghost" className="h-7 w-7">
+                              <Info className="h-3.5 w-3.5" />
+                              <span className="sr-only">Extension values</span>
+                            </Button>
+                          </PopoverTrigger>
+                          <ExtensionDetail
+                            fields={extensionFields}
+                            extensions={r.extensions ?? {}}
+                          />
+                        </Popover>
+                      )}
                       {r.is_shared ? (
                         <span className="text-xs italic text-muted-foreground">
                           Reference data — managed by import

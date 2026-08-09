@@ -1,16 +1,30 @@
 import { fireEvent, render, screen } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { beforeAll, describe, expect, it, vi } from "vitest";
 
 vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
 
+import type { FieldDescriptor } from "../../hooks/use-target-biology-schema";
 import {
   type Column,
   EditableRecordTable,
   ProvenanceLegend,
   defaultProvenance,
+  extensionColumns,
   generationMethodBadgeVariant,
   isAiGenerated,
 } from "./editable-record-table";
+
+// Radix Popover needs pointer-event stubs in jsdom (scrollIntoView / ResizeObserver
+// are already polyfilled globally in vitest.setup.ts). Same stub used in
+// tag-filter.test.tsx for the same reason.
+beforeAll(() => {
+  if (!Element.prototype.hasPointerCapture) {
+    Element.prototype.hasPointerCapture = vi.fn(() => false);
+  }
+  if (!Element.prototype.releasePointerCapture) {
+    Element.prototype.releasePointerCapture = vi.fn();
+  }
+});
 
 interface Rec {
   id: string;
@@ -21,6 +35,7 @@ interface Rec {
   version: number;
   provenance: Record<string, unknown>;
   is_shared?: boolean;
+  extensions?: Record<string, unknown>;
 }
 type Draft = { name: string; count: string; active: boolean; kind: string };
 
@@ -183,6 +198,111 @@ describe("EditableRecordTable", () => {
     expect(screen.getByRole("button", { name: /provenance/i })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /delete/i })).toBeInTheDocument();
     expect(screen.queryByText(/managed by import/i)).not.toBeInTheDocument();
+  });
+});
+
+// A workspace with two declarations for this kind: one shown as a column, one not.
+const EXT_FIELDS: FieldDescriptor[] = [
+  { name: "priority", label: "Priority", type: "string", required: false, show_in_table: true },
+  {
+    name: "internal_note",
+    label: "Internal note",
+    type: "text",
+    required: false,
+    show_in_table: false,
+  },
+];
+
+function renderWithExtensions(record: Rec) {
+  render(
+    <EditableRecordTable<Rec, Draft>
+      title="Widget"
+      description="desc"
+      records={[record]}
+      columns={[...columns, ...extensionColumns<Rec>(EXT_FIELDS)]}
+      emptyDraft={EMPTY}
+      toDraft={toDraft}
+      toBody={toBody}
+      onCreate={vi.fn()}
+      onUpdate={vi.fn()}
+      onDelete={vi.fn()}
+      busy={false}
+      extensionFields={EXT_FIELDS}
+    />,
+  );
+}
+
+describe("EditableRecordTable extension fields", () => {
+  it("renders a show_in_table declaration as a column and omits one that isn't", () => {
+    renderWithExtensions({ ...rec, extensions: { priority: "high", internal_note: "hush" } });
+
+    expect(screen.getByRole("columnheader", { name: "Priority" })).toBeInTheDocument();
+    expect(screen.getByText("high")).toBeInTheDocument();
+    expect(screen.queryByRole("columnheader", { name: "Internal note" })).not.toBeInTheDocument();
+  });
+
+  it("shows an unmapped stored key in the detail popover, not as a column", () => {
+    renderWithExtensions({ ...rec, extensions: { priority: "high", legacy_flag: "yes" } });
+
+    expect(screen.queryByRole("columnheader", { name: /legacy_flag/i })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /extension values/i }));
+    expect(screen.getByText("legacy_flag")).toBeInTheDocument();
+    expect(screen.getByText("yes")).toBeInTheDocument();
+    expect(screen.getByText("Unmapped")).toBeInTheDocument();
+    // Every declared field is listed too, not just the ones that are columns.
+    expect(screen.getByText("Internal note")).toBeInTheDocument();
+  });
+
+  it("shows extension values with no edit affordance on a shared row", () => {
+    renderWithExtensions({
+      ...rec,
+      is_shared: true,
+      extensions: { priority: "high", legacy_flag: "yes" },
+    });
+
+    // The show_in_table column still renders for a shared row...
+    expect(screen.getByText("high")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /extension values/i }));
+    expect(screen.getByText("legacy_flag")).toBeInTheDocument();
+    // ...but nothing about it is editable: the detail has no form controls, and
+    // the ordinary mutate buttons stay hidden exactly as they do without extensions.
+    expect(screen.queryByRole("textbox")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /^edit$/i })).not.toBeInTheDocument();
+  });
+
+  it("hides the detail trigger entirely when there is nothing to show", () => {
+    render(
+      <EditableRecordTable<Rec, Draft>
+        title="Widget"
+        description="desc"
+        records={[{ ...rec, extensions: {} }]}
+        columns={columns}
+        emptyDraft={EMPTY}
+        toDraft={toDraft}
+        toBody={toBody}
+        onCreate={vi.fn()}
+        onUpdate={vi.fn()}
+        onDelete={vi.fn()}
+        busy={false}
+      />,
+    );
+    expect(screen.queryByRole("button", { name: /extension values/i })).not.toBeInTheDocument();
+  });
+});
+
+describe("extensionColumns", () => {
+  it("keeps only show_in_table declarations, in the given order", () => {
+    const cols = extensionColumns<{ extensions?: Record<string, unknown> }>(EXT_FIELDS);
+    expect(cols.map((c) => c.label)).toEqual(["Priority"]);
+  });
+
+  it("renders a boolean value as Yes/No and a missing value as an em dash", () => {
+    const boolField: FieldDescriptor[] = [
+      { name: "flag", label: "Flag", type: "boolean", required: false, show_in_table: true },
+    ];
+    const [col] = extensionColumns<{ extensions?: Record<string, unknown> }>(boolField);
+    expect(col.render({ extensions: { flag: true } })).toBe("Yes");
+    expect(col.render({ extensions: {} })).toBe("—");
   });
 });
 
