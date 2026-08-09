@@ -10,6 +10,7 @@ import type { HypomorphPatchBodyKnockdownStrainId } from './hypomorphPatchBodyKn
 import type { HypomorphPatchBodyCondition } from './hypomorphPatchBodyCondition';
 import type { HypomorphPatchBodyMethod } from './hypomorphPatchBodyMethod';
 import type { HypomorphPatchBodyProvenance } from './hypomorphPatchBodyProvenance';
+import type { HypomorphPatchBodyExtensions } from './hypomorphPatchBodyExtensions';
 import type { HypomorphPatchBodyVersion } from './hypomorphPatchBodyVersion';
 
 export interface HypomorphPatchBody {
@@ -19,5 +20,6 @@ export interface HypomorphPatchBody {
   condition?: HypomorphPatchBodyCondition;
   method?: HypomorphPatchBodyMethod;
   provenance?: HypomorphPatchBodyProvenance;
+  extensions?: HypomorphPatchBodyExtensions;
   version?: HypomorphPatchBodyVersion;
 }

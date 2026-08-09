@@ -9,6 +9,7 @@ import type { ProteinActivityAssayWriteBodyThroughput } from './proteinActivityA
 import type { ProteinActivityAssayWriteBodyCondition } from './proteinActivityAssayWriteBodyCondition';
 import type { ProteinActivityAssayWriteBodyMethod } from './proteinActivityAssayWriteBodyMethod';
 import type { ProvenanceBody } from './provenanceBody';
+import type { ProteinActivityAssayWriteBodyExtensions } from './proteinActivityAssayWriteBodyExtensions';
 
 export interface ProteinActivityAssayWriteBody {
   activity_measured: string;
@@ -17,4 +18,5 @@ export interface ProteinActivityAssayWriteBody {
   condition?: ProteinActivityAssayWriteBodyCondition;
   method?: ProteinActivityAssayWriteBodyMethod;
   provenance: ProvenanceBody;
+  extensions?: ProteinActivityAssayWriteBodyExtensions;
 }

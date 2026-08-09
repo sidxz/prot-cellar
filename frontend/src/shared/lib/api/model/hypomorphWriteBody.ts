@@ -9,6 +9,7 @@ import type { HypomorphWriteBodyKnockdownStrainId } from './hypomorphWriteBodyKn
 import type { HypomorphWriteBodyCondition } from './hypomorphWriteBodyCondition';
 import type { HypomorphWriteBodyMethod } from './hypomorphWriteBodyMethod';
 import type { ProvenanceBody } from './provenanceBody';
+import type { HypomorphWriteBodyExtensions } from './hypomorphWriteBodyExtensions';
 
 export interface HypomorphWriteBody {
   growth_defect: boolean;
@@ -17,4 +18,5 @@ export interface HypomorphWriteBody {
   condition?: HypomorphWriteBodyCondition;
   method?: HypomorphWriteBodyMethod;
   provenance: ProvenanceBody;
+  extensions?: HypomorphWriteBodyExtensions;
 }

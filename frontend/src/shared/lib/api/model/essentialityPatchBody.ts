@@ -9,6 +9,7 @@ import type { EssentialityPatchBodyCondition } from './essentialityPatchBodyCond
 import type { EssentialityPatchBodyMethod } from './essentialityPatchBodyMethod';
 import type { EssentialityPatchBodyConfidence } from './essentialityPatchBodyConfidence';
 import type { EssentialityPatchBodyProvenance } from './essentialityPatchBodyProvenance';
+import type { EssentialityPatchBodyExtensions } from './essentialityPatchBodyExtensions';
 import type { EssentialityPatchBodyVersion } from './essentialityPatchBodyVersion';
 
 export interface EssentialityPatchBody {
@@ -17,5 +18,6 @@ export interface EssentialityPatchBody {
   method?: EssentialityPatchBodyMethod;
   confidence?: EssentialityPatchBodyConfidence;
   provenance?: EssentialityPatchBodyProvenance;
+  extensions?: EssentialityPatchBodyExtensions;
   version?: EssentialityPatchBodyVersion;
 }

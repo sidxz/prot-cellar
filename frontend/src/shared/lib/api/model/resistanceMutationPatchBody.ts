@@ -11,6 +11,7 @@ import type { ResistanceMutationPatchBodyParentStrain } from './resistanceMutati
 import type { ResistanceMutationPatchBodyProteinCoordinate } from './resistanceMutationPatchBodyProteinCoordinate';
 import type { ResistanceMutationPatchBodyMethod } from './resistanceMutationPatchBodyMethod';
 import type { ResistanceMutationPatchBodyProvenance } from './resistanceMutationPatchBodyProvenance';
+import type { ResistanceMutationPatchBodyExtensions } from './resistanceMutationPatchBodyExtensions';
 import type { ResistanceMutationPatchBodyVersion } from './resistanceMutationPatchBodyVersion';
 
 export interface ResistanceMutationPatchBody {
@@ -21,5 +22,6 @@ export interface ResistanceMutationPatchBody {
   protein_coordinate?: ResistanceMutationPatchBodyProteinCoordinate;
   method?: ResistanceMutationPatchBodyMethod;
   provenance?: ResistanceMutationPatchBodyProvenance;
+  extensions?: ResistanceMutationPatchBodyExtensions;
   version?: ResistanceMutationPatchBodyVersion;
 }

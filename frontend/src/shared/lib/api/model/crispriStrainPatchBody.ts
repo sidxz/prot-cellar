@@ -6,10 +6,12 @@
  */
 import type { CrispriStrainPatchBodyName } from './crispriStrainPatchBodyName';
 import type { CrispriStrainPatchBodyProvenance } from './crispriStrainPatchBodyProvenance';
+import type { CrispriStrainPatchBodyExtensions } from './crispriStrainPatchBodyExtensions';
 import type { CrispriStrainPatchBodyVersion } from './crispriStrainPatchBodyVersion';
 
 export interface CrispriStrainPatchBody {
   name?: CrispriStrainPatchBodyName;
   provenance?: CrispriStrainPatchBodyProvenance;
+  extensions?: CrispriStrainPatchBodyExtensions;
   version?: CrispriStrainPatchBodyVersion;
 }

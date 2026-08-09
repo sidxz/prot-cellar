@@ -8,6 +8,7 @@ import type { UnpublishedStructureWriteBodyMethod } from './unpublishedStructure
 import type { UnpublishedStructureWriteBodyResolution } from './unpublishedStructureWriteBodyResolution';
 import type { CompoundRefBody } from './compoundRefBody';
 import type { ProvenanceBody } from './provenanceBody';
+import type { UnpublishedStructureWriteBodyExtensions } from './unpublishedStructureWriteBodyExtensions';
 
 export interface UnpublishedStructureWriteBody {
   method?: UnpublishedStructureWriteBodyMethod;
@@ -16,4 +17,5 @@ export interface UnpublishedStructureWriteBody {
   is_published?: boolean;
   is_experimental?: boolean;
   provenance: ProvenanceBody;
+  extensions?: UnpublishedStructureWriteBodyExtensions;
 }

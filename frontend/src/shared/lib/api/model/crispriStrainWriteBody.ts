@@ -5,8 +5,10 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { ProvenanceBody } from './provenanceBody';
+import type { CrispriStrainWriteBodyExtensions } from './crispriStrainWriteBodyExtensions';
 
 export interface CrispriStrainWriteBody {
   name: string;
   provenance: ProvenanceBody;
+  extensions?: CrispriStrainWriteBodyExtensions;
 }

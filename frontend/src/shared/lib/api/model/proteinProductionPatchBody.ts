@@ -10,6 +10,7 @@ import type { ProteinProductionPatchBodyPurity } from './proteinProductionPatchB
 import type { ProteinProductionPatchBodyCondition } from './proteinProductionPatchBodyCondition';
 import type { ProteinProductionPatchBodyMethod } from './proteinProductionPatchBodyMethod';
 import type { ProteinProductionPatchBodyProvenance } from './proteinProductionPatchBodyProvenance';
+import type { ProteinProductionPatchBodyExtensions } from './proteinProductionPatchBodyExtensions';
 import type { ProteinProductionPatchBodyVersion } from './proteinProductionPatchBodyVersion';
 
 export interface ProteinProductionPatchBody {
@@ -19,5 +20,6 @@ export interface ProteinProductionPatchBody {
   condition?: ProteinProductionPatchBodyCondition;
   method?: ProteinProductionPatchBodyMethod;
   provenance?: ProteinProductionPatchBodyProvenance;
+  extensions?: ProteinProductionPatchBodyExtensions;
   version?: ProteinProductionPatchBodyVersion;
 }

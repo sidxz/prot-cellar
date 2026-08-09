@@ -10,6 +10,7 @@ import type { ResistanceMutationWriteBodyParentStrain } from './resistanceMutati
 import type { ResistanceMutationWriteBodyProteinCoordinate } from './resistanceMutationWriteBodyProteinCoordinate';
 import type { ResistanceMutationWriteBodyMethod } from './resistanceMutationWriteBodyMethod';
 import type { ProvenanceBody } from './provenanceBody';
+import type { ResistanceMutationWriteBodyExtensions } from './resistanceMutationWriteBodyExtensions';
 
 export interface ResistanceMutationWriteBody {
   mutation: string;
@@ -19,4 +20,5 @@ export interface ResistanceMutationWriteBody {
   protein_coordinate?: ResistanceMutationWriteBodyProteinCoordinate;
   method?: ResistanceMutationWriteBodyMethod;
   provenance: ProvenanceBody;
+  extensions?: ResistanceMutationWriteBodyExtensions;
 }

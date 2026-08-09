@@ -9,6 +9,7 @@ import type { EssentialityWriteBodyCondition } from './essentialityWriteBodyCond
 import type { EssentialityWriteBodyMethod } from './essentialityWriteBodyMethod';
 import type { EssentialityWriteBodyConfidence } from './essentialityWriteBodyConfidence';
 import type { ProvenanceBody } from './provenanceBody';
+import type { EssentialityWriteBodyExtensions } from './essentialityWriteBodyExtensions';
 
 export interface EssentialityWriteBody {
   classification: EssentialityClass;
@@ -16,4 +17,5 @@ export interface EssentialityWriteBody {
   method?: EssentialityWriteBodyMethod;
   confidence?: EssentialityWriteBodyConfidence;
   provenance: ProvenanceBody;
+  extensions?: EssentialityWriteBodyExtensions;
 }

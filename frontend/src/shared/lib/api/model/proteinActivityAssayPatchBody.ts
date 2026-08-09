@@ -10,6 +10,7 @@ import type { ProteinActivityAssayPatchBodyThroughput } from './proteinActivityA
 import type { ProteinActivityAssayPatchBodyCondition } from './proteinActivityAssayPatchBodyCondition';
 import type { ProteinActivityAssayPatchBodyMethod } from './proteinActivityAssayPatchBodyMethod';
 import type { ProteinActivityAssayPatchBodyProvenance } from './proteinActivityAssayPatchBodyProvenance';
+import type { ProteinActivityAssayPatchBodyExtensions } from './proteinActivityAssayPatchBodyExtensions';
 import type { ProteinActivityAssayPatchBodyVersion } from './proteinActivityAssayPatchBodyVersion';
 
 export interface ProteinActivityAssayPatchBody {
@@ -19,5 +20,6 @@ export interface ProteinActivityAssayPatchBody {
   condition?: ProteinActivityAssayPatchBodyCondition;
   method?: ProteinActivityAssayPatchBodyMethod;
   provenance?: ProteinActivityAssayPatchBodyProvenance;
+  extensions?: ProteinActivityAssayPatchBodyExtensions;
   version?: ProteinActivityAssayPatchBodyVersion;
 }

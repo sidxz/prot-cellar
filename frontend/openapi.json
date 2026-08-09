@@ -5767,6 +5767,18 @@
               }
             ]
           },
+          "extensions": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Extensions"
+          },
           "version": {
             "anyOf": [
               {
@@ -5836,6 +5848,18 @@
           },
           "provenance": {
             "$ref": "#/components/schemas/ProvenanceBody"
+          },
+          "extensions": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Extensions"
           }
         },
         "type": "object",
@@ -6050,6 +6074,18 @@
               }
             ]
           },
+          "extensions": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Extensions"
+          },
           "version": {
             "anyOf": [
               {
@@ -6184,6 +6220,18 @@
           },
           "provenance": {
             "$ref": "#/components/schemas/ProvenanceBody"
+          },
+          "extensions": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Extensions"
           }
         },
         "type": "object",
@@ -7268,6 +7316,18 @@
               }
             ]
           },
+          "extensions": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Extensions"
+          },
           "version": {
             "anyOf": [
               {
@@ -7427,6 +7487,18 @@
           },
           "provenance": {
             "$ref": "#/components/schemas/ProvenanceBody"
+          },
+          "extensions": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Extensions"
           }
         },
         "type": "object",
@@ -8655,6 +8727,18 @@
               }
             ]
           },
+          "extensions": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Extensions"
+          },
           "version": {
             "anyOf": [
               {
@@ -8812,6 +8896,18 @@
           },
           "provenance": {
             "$ref": "#/components/schemas/ProvenanceBody"
+          },
+          "extensions": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Extensions"
           }
         },
         "type": "object",
@@ -9103,6 +9199,18 @@
               }
             ]
           },
+          "extensions": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Extensions"
+          },
           "version": {
             "anyOf": [
               {
@@ -9260,6 +9368,18 @@
           },
           "provenance": {
             "$ref": "#/components/schemas/ProvenanceBody"
+          },
+          "extensions": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Extensions"
           }
         },
         "type": "object",
@@ -10071,6 +10191,18 @@
               }
             ]
           },
+          "extensions": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Extensions"
+          },
           "version": {
             "anyOf": [
               {
@@ -10248,6 +10380,18 @@
           },
           "provenance": {
             "$ref": "#/components/schemas/ProvenanceBody"
+          },
+          "extensions": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Extensions"
           }
         },
         "type": "object",
@@ -10734,6 +10878,18 @@
               }
             ]
           },
+          "extensions": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Extensions"
+          },
           "version": {
             "anyOf": [
               {
@@ -10874,6 +11030,18 @@
           },
           "provenance": {
             "$ref": "#/components/schemas/ProvenanceBody"
+          },
+          "extensions": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Extensions"
           }
         },
         "type": "object",
@@ -11711,6 +11879,18 @@
               }
             ]
           },
+          "extensions": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Extensions"
+          },
           "version": {
             "anyOf": [
               {
@@ -11859,6 +12039,18 @@
           },
           "provenance": {
             "$ref": "#/components/schemas/ProvenanceBody"
+          },
+          "extensions": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Extensions"
           }
         },
         "type": "object",

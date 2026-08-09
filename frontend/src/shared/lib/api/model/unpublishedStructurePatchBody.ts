@@ -10,6 +10,7 @@ import type { UnpublishedStructurePatchBodyLigands } from './unpublishedStructur
 import type { UnpublishedStructurePatchBodyIsPublished } from './unpublishedStructurePatchBodyIsPublished';
 import type { UnpublishedStructurePatchBodyIsExperimental } from './unpublishedStructurePatchBodyIsExperimental';
 import type { UnpublishedStructurePatchBodyProvenance } from './unpublishedStructurePatchBodyProvenance';
+import type { UnpublishedStructurePatchBodyExtensions } from './unpublishedStructurePatchBodyExtensions';
 import type { UnpublishedStructurePatchBodyVersion } from './unpublishedStructurePatchBodyVersion';
 
 export interface UnpublishedStructurePatchBody {
@@ -19,5 +20,6 @@ export interface UnpublishedStructurePatchBody {
   is_published?: UnpublishedStructurePatchBodyIsPublished;
   is_experimental?: UnpublishedStructurePatchBodyIsExperimental;
   provenance?: UnpublishedStructurePatchBodyProvenance;
+  extensions?: UnpublishedStructurePatchBodyExtensions;
   version?: UnpublishedStructurePatchBodyVersion;
 }

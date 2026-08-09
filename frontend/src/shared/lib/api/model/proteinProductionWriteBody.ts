@@ -9,6 +9,7 @@ import type { ProteinProductionWriteBodyPurity } from './proteinProductionWriteB
 import type { ProteinProductionWriteBodyCondition } from './proteinProductionWriteBodyCondition';
 import type { ProteinProductionWriteBodyMethod } from './proteinProductionWriteBodyMethod';
 import type { ProvenanceBody } from './provenanceBody';
+import type { ProteinProductionWriteBodyExtensions } from './proteinProductionWriteBodyExtensions';
 
 export interface ProteinProductionWriteBody {
   status: string;
@@ -17,4 +18,5 @@ export interface ProteinProductionWriteBody {
   condition?: ProteinProductionWriteBodyCondition;
   method?: ProteinProductionWriteBodyMethod;
   provenance: ProvenanceBody;
+  extensions?: ProteinProductionWriteBodyExtensions;
 }
