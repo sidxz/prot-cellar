@@ -213,7 +213,7 @@ const EXT_FIELDS: FieldDescriptor[] = [
   },
 ];
 
-function renderWithExtensions(record: Rec) {
+function renderWithExtensions(record: Rec, onUpdate = vi.fn().mockResolvedValue({})) {
   render(
     <EditableRecordTable<Rec, Draft>
       title="Widget"
@@ -224,12 +224,13 @@ function renderWithExtensions(record: Rec) {
       toDraft={toDraft}
       toBody={toBody}
       onCreate={vi.fn()}
-      onUpdate={vi.fn()}
+      onUpdate={onUpdate}
       onDelete={vi.fn()}
       busy={false}
       extensionFields={EXT_FIELDS}
     />,
   );
+  return { onUpdate };
 }
 
 describe("EditableRecordTable extension fields", () => {
@@ -265,9 +266,28 @@ describe("EditableRecordTable extension fields", () => {
     fireEvent.click(screen.getByRole("button", { name: /extension values/i }));
     expect(screen.getByText("legacy_flag")).toBeInTheDocument();
     // ...but nothing about it is editable: the detail has no form controls, and
-    // the ordinary mutate buttons stay hidden exactly as they do without extensions.
+    // the ordinary mutate buttons stay hidden exactly as they do without extensions,
+    // including the Extra fields… action that would otherwise open an edit dialog.
     expect(screen.queryByRole("textbox")).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /^edit$/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /extra fields/i })).not.toBeInTheDocument();
+  });
+
+  it("opens the Extra fields… dialog for a non-shared row and submits only the changed key", () => {
+    const { onUpdate } = renderWithExtensions({ ...rec, extensions: { priority: "high" } });
+
+    fireEvent.click(screen.getByRole("button", { name: /extra fields/i }));
+    expect(screen.getByRole("heading", { name: "Extra fields" })).toBeInTheDocument();
+    // Every declared field gets a control, not just the one shown as a column.
+    expect(screen.getByLabelText("Internal note")).toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText("Priority"), { target: { value: "low" } });
+    fireEvent.click(screen.getByRole("button", { name: /save/i }));
+
+    expect(onUpdate).toHaveBeenCalledWith("r1", {
+      extensions: { priority: "low" },
+      version: 1,
+    });
   });
 
   it("hides the detail trigger entirely when there is nothing to show", () => {

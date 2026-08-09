@@ -20,11 +20,12 @@ import {
 import type { ProvenanceBody, ProvenanceSourceType } from "@/shared/lib/api/model";
 import { showError, showSuccess } from "@/shared/lib/toast";
 import { cn } from "@/shared/lib/utils";
-import { BookOpen, Check, Info, Loader2, Pencil, Plus, Trash2, X } from "lucide-react";
+import { BookOpen, Check, Info, ListPlus, Loader2, Pencil, Plus, Trash2, X } from "lucide-react";
 import type { ComponentProps, ReactNode } from "react";
 import { useState } from "react";
 
 import type { FieldDescriptor } from "../../hooks/use-target-biology-schema";
+import { ExtensionValuesDialog } from "./extension-values-dialog";
 import { ProvenanceDialog } from "./provenance-dialog";
 
 export const humanize = (s: string) => s.replace(/_/g, " ");
@@ -264,9 +265,10 @@ interface Props<
   provenanceFields?: FieldDescriptor[];
   /** This kind's declared extension fields — all of them, any `show_in_table`
    * value — used to list every declared value (plus unmapped stored keys) in
-   * the per-row detail popover. `extensionColumns()` above turns the
-   * `show_in_table` subset into actual columns; pass the same array to both.
-   * Optional for the same reason `provenanceFields` is. */
+   * the per-row detail popover, and to build the per-row Extra fields… edit
+   * dialog. `extensionColumns()` above turns the `show_in_table` subset into
+   * actual columns; pass the same array everywhere. Optional for the same
+   * reason `provenanceFields` is. */
   extensionFields?: FieldDescriptor[];
 }
 
@@ -299,6 +301,7 @@ export function EditableRecordTable<
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draft, setDraft] = useState<D>(emptyDraft);
   const [provenanceTarget, setProvenanceTarget] = useState<R | null>(null);
+  const [extensionsTarget, setExtensionsTarget] = useState<R | null>(null);
   const set = (field: string, value: unknown) => setDraft((d) => ({ ...d, [field]: value }));
 
   async function save() {
@@ -337,6 +340,26 @@ export function EditableRecordTable<
       await onUpdate(provenanceTarget.id, { provenance: body, version: provenanceTarget.version });
       showSuccess(`${title} provenance updated`);
       setProvenanceTarget(null);
+    } catch (e) {
+      showError(e);
+    }
+  }
+
+  /** Persists an Extra fields… dialog save. Same shape as `saveProvenance`
+   * above: always PATCHes an existing record, and on a 409 the dialog stays
+   * open with the curator's edits intact. `changes` already holds only the
+   * keys that changed — the dialog computed that diff before ever calling
+   * this, and the backend merges it onto the record's stored bag rather than
+   * replacing it. */
+  async function saveExtensions(changes: Record<string, unknown>) {
+    if (!extensionsTarget) return;
+    try {
+      await onUpdate(extensionsTarget.id, {
+        extensions: changes,
+        version: extensionsTarget.version,
+      });
+      showSuccess(`${title} extra fields updated`);
+      setExtensionsTarget(null);
     } catch (e) {
       showError(e);
     }
@@ -524,6 +547,16 @@ export function EditableRecordTable<
                           <Button
                             size="icon"
                             variant="ghost"
+                            className="h-7 w-7"
+                            onClick={() => setExtensionsTarget(r)}
+                            disabled={busy || extensionFields.length === 0}
+                          >
+                            <ListPlus className="h-3.5 w-3.5" />
+                            <span className="sr-only">Extra fields…</span>
+                          </Button>
+                          <Button
+                            size="icon"
+                            variant="ghost"
                             className="h-7 w-7 text-destructive hover:text-destructive"
                             onClick={() => del(r.id)}
                             disabled={busy}
@@ -547,6 +580,16 @@ export function EditableRecordTable<
             value={provenanceTarget.provenance as Record<string, unknown>}
             onSave={saveProvenance}
             onClose={() => setProvenanceTarget(null)}
+          />
+        )}
+        {extensionsTarget && (
+          <ExtensionValuesDialog
+            open
+            fields={extensionFields}
+            value={extensionsTarget.extensions ?? {}}
+            busy={busy}
+            onSave={saveExtensions}
+            onClose={() => setExtensionsTarget(null)}
           />
         )}
       </section>
