@@ -617,6 +617,177 @@ async def test_patch_replaces_ligands(client: AsyncClient, database_url: str) ->
     assert [lig["name"] for lig in r.json()["ligands"]] == ["GTP"]
 
 
+# --- Extensions bag: writable, validated against the declared-field registry -
+
+_VI_BIN_FIELD = {
+    "kind": "vulnerability",
+    "name": "vi_bin",
+    "label": "VI bin",
+    "field_type": "number",
+    "options": None,
+    "position": 0,
+    "show_in_table": False,
+}
+
+
+async def test_declared_extension_field_round_trips_through_create_and_patch(
+    client: AsyncClient, database_url: str
+) -> None:
+    gene_id = await _seed_gene(client, database_url)
+    declared = await client.post("/api/v1/extension-fields", json=_VI_BIN_FIELD)
+    assert declared.status_code == 201, declared.text
+
+    created = await client.post(
+        f"/api/v1/genes/{gene_id}/target-biology/vulnerability",
+        json={
+            "vulnerability_score": 0.5,
+            "provenance": _INTERNAL_PROV,
+            "extensions": {"vi_bin": 3},
+        },
+    )
+    assert created.status_code == 201, created.text
+    assert created.json()["extensions"] == {"vi_bin": 3}
+
+    patched = await client.patch(
+        f"/api/v1/target-biology/vulnerability/{created.json()['id']}",
+        json={"extensions": {"vi_bin": 7}},
+    )
+    assert patched.status_code == 200, patched.text
+    assert patched.json()["extensions"] == {"vi_bin": 7}
+
+
+async def test_create_rejects_an_undeclared_extension_key(
+    client: AsyncClient, database_url: str
+) -> None:
+    gene_id = await _seed_gene(client, database_url)
+    r = await client.post(
+        f"/api/v1/genes/{gene_id}/target-biology/vulnerability",
+        json={
+            "vulnerability_score": 0.5,
+            "provenance": _INTERNAL_PROV,
+            "extensions": {"never_declared": 1},
+        },
+    )
+    assert r.status_code == 422
+
+
+async def test_patch_rejects_an_undeclared_extension_key(
+    client: AsyncClient, database_url: str
+) -> None:
+    gene_id = await _seed_gene(client, database_url)
+    created = await client.post(
+        f"/api/v1/genes/{gene_id}/target-biology/vulnerability",
+        json={"vulnerability_score": 0.5, "provenance": _INTERNAL_PROV},
+    )
+    r = await client.patch(
+        f"/api/v1/target-biology/vulnerability/{created.json()['id']}",
+        json={"extensions": {"never_declared": 1}},
+    )
+    assert r.status_code == 422
+
+
+async def test_patch_of_a_core_field_leaves_extensions_untouched(
+    client: AsyncClient, database_url: str
+) -> None:
+    gene_id = await _seed_gene(client, database_url)
+    assert (await client.post("/api/v1/extension-fields", json=_VI_BIN_FIELD)).status_code == 201
+    created = await client.post(
+        f"/api/v1/genes/{gene_id}/target-biology/vulnerability",
+        json={
+            "vulnerability_score": 0.5,
+            "provenance": _INTERNAL_PROV,
+            "extensions": {"vi_bin": 3},
+        },
+    )
+    assert created.status_code == 201, created.text
+
+    patched = await client.patch(
+        f"/api/v1/target-biology/vulnerability/{created.json()['id']}",
+        json={"condition": "cholesterol"},
+    )
+    assert patched.status_code == 200, patched.text
+    assert patched.json()["condition"] == "cholesterol"
+    assert patched.json()["extensions"] == {"vi_bin": 3}
+
+
+async def test_patch_null_extensions_leaves_the_whole_bag_alone(
+    client: AsyncClient, database_url: str
+) -> None:
+    """`{"extensions": null}` must not be read as "clear the bag" — model_dump's
+    exclude_unset distinguishes absent from null, but the aggregate's update() does
+    a wholesale `self.extensions = dict(fields["extensions"] or {})` that would wipe
+    every stored value if a bare null reached it. Removing one declared key is the
+    per-key null idiom (test_patch_rejects_an_undeclared_extension_key's sibling
+    round-trip test and the validator's own unit tests cover that)."""
+    gene_id = await _seed_gene(client, database_url)
+    assert (await client.post("/api/v1/extension-fields", json=_VI_BIN_FIELD)).status_code == 201
+    created = await client.post(
+        f"/api/v1/genes/{gene_id}/target-biology/vulnerability",
+        json={
+            "vulnerability_score": 0.5,
+            "provenance": _INTERNAL_PROV,
+            "extensions": {"vi_bin": 3},
+        },
+    )
+    assert created.status_code == 201, created.text
+
+    patched = await client.patch(
+        f"/api/v1/target-biology/vulnerability/{created.json()['id']}",
+        json={"extensions": None},
+    )
+    assert patched.status_code == 200, patched.text
+    assert patched.json()["extensions"] == {"vi_bin": 3}
+
+
+async def test_patch_of_a_declared_field_preserves_undeclared_imported_values(
+    client: AsyncClient, database_url: str, workspace_id: uuid.UUID
+) -> None:
+    """An importer-populated extensions bag carries keys nobody declared. Editing a
+    declared key through the API must not collateral-damage them — the use case has
+    to merge the validated write onto the existing bag *before* the aggregate's
+    wholesale-replace update() ever sees it."""
+    assert (await client.post("/api/v1/extension-fields", json=_VI_BIN_FIELD)).status_code == 201
+    record = Vulnerability(
+        workspace_id=workspace_id,  # owned by `client` — PATCH must find it via find_owned
+        gene_id=uuid.uuid4(),
+        provenance=Provenance(source_type=ProvenanceSourceType.PUBLISHED),
+        vulnerability_score=0.5,
+        extensions={"rank": "2398.0", "pct_of_max": "7%"},
+    )
+    await _save(database_url, SQLAlchemyVulnerabilityRepository, record)
+
+    patched = await client.patch(
+        f"/api/v1/target-biology/vulnerability/{record.id}",
+        json={"extensions": {"vi_bin": 3}},
+    )
+    assert patched.status_code == 200, patched.text
+    assert patched.json()["extensions"] == {
+        "rank": "2398.0",
+        "pct_of_max": "7%",
+        "vi_bin": 3,
+    }
+
+
+async def test_shared_record_extensions_write_is_404_not_422(
+    client: AsyncClient, database_url: str
+) -> None:
+    """Ownership is checked before validation — a shared row 404s via find_owned
+    and must never reach the extension validator at all."""
+    record = Vulnerability(
+        workspace_id=WS,  # shared — not owned by `client`
+        gene_id=uuid.uuid4(),
+        provenance=Provenance(source_type=ProvenanceSourceType.PUBLISHED),
+        vulnerability_score=0.5,
+    )
+    await _save(database_url, SQLAlchemyVulnerabilityRepository, record)
+
+    r = await client.patch(
+        f"/api/v1/target-biology/vulnerability/{record.id}",
+        json={"extensions": {"anything": 1}},
+    )
+    assert r.status_code == 404
+
+
 # --- Published write contract ------------------------------------------------
 
 

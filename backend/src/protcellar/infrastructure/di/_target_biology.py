@@ -13,6 +13,7 @@ from protcellar.application.target_biology.crud import (
     RecordKind,
     UpdateTargetBiologyRecord,
 )
+from protcellar.application.target_biology.extension_validator import ExtensionValidator
 from protcellar.application.target_biology.get_gene_target_biology import GetGeneTargetBiology
 from protcellar.application.target_biology.get_protein_target_biology import (
     GetProteinTargetBiology,
@@ -46,6 +47,9 @@ from protcellar.infrastructure.persistence.sqlalchemy.target_biology.unpublished
 )
 from protcellar.infrastructure.persistence.sqlalchemy.target_biology.vulnerability_repository import (  # noqa: E501
     SQLAlchemyVulnerabilityRepository,
+)
+from protcellar.infrastructure.persistence.sqlalchemy.workspace_config.extension_field_def_repository import (  # noqa: E501
+    SQLAlchemyExtensionFieldDefRepository,
 )
 from protcellar.infrastructure.persistence.unit_of_work import AsyncUnitOfWork
 
@@ -86,11 +90,16 @@ def register_target_biology(container: Container) -> None:
 
     def _create(c: Container) -> Any:
         uow = AsyncUnitOfWork(c[async_sessionmaker])
-        return CreateTargetBiologyRecord(uow, _all_repos(uow), c[EventDispatcher])
+        # Same uow as _all_repos below: ExtensionValidator's repository call runs
+        # inside CreateTargetBiologyRecord's `async with self._uow:` block, so the
+        # session is active by the time it executes.
+        validator = ExtensionValidator(SQLAlchemyExtensionFieldDefRepository(uow))
+        return CreateTargetBiologyRecord(uow, _all_repos(uow), c[EventDispatcher], validator)
 
     def _update(c: Container) -> Any:
         uow = AsyncUnitOfWork(c[async_sessionmaker])
-        return UpdateTargetBiologyRecord(uow, _all_repos(uow), c[EventDispatcher])
+        validator = ExtensionValidator(SQLAlchemyExtensionFieldDefRepository(uow))
+        return UpdateTargetBiologyRecord(uow, _all_repos(uow), c[EventDispatcher], validator)
 
     def _delete(c: Container) -> Any:
         uow = AsyncUnitOfWork(c[async_sessionmaker])

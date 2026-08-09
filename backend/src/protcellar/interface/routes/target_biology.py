@@ -436,6 +436,7 @@ class EssentialityWriteBody(BaseModel):
     method: str | None = None
     confidence: float | None = None
     provenance: ProvenanceBody
+    extensions: dict[str, Any] | None = None
 
 
 class EssentialityPatchBody(BaseModel):
@@ -444,6 +445,7 @@ class EssentialityPatchBody(BaseModel):
     method: str | None = None
     confidence: float | None = None
     provenance: ProvenanceBody | None = None
+    extensions: dict[str, Any] | None = None
     version: int | None = None
 
     model_config = {"extra": "forbid"}
@@ -455,6 +457,7 @@ class VulnerabilityWriteBody(BaseModel):
     method: str | None = None
     confidence: float | None = None
     provenance: ProvenanceBody
+    extensions: dict[str, Any] | None = None
 
 
 class VulnerabilityPatchBody(BaseModel):
@@ -463,6 +466,7 @@ class VulnerabilityPatchBody(BaseModel):
     method: str | None = None
     confidence: float | None = None
     provenance: ProvenanceBody | None = None
+    extensions: dict[str, Any] | None = None
     version: int | None = None
 
     model_config = {"extra": "forbid"}
@@ -475,6 +479,7 @@ class HypomorphWriteBody(BaseModel):
     condition: str | None = None
     method: str | None = None
     provenance: ProvenanceBody
+    extensions: dict[str, Any] | None = None
 
 
 class HypomorphPatchBody(BaseModel):
@@ -484,6 +489,7 @@ class HypomorphPatchBody(BaseModel):
     condition: str | None = None
     method: str | None = None
     provenance: ProvenanceBody | None = None
+    extensions: dict[str, Any] | None = None
     version: int | None = None
 
     model_config = {"extra": "forbid"}
@@ -492,11 +498,13 @@ class HypomorphPatchBody(BaseModel):
 class CrispriStrainWriteBody(BaseModel):
     name: str
     provenance: ProvenanceBody
+    extensions: dict[str, Any] | None = None
 
 
 class CrispriStrainPatchBody(BaseModel):
     name: str | None = None
     provenance: ProvenanceBody | None = None
+    extensions: dict[str, Any] | None = None
     version: int | None = None
 
     model_config = {"extra": "forbid"}
@@ -510,6 +518,7 @@ class ResistanceMutationWriteBody(BaseModel):
     protein_coordinate: str | None = None
     method: str | None = None
     provenance: ProvenanceBody
+    extensions: dict[str, Any] | None = None
 
 
 class ResistanceMutationPatchBody(BaseModel):
@@ -520,6 +529,7 @@ class ResistanceMutationPatchBody(BaseModel):
     protein_coordinate: str | None = None
     method: str | None = None
     provenance: ProvenanceBody | None = None
+    extensions: dict[str, Any] | None = None
     version: int | None = None
 
     model_config = {"extra": "forbid"}
@@ -532,6 +542,7 @@ class ProteinProductionWriteBody(BaseModel):
     condition: str | None = None
     method: str | None = None
     provenance: ProvenanceBody
+    extensions: dict[str, Any] | None = None
 
 
 class ProteinProductionPatchBody(BaseModel):
@@ -541,6 +552,7 @@ class ProteinProductionPatchBody(BaseModel):
     condition: str | None = None
     method: str | None = None
     provenance: ProvenanceBody | None = None
+    extensions: dict[str, Any] | None = None
     version: int | None = None
 
     model_config = {"extra": "forbid"}
@@ -553,6 +565,7 @@ class ProteinActivityAssayWriteBody(BaseModel):
     condition: str | None = None
     method: str | None = None
     provenance: ProvenanceBody
+    extensions: dict[str, Any] | None = None
 
 
 class ProteinActivityAssayPatchBody(BaseModel):
@@ -562,6 +575,7 @@ class ProteinActivityAssayPatchBody(BaseModel):
     condition: str | None = None
     method: str | None = None
     provenance: ProvenanceBody | None = None
+    extensions: dict[str, Any] | None = None
     version: int | None = None
 
     model_config = {"extra": "forbid"}
@@ -574,6 +588,7 @@ class UnpublishedStructureWriteBody(BaseModel):
     is_published: bool = False
     is_experimental: bool = True
     provenance: ProvenanceBody
+    extensions: dict[str, Any] | None = None
 
 
 class UnpublishedStructurePatchBody(BaseModel):
@@ -583,6 +598,7 @@ class UnpublishedStructurePatchBody(BaseModel):
     is_published: bool | None = None
     is_experimental: bool | None = None
     provenance: ProvenanceBody | None = None
+    extensions: dict[str, Any] | None = None
     version: int | None = None
 
     model_config = {"extra": "forbid"}
@@ -856,6 +872,7 @@ async def create_essentiality(
         condition=body.condition,
         method=body.method,
         confidence=body.confidence,
+        extensions=body.extensions,
     )
     result = result_to_response(await use_case(RecordKind.ESSENTIALITY, record, auth=auth))
     return EssentialityResponse.from_domain(result)
@@ -900,6 +917,7 @@ async def create_vulnerability(
         condition=body.condition,
         method=body.method,
         confidence=body.confidence,
+        extensions=body.extensions,
     )
     result = result_to_response(await use_case(RecordKind.VULNERABILITY, record, auth=auth))
     return VulnerabilityResponse.from_domain(result)
@@ -945,6 +963,7 @@ async def create_hypomorph(
         knockdown_strain_id=body.knockdown_strain_id,
         condition=body.condition,
         method=body.method,
+        extensions=body.extensions,
     )
     result = result_to_response(await use_case(RecordKind.HYPOMORPH, record, auth=auth))
     return HypomorphResponse.from_domain(result)
@@ -986,6 +1005,7 @@ async def create_crispri_strain(
         name=body.name,
         target_gene_id=gene_id,
         provenance=body.provenance.to_domain(),
+        extensions=body.extensions,
     )
     result = result_to_response(await use_case(RecordKind.CRISPRI_STRAIN, record, auth=auth))
     return CrispriStrainResponse.from_domain(result)
@@ -1032,6 +1052,7 @@ async def create_resistance_mutation(
         parent_strain=body.parent_strain,
         protein_coordinate=body.protein_coordinate,
         method=body.method,
+        extensions=body.extensions,
     )
     result = result_to_response(await use_case(RecordKind.RESISTANCE_MUTATION, record, auth=auth))
     return ResistanceMutationResponse.from_domain(result)
@@ -1080,6 +1101,7 @@ async def create_protein_production(
         purity=body.purity,
         condition=body.condition,
         method=body.method,
+        extensions=body.extensions,
     )
     result = result_to_response(await use_case(RecordKind.PROTEIN_PRODUCTION, record, auth=auth))
     return ProteinProductionResponse.from_domain(result)
@@ -1128,6 +1150,7 @@ async def create_protein_activity_assay(
         throughput=body.throughput,
         condition=body.condition,
         method=body.method,
+        extensions=body.extensions,
     )
     result = result_to_response(
         await use_case(RecordKind.PROTEIN_ACTIVITY_ASSAY, record, auth=auth)
@@ -1178,6 +1201,7 @@ async def create_unpublished_structure(
         ligands=tuple(lig.to_domain() for lig in body.ligands),
         is_published=body.is_published,
         is_experimental=body.is_experimental,
+        extensions=body.extensions,
     )
     result = result_to_response(
         await use_case(RecordKind.UNPUBLISHED_STRUCTURE, record, auth=auth)

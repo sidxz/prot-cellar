@@ -17,6 +17,7 @@ from returns.result import Failure, Result, Success
 from protcellar.application.auth import AuthContext, require_admin
 from protcellar.application.shared.event_dispatcher import EventDispatcherProtocol
 from protcellar.application.shared.unit_of_work import UnitOfWork
+from protcellar.application.target_biology.extension_validator import ExtensionValidator
 from protcellar.domain.shared.entity import AggregateRoot
 from protcellar.domain.shared.errors import (
     ConcurrencyConflictError,
@@ -41,14 +42,35 @@ Repos = dict[RecordKind, Any]
 
 
 class CreateTargetBiologyRecord:
-    def __init__(self, uow: UnitOfWork, repos: Repos, dispatcher: EventDispatcherProtocol) -> None:
+    def __init__(
+        self,
+        uow: UnitOfWork,
+        repos: Repos,
+        dispatcher: EventDispatcherProtocol,
+        extension_validator: ExtensionValidator,
+    ) -> None:
         self._uow, self._repos, self._dispatcher = uow, repos, dispatcher
+        self._extension_validator = extension_validator
 
     async def __call__(
         self, kind: RecordKind, aggregate: AggregateRoot, auth: AuthContext | None = None
     ) -> Result[AggregateRoot, DomainError]:
         require_admin(auth)
         async with self._uow:
+            # `.extensions` is whatever the route embedded at construction time
+            # (raw, unvalidated). Every concrete record type carries it, but the
+            # shared AggregateRoot base does not declare it — hence the ignores.
+            submitted = aggregate.extensions or {}  # type: ignore[attr-defined]
+            match await self._extension_validator.validate_and_merge(
+                auth.workspace_id,  # type: ignore[union-attr]
+                kind.value,
+                submitted,
+                {},
+            ):
+                case Failure(error):
+                    return Failure(error)
+                case Success(merged):
+                    aggregate.extensions = merged  # type: ignore[attr-defined]
             await self._repos[kind].save(aggregate)
             events = await self._uow.commit()
         await self._dispatcher.dispatch_all(events)
@@ -56,8 +78,15 @@ class CreateTargetBiologyRecord:
 
 
 class UpdateTargetBiologyRecord:
-    def __init__(self, uow: UnitOfWork, repos: Repos, dispatcher: EventDispatcherProtocol) -> None:
+    def __init__(
+        self,
+        uow: UnitOfWork,
+        repos: Repos,
+        dispatcher: EventDispatcherProtocol,
+        extension_validator: ExtensionValidator,
+    ) -> None:
         self._uow, self._repos, self._dispatcher = uow, repos, dispatcher
+        self._extension_validator = extension_validator
 
     async def __call__(
         self,
@@ -86,6 +115,28 @@ class UpdateTargetBiologyRecord:
                         detail=(f"Expected version {expected_version}, found {record.version}"),
                     )
                 )
+            if "extensions" in updates:
+                if updates["extensions"] is None:
+                    # A whole-bag `null` means "leave it alone", not "wipe it" — the
+                    # aggregate's update() does `self.extensions = dict(fields["extensions"]
+                    # or {})`, a wholesale replace that would otherwise destroy every
+                    # stored value, including ones this workspace never declared.
+                    # Clearing one declared key is the per-key `null` the validator
+                    # handles below; nothing needs a whole-bag wipe.
+                    del updates["extensions"]
+                else:
+                    match await self._extension_validator.validate_and_merge(
+                        auth.workspace_id,  # type: ignore[union-attr]
+                        kind.value,
+                        updates["extensions"],
+                        record.extensions,
+                    ):
+                        case Failure(error):
+                            return Failure(error)
+                        case Success(merged):
+                            # Pre-merged with the record's existing bag, so the
+                            # aggregate's wholesale replace below is harmless.
+                            updates["extensions"] = merged
             record.update(**updates)
             await self._repos[kind].save(record)
             events = await self._uow.commit()
