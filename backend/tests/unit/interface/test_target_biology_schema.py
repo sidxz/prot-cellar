@@ -86,6 +86,17 @@ def test_extensions_is_no_longer_read_only() -> None:
     assert schema["kinds"]["vulnerability"]["read_only"] == []
 
 
+def test_extensions_bag_is_not_a_top_level_field() -> None:
+    """The bag's writable shape is published separately as `extension_fields` (see
+    above). Restating `extensions` itself in `fields` would put a raw-dict control on
+    every one of the eight record forms — anything a client submitted there would fail
+    Pydantic's dict validation, 422ing every create and update."""
+    schema = describe_write_surface({}, {})
+    for kind in RecordKind:
+        names = [f["name"] for f in schema["kinds"][kind.value]["fields"]]
+        assert "extensions" not in names, kind
+
+
 def test_every_kind_carries_an_extension_fields_array() -> None:
     schema = describe_write_surface({}, {})
     for kind in RecordKind:

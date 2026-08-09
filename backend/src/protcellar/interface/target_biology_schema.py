@@ -168,6 +168,10 @@ def _describe_model(
         # Provenance is described once at the top level, not repeated inside every kind.
         if name == "provenance":
             continue
+        # The bag's writable shape is published separately, as `extension_fields` — not
+        # restated here as an unvalidated free-text control every client would 422 on.
+        if name == "extensions":
+            continue
         out.append(_describe_field(name, field, kind=kind, suggested=suggested))
     return out
 
