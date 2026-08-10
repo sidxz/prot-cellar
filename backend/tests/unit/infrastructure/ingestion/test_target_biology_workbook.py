@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import datetime
 import io
+import typing
+import uuid
 from dataclasses import fields
 from typing import Any
 
@@ -9,9 +11,14 @@ import openpyxl
 
 from protcellar.application.target_biology.crud import RecordKind
 from protcellar.infrastructure.ingestion.target_biology_workbook import (
+    _BOOL,
     _CORE_FIELDS,
     _EXCLUDED_FROM_REQUIRED,
+    _FLOAT,
+    _LIGAND_IDS,
     _RECORD_CLASSES,
+    _STR,
+    _UUID,
     KnownExtensionField,
     RowProblem,
     SheetPlan,
@@ -397,8 +404,35 @@ def test_provenance_columns_are_recognised_pmid_and_reference_land_note_does_not
 
 # --- a schema-drift guard: the hand-maintained core-field table must track the dataclasses
 
+_SHAPE_BY_TYPE: dict[type, str] = {
+    str: _STR,
+    bool: _BOOL,
+    float: _FLOAT,
+    uuid.UUID: _UUID,
+}
+
+
+def _expected_shape(annotation: Any) -> str:
+    """Maps a *resolved* (``typing.get_type_hints``, not the bare stringified
+    annotation ``from __future__ import annotations`` leaves on the
+    dataclass) type hint to the ``_CORE_FIELDS`` shape constant it should be
+    declared as. ``ligand_ids`` is the one field whose annotation isn't
+    Optional-wrapped and isn't a plain scalar type."""
+    if annotation == tuple[uuid.UUID, ...]:
+        return _LIGAND_IDS
+    args = typing.get_args(annotation)
+    core = next((a for a in args if a is not type(None)), annotation)
+    return _SHAPE_BY_TYPE[core]
+
 
 def test_core_field_tables_match_the_dataclasses() -> None:
     for kind, record_cls in _RECORD_CLASSES.items():
         real_fields = {f.name for f in fields(record_cls)} - _EXCLUDED_FROM_REQUIRED
         assert set(_CORE_FIELDS[kind]) == real_fields, kind
+
+        # A name matching isn't enough: a field whose declared type changes
+        # under a stable name would slip past the check above, and
+        # _CORE_FIELDS drives both coercion and the dedup key.
+        hints = typing.get_type_hints(record_cls)
+        for name, shape in _CORE_FIELDS[kind].items():
+            assert _expected_shape(hints[name]) == shape, (kind, name)

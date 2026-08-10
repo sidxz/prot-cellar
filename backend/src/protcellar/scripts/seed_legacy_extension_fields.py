@@ -7,9 +7,12 @@ descriptions. Each record's ``extensions`` JSONB bag exists for exactly that, an
 value in it is unreadable until a declaration gives it a label, a type and a place in
 the forms and tables. This script writes those declarations.
 
-Provenance is **not** here. Reference, URL, PMID, researcher and note fields all have
-a home in the shared ``provenance`` value object; restating them as extension fields
-would be a second, unvalidated way to say the same thing.
+Provenance is **not** here. ``reference``/``pmid`` land on each record's own
+``pmid``/``dataset`` fields; ``url``, ``note``, ``contributor`` and ``observed_on`` are
+read and discarded by the current (workbook) import pipeline — the import preview names
+them in ``ignored_columns``, not the shared ``provenance`` value object. Restating any
+of the five as an extension field would be a second, unvalidated way to say the same
+thing.
 
 Two kinds get nothing, deliberately:
 
