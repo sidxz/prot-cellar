@@ -161,6 +161,13 @@ _FIELDS: dict[str, list[_Decl]] = {
         # Empty across all 195 legacy records, declared so an import does not silently
         # drop a column that the source schema says exists.
         ("phenotype", "Phenotype", _T.STRING, None, False),
+        # The source grades severity on rows whose growth_defect is not True — 35 say
+        # "No" with a Mild grade and 3 say "TBD" with Severe — which the aggregate
+        # rightly refuses (you cannot grade the severity of a defect that is not
+        # there). The core column takes the grade only where it is coherent; this
+        # keeps what was actually written, so the contradiction stays visible to a
+        # curator instead of being resolved by the importer.
+        ("growth_defect_severity_reported", "Severity as reported", _T.STRING, None, False),
         # The source's free-text note, and the only place the knockdown strain is
         # actually recorded ("Gene name : AftB_03", alongside the background it was
         # made in). Not `note`: that is a reserved provenance column, which the
