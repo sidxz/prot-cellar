@@ -269,6 +269,29 @@ def test_a_sheet_with_no_gene_column_at_all_is_a_workbook_level_problem() -> Non
     assert "locus_tag" in problems[0].reason
 
 
+def test_a_protein_side_sheet_with_no_accession_column_is_one_workbook_level_problem() -> None:
+    """The protein-side mirror of the gene-column case above: accession is a
+    plain core column, not special-cased like gene_col, so without this
+    workbook-level short-circuit a sheet missing it would fail every row
+    individually instead of once."""
+    data = _workbook(
+        {
+            "protein_production": [
+                ["status"],
+                ["produced"],
+                ["produced"],
+            ]
+        }
+    )
+    plans, problems = _plan(data)
+    (plan,) = plans
+    assert plan.kind == RecordKind.PROTEIN_PRODUCTION
+    assert plan.records == []
+    assert plan.problems == []  # not a row-level concern
+    assert len(problems) == 1
+    assert "accession" in problems[0].reason
+
+
 # --- the two named traps ----------------------------------------------------------------
 
 

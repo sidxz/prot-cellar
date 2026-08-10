@@ -309,6 +309,17 @@ def _parse_sheet(
         workbook_problems.append(
             RowProblem(sheet=sheet_name, row=1, reason=f"no {match_by!r} column found")
         )
+    # The protein-side mirror of missing_gene_column: accession is a plain
+    # core column (module docstring, header group 1), not a special-cased
+    # gene_col, so a sheet missing it entirely would otherwise fail every
+    # single row with the same "missing accession" reason — at corpus scale,
+    # thousands of identical problems and zero records. One workbook-level
+    # problem instead.
+    missing_accession_column = kind not in _GENE_SIDE and "accession" not in core_cols.values()
+    if missing_accession_column:
+        workbook_problems.append(
+            RowProblem(sheet=sheet_name, row=1, reason="no 'accession' column found")
+        )
 
     record_cls = _RECORD_CLASSES[kind]
     required = _REQUIRED[kind]
@@ -323,7 +334,7 @@ def _parse_sheet(
             continue
         rows_read += 1
 
-        if missing_gene_column:
+        if missing_gene_column or missing_accession_column:
             continue  # already reported once, at the workbook level
         if unknown_cols:
             problems.append(
