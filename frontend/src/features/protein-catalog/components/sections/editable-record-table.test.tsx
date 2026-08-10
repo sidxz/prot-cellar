@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import { beforeAll, describe, expect, it, vi } from "vitest";
 
 vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
@@ -233,6 +233,30 @@ function renderWithExtensions(record: Rec, onUpdate = vi.fn().mockResolvedValue(
   return { onUpdate };
 }
 
+// Same shape as `setup()` above but with a kind's extension-field declarations
+// wired in and no existing records, so the returned row is always the create
+// (Add →) row — for exercising the draft-time Extra fields… affordance.
+function setupCreateWithExtensions(fields: FieldDescriptor[] = EXT_FIELDS) {
+  const onCreate = vi.fn().mockResolvedValue({});
+  render(
+    <EditableRecordTable<Rec, Draft>
+      title="Widget"
+      description="desc"
+      records={[]}
+      columns={[...columns, ...extensionColumns<Rec>(fields)]}
+      emptyDraft={EMPTY}
+      toDraft={toDraft}
+      toBody={toBody}
+      onCreate={onCreate}
+      onUpdate={vi.fn()}
+      onDelete={vi.fn()}
+      busy={false}
+      extensionFields={fields}
+    />,
+  );
+  return { onCreate };
+}
+
 describe("EditableRecordTable extension fields", () => {
   it("renders a show_in_table declaration as a column and omits one that isn't", () => {
     renderWithExtensions({ ...rec, extensions: { priority: "high", internal_note: "hush" } });
@@ -287,6 +311,77 @@ describe("EditableRecordTable extension fields", () => {
     expect(onUpdate).toHaveBeenCalledWith("r1", {
       extensions: { priority: "low" },
       version: 1,
+    });
+  });
+
+  it("disables the create row's Extra fields… affordance when the kind has no declared fields", () => {
+    setupCreateWithExtensions([]);
+    fireEvent.click(screen.getByRole("button", { name: /add/i }));
+    expect(screen.getByRole("button", { name: /extra fields/i })).toBeDisabled();
+  });
+
+  it("sets values via the create row's Extra fields… affordance and sends them as extensions on create", () => {
+    const { onCreate } = setupCreateWithExtensions();
+    fireEvent.click(screen.getByRole("button", { name: /add/i }));
+    fireEvent.change(screen.getByPlaceholderText("name"), { target: { value: "widgetA" } });
+
+    fireEvent.click(screen.getByRole("button", { name: /extra fields/i }));
+    const dialog = screen.getByRole("dialog");
+    fireEvent.change(within(dialog).getByLabelText("Priority"), { target: { value: "urgent" } });
+    fireEvent.click(within(dialog).getByRole("button", { name: "Save" }));
+
+    // Nothing is sent yet — only the row's own Save persists anything.
+    expect(onCreate).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+    expect(onCreate).toHaveBeenCalledWith({
+      name: "widgetA",
+      count: null,
+      active: false,
+      kind: "alpha",
+      extensions: { priority: "urgent" },
+    });
+  });
+
+  it("discards extension values set in the create row when the row is canceled — no leak into the next create", () => {
+    const { onCreate } = setupCreateWithExtensions();
+    fireEvent.click(screen.getByRole("button", { name: /add/i }));
+    fireEvent.click(screen.getByRole("button", { name: /extra fields/i }));
+    const dialog = screen.getByRole("dialog");
+    fireEvent.change(within(dialog).getByLabelText("Priority"), { target: { value: "urgent" } });
+    fireEvent.click(within(dialog).getByRole("button", { name: "Save" }));
+
+    fireEvent.click(screen.getByRole("button", { name: /cancel/i }));
+
+    fireEvent.click(screen.getByRole("button", { name: /add/i }));
+    fireEvent.change(screen.getByPlaceholderText("name"), { target: { value: "widgetB" } });
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+
+    expect(onCreate).toHaveBeenCalledWith({
+      name: "widgetB",
+      count: null,
+      active: false,
+      kind: "alpha",
+    });
+  });
+
+  it("sets values via the inline edit row's Extra fields… affordance, seeded from the stored record, same as the row action", () => {
+    const { onUpdate } = renderWithExtensions({ ...rec, extensions: { priority: "high" } });
+
+    fireEvent.click(screen.getByRole("button", { name: /edit/i }));
+    fireEvent.click(screen.getByRole("button", { name: /extra fields/i }));
+    const dialog = screen.getByRole("dialog");
+    expect(within(dialog).getByLabelText("Priority")).toHaveValue("high");
+    fireEvent.change(within(dialog).getByLabelText("Priority"), { target: { value: "low" } });
+    fireEvent.click(within(dialog).getByRole("button", { name: "Save" }));
+
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+    expect(onUpdate).toHaveBeenCalledWith("r1", {
+      name: "foo",
+      count: 5,
+      active: true,
+      kind: "beta",
+      extensions: { priority: "low" },
     });
   });
 

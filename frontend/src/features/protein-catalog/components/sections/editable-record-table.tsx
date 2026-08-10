@@ -302,19 +302,39 @@ export function EditableRecordTable<
   const [draft, setDraft] = useState<D>(emptyDraft);
   const [provenanceTarget, setProvenanceTarget] = useState<R | null>(null);
   const [extensionsTarget, setExtensionsTarget] = useState<R | null>(null);
+  // Extension values picked for the row currently being created/edited. Held
+  // separately from `draft` so the per-kind `D` type and `toBody` never need to
+  // know about extensions — `save()` below merges this in for both create and
+  // update, the same way in both cases, which is what keeps this immune to the
+  // toBody-diverges-between-POST-and-PATCH bug class (see `saveExtensions`'s
+  // comment on the same PATCH-vs-POST shape).
+  const [draftExtensions, setDraftExtensions] = useState<Record<string, unknown>>({});
+  const [draftExtensionsOpen, setDraftExtensionsOpen] = useState(false);
+  // The saved record behind the row being edited — undefined while creating.
+  // Seeds the draft extensions dialog from what's actually stored, same as the
+  // saved-row Extra fields… action does via `extensionsTarget` below.
+  const editingRecord = records.find((r) => r.id === editingId);
   const set = (field: string, value: unknown) => setDraft((d) => ({ ...d, [field]: value }));
 
   async function save() {
     try {
       const body = toBody(draft);
+      // Only merge in an `extensions` key when the curator actually opened the
+      // dialog and changed something — an untouched kind (or an untouched
+      // dialog) sends exactly what `toBody` produced, unchanged.
+      const withExtensions =
+        Object.keys(draftExtensions).length > 0
+          ? { ...(body as Record<string, unknown>), extensions: draftExtensions }
+          : body;
       if (editingId === NEW) {
-        await onCreate(body);
+        await onCreate(withExtensions);
         showSuccess(`${title} record added`);
       } else if (editingId) {
-        await onUpdate(editingId, body);
+        await onUpdate(editingId, withExtensions);
         showSuccess(`${title} record updated`);
       }
       setEditingId(null);
+      setDraftExtensions({});
     } catch (e) {
       showError(e);
     }
@@ -426,7 +446,20 @@ export function EditableRecordTable<
           size="icon"
           variant="ghost"
           className="h-7 w-7"
-          onClick={() => setEditingId(null)}
+          onClick={() => setDraftExtensionsOpen(true)}
+          disabled={busy || extensionFields.length === 0}
+        >
+          <ListPlus className="h-3.5 w-3.5" />
+          <span className="sr-only">Extra fields…</span>
+        </Button>
+        <Button
+          size="icon"
+          variant="ghost"
+          className="h-7 w-7"
+          onClick={() => {
+            setEditingId(null);
+            setDraftExtensions({});
+          }}
           disabled={busy}
         >
           <X className="h-4 w-4" />
@@ -449,6 +482,7 @@ export function EditableRecordTable<
             className="h-7 gap-1"
             onClick={() => {
               setDraft(emptyDraft);
+              setDraftExtensions({});
               setEditingId(NEW);
             }}
             disabled={editingId === NEW}
@@ -527,6 +561,7 @@ export function EditableRecordTable<
                             className="h-7 w-7"
                             onClick={() => {
                               setDraft(toDraft(r));
+                              setDraftExtensions({});
                               setEditingId(r.id);
                             }}
                             disabled={busy}
@@ -590,6 +625,22 @@ export function EditableRecordTable<
             busy={busy}
             onSave={saveExtensions}
             onClose={() => setExtensionsTarget(null)}
+          />
+        )}
+        {draftExtensionsOpen && (
+          <ExtensionValuesDialog
+            open
+            fields={extensionFields}
+            value={{ ...(editingRecord?.extensions ?? {}), ...draftExtensions }}
+            onSave={(changes) => {
+              // Merge, not replace — `changes` is only the keys this dialog
+              // session actually touched, same merge-patch shape `onSave`
+              // always produces. Nothing goes to the network here; `save()`
+              // above sends it all when the row itself is saved.
+              setDraftExtensions((d) => ({ ...d, ...changes }));
+              setDraftExtensionsOpen(false);
+            }}
+            onClose={() => setDraftExtensionsOpen(false)}
           />
         )}
       </section>
