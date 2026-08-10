@@ -153,6 +153,11 @@ _FIELDS: dict[str, list[_Decl]] = {
         # "1.9-2.8 Angstroms", "2.1 Angstrom", "2.68" — a range in the same column as
         # a scalar, so the core resolution double cannot hold every row.
         ("resolution_reported", "Resolution as reported", _T.STRING, None, False),
+        # "Apo", "SO4 and PEG bound", a raw SMILES string — ligand text the core
+        # `ligand_ids` (chem-cellar UUIDs only) cannot hold. The workbook parser
+        # routes it here instead of dropping it, which is what full-row
+        # deduplication needs to keep otherwise-identical structures apart.
+        ("ligand_reported", "Ligand as reported", _T.STRING, None, False),
     ],
 }
 
