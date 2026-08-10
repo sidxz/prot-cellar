@@ -398,7 +398,23 @@ records — three merges, each a genuine duplicate."
 - Modify: `backend/src/protcellar/application/imports/params.py`
 - Modify: `backend/src/protcellar/infrastructure/ingestion/import_adapters.py`
 - Modify: `backend/src/protcellar/interface/routes/imports.py`
+- Modify: `backend/src/protcellar/application/target_biology/_import_support.py`
 - Test: `backend/tests/api/test_target_biology_import.py` (new)
+
+**Two corrections from Task 4's review, both settled before this task starts:**
+
+- **`build_locus_index` is in `_import_support.py` and is this task's to fix.** Its `setdefault`
+  means the first gene sharing a synonym silently wins, so the index cannot report that a second
+  existed. The parser has no gene catalogue and could never detect this; an earlier draft of the
+  Self-Review wrongly attributed it to Tasks 1 and 4. Make the index able to report ambiguity — a
+  second gene claiming a key marks that key ambiguous — and fail those rows naming the candidates.
+- **Five provenance columns are read and discarded** (`source_type`, `url`, `note`, `contributor`,
+  `observed_on`): only `pmid` and `dataset` have a field on any `*ImportRecord`, and `source_type`
+  is a command-level default rather than per-row. **The owner has decided these values are not
+  needed**, so do not build the plumbing to carry them. Instead make the drop visible: the preview
+  summary carries an `ignored_columns` list, per sheet, naming every header the parser recognised
+  but did not use. A column that vanishes without a word is the failure mode worth closing, whether
+  or not anyone wants the value.
 
 **Interfaces:**
 - Consumes: Task 4's `parse_workbook`; Tasks 1-3's commands.
