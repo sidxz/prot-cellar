@@ -39,6 +39,45 @@ def test_natural_key_tolerates_a_missing_activity_measured() -> None:
     )
 
 
+def _gene(*, strain_id: uuid.UUID | None, name: str = "g"):
+    from protcellar.domain.protein_catalog.gene import Gene
+
+    return Gene(
+        workspace_id=uuid.uuid4(),
+        primary_name=name,
+        organism_id=uuid.uuid4(),
+        strain_id=strain_id,
+    )
+
+
+def test_genes_for_strain_restricts_to_the_pinned_strain() -> None:
+    """The bug this exists to close: a proteome pins one strain, so genes
+    belonging to a *different* strain of the same organism (or to no strain at
+    all) must not be eligible for that run's locus index — see the module's
+    _genes_for_strain docstring."""
+    from protcellar.infrastructure.ingestion.import_adapters import _genes_for_strain
+
+    strain_a, strain_b = uuid.uuid4(), uuid.uuid4()
+    gene_a = _gene(strain_id=strain_a, name="geneA")
+    gene_b = _gene(strain_id=strain_b, name="geneB")
+    gene_unstrained = _gene(strain_id=None, name="geneC")
+
+    result = _genes_for_strain([gene_a, gene_b, gene_unstrained], strain_a)
+
+    assert result == [gene_a]
+
+
+def test_genes_for_strain_falls_back_to_organism_wide_when_proteome_has_no_strain() -> None:
+    """A proteome with no strain (species-level reference, e.g. Homo sapiens in
+    this catalog) is not a defect — every gene for the organism must stay
+    eligible, exactly the pre-proteome-scoping behaviour."""
+    from protcellar.infrastructure.ingestion.import_adapters import _genes_for_strain
+
+    genes = [_gene(strain_id=uuid.uuid4()), _gene(strain_id=None)]
+
+    assert _genes_for_strain(genes, None) == genes
+
+
 def test_dispatch_order_runs_crispri_strain_before_hypomorph() -> None:
     """hypomorph resolves knockdown_strain against crispri_strain rows this
     same run may just have created — see _DISPATCH's own comment. A cheap,

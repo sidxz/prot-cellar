@@ -9,6 +9,8 @@ import type { ProteomeResponseStrainId } from './proteomeResponseStrainId';
 import type { ProteomeType } from './proteomeType';
 import type { ProteomeResponseAssemblyAcc } from './proteomeResponseAssemblyAcc';
 import type { ProteomeResponseSourceVersion } from './proteomeResponseSourceVersion';
+import type { ProteomeResponseOrganismName } from './proteomeResponseOrganismName';
+import type { ProteomeResponseStrainName } from './proteomeResponseStrainName';
 
 export interface ProteomeResponse {
   id: string;
@@ -21,4 +23,6 @@ export interface ProteomeResponse {
   assembly_acc?: ProteomeResponseAssemblyAcc;
   source_version?: ProteomeResponseSourceVersion;
   version: number;
+  organism_name?: ProteomeResponseOrganismName;
+  strain_name?: ProteomeResponseStrainName;
 }

@@ -42,10 +42,17 @@ class TargetBiologyParams(pydantic.BaseModel):
     ``ImportRuntime.workspace_id`` in ``infrastructure/ingestion/import_adapters.py``),
     which is itself set from the *caller's* ``auth.workspace_id`` at
     ``StartImport`` time, never from this params bag.
+
+    ``proteome_id`` (not ``organism_id``) is what pins the target: an organism
+    can hold multiple strains sharing one locus_tag/gene_name namespace, so an
+    organism alone is ambiguous — a proteome pins organism *and* strain in one
+    choice. The adapter resolves it to ``(organism_id, strain_id)`` server-side
+    (``infrastructure/ingestion/import_adapters.py``); the eight bulk commands
+    still take organism_id, unchanged.
     """
 
     upload_ref: uuid.UUID
-    organism_id: uuid.UUID
+    proteome_id: uuid.UUID
     match_by: Literal["locus_tag", "gene_name"] = "locus_tag"
     update_existing: bool = False
     dry_run: bool = True  # preview is the default; applying is the deliberate act
@@ -86,10 +93,15 @@ def target_key(import_type: ImportType, params: dict[str, Any]) -> str:
     if import_type is ImportType.GENE_ENRICHMENT:
         return str(params.get("organism_id") or params.get("tax_id"))
     if import_type is ImportType.TARGET_BIOLOGY:
-        # organism + upload identify the target; dry/run keeps a preview from
+        # proteome + upload identify the target; dry/run keeps a preview from
         # colliding with the apply that follows it (both target the same upload).
+        # Same "<id>:<upload_ref>:<dry|run>" shape as before the organism_id ->
+        # proteome_id rename — the frontend parses the trailing :dry/:run
+        # segment only (isTargetBiologyPreviewRun in target-biology-preview.tsx),
+        # never the first segment's meaning, so the colon count staying at 2 is
+        # what actually matters here.
         dry = "dry" if params.get("dry_run") else "run"
-        return f"{params['organism_id']}:{params['upload_ref']}:{dry}"
+        return f"{params['proteome_id']}:{params['upload_ref']}:{dry}"
     # GO_ONTOLOGY
     return "go"
 

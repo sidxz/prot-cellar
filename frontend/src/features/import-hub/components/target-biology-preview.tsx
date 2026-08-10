@@ -55,13 +55,13 @@ interface TargetBiologySummary {
  * here rather than cast at every access.
  */
 interface TargetBiologyRunParams {
-  organism_id: string;
+  proteome_id: string;
   match_by: "locus_tag" | "gene_name";
   update_existing: boolean;
 }
 
 /**
- * `target_key` for this import type is `"{organism_id}:{upload_ref}:{dry|
+ * `target_key` for this import type is `"{proteome_id}:{upload_ref}:{dry|
  * run}"` (`application/imports/params.py:target_key`) — the only place
  * "was this run a preview or an apply" is recorded, since neither is a
  * separate `ImportStatus`. Reused by `import-detail.tsx` too, so it lives
@@ -114,7 +114,7 @@ export function TargetBiologyPreview({ run }: { run: ImportRun }) {
           import_type: ImportType.target_biology,
           params: {
             upload_ref: run.upload_ref,
-            organism_id: params.organism_id,
+            proteome_id: params.proteome_id,
             match_by: params.match_by,
             update_existing: params.update_existing,
             dry_run: false,

@@ -106,6 +106,18 @@ class SQLAlchemyStrainRepository(SQLAlchemyRepository[Strain, StrainModel]):
     # by id needs no override, unlike find_by_workspace/find_by_species which
     # filter on columns other than the primary key.
 
+    async def find_names_by_ids(
+        self, ids: list[uuid.UUID], *, workspace_id: uuid.UUID
+    ) -> dict[uuid.UUID, str]:
+        """Batch id->name, scoped to what the workspace may read. Mirrors
+        ``SQLAlchemyOrganismRepository.find_names_by_ids`` — see its docstring."""
+        if not ids:
+            return {}
+        stmt = select(StrainModel.id, StrainModel.name).where(
+            StrainModel.id.in_(ids), readable_by(StrainModel, workspace_id)
+        )
+        return {row.id: row.name for row in (await self._session.execute(stmt))}
+
     async def find_by_species(
         self, workspace_id: uuid.UUID, species_organism_id: uuid.UUID
     ) -> list[Strain]:

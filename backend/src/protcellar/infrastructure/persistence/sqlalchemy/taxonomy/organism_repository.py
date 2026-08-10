@@ -161,6 +161,22 @@ class SQLAlchemyOrganismRepository(
         )
         return [self._to_domain_tracked(m) for m in (await self._session.execute(stmt)).scalars()]
 
+    async def find_names_by_ids(
+        self, ids: list[uuid.UUID], *, workspace_id: uuid.UUID
+    ) -> dict[uuid.UUID, str]:
+        """Batch id->scientific_name, scoped to what the workspace may read.
+
+        A column-only select (no aggregate hydration/tracking) — for a picker
+        label, not a domain operation. An id absent from the result is either
+        not found or not readable; callers treat that as "no name available".
+        """
+        if not ids:
+            return {}
+        stmt = select(OrganismModel.id, OrganismModel.scientific_name).where(
+            OrganismModel.id.in_(ids), readable_by(OrganismModel, workspace_id)
+        )
+        return {row.id: row.scientific_name for row in (await self._session.execute(stmt))}
+
     async def find_all(
         self,
         *,

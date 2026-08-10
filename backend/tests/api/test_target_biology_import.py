@@ -95,6 +95,24 @@ async def _organism(client: AsyncClient) -> str:
     return str(resp.json()["id"])
 
 
+async def _proteome(client: AsyncClient, organism_id: str, *, strain_id: str | None = None) -> str:
+    """A proteome pinned to ``organism_id`` (and ``strain_id``, when given) —
+    TARGET_BIOLOGY imports key off this, not the organism directly (see
+    TargetBiologyParams's own docstring)."""
+    resp = await client.post(
+        "/api/v1/proteomes",
+        json={
+            "uniprot_proteome_id": f"UP{random.randint(100_000_000, 999_999_999)}",
+            "organism_id": organism_id,
+            "strain_id": strain_id,
+            "proteome_type": "reference",
+            "is_reference": True,
+        },
+    )
+    assert resp.status_code == 201, resp.text
+    return str(resp.json()["id"])
+
+
 async def _gene(
     client: AsyncClient, organism_id: str, *, locus: str, synonyms: list[str] | None = None
 ) -> None:
@@ -143,12 +161,13 @@ async def test_a_preview_run_commits_nothing(
     factory = async_sessionmaker(engine, expire_on_commit=False)
     try:
         organism_id = await _organism(client)
+        proteome_id = await _proteome(client, organism_id)
         await _gene(client, organism_id, locus="Rv0001")
         upload_ref = await _upload(
             client, _workbook("vulnerability", ["locus_tag", "condition"], [["Rv0001", "hypoxia"]])
         )
 
-        run = await _start(client, upload_ref=upload_ref, organism_id=organism_id, dry_run=True)
+        run = await _start(client, upload_ref=upload_ref, proteome_id=proteome_id, dry_run=True)
         await _run_worker(factory, run["id"], workspace_id)
 
         got = await client.get(f"/api/v1/imports/{run['id']}")
@@ -156,9 +175,9 @@ async def test_a_preview_run_commits_nothing(
         assert body["status"] == ImportStatus.SUCCEEDED.value
         assert body["summary"]["kinds"]["vulnerability"]["create"] == 1
         # Unlike every other import type, TARGET_BIOLOGY's params must still
-        # round-trip — the preview screen's Apply button reads organism_id/
+        # round-trip — the preview screen's Apply button reads proteome_id/
         # match_by/update_existing straight off it.
-        assert body["params"]["organism_id"] == organism_id
+        assert body["params"]["proteome_id"] == proteome_id
 
         async with AsyncUnitOfWork(factory) as uow:
             repo = SQLAlchemyVulnerabilityRepository(uow)
@@ -177,6 +196,7 @@ async def test_apply_produces_exactly_the_previewed_counts(
     factory = async_sessionmaker(engine, expire_on_commit=False)
     try:
         organism_id = await _organism(client)
+        proteome_id = await _proteome(client, organism_id)
         await _gene(client, organism_id, locus="Rv0002")
         upload_ref = await _upload(
             client,
@@ -188,14 +208,14 @@ async def test_apply_produces_exactly_the_previewed_counts(
         )
 
         preview = await _start(
-            client, upload_ref=upload_ref, organism_id=organism_id, dry_run=True
+            client, upload_ref=upload_ref, proteome_id=proteome_id, dry_run=True
         )
         await _run_worker(factory, preview["id"], workspace_id)
         preview_summary = (await client.get(f"/api/v1/imports/{preview['id']}")).json()["summary"]
         assert preview_summary["kinds"]["vulnerability"]["create"] == 2
 
         apply_run = await _start(
-            client, upload_ref=upload_ref, organism_id=organism_id, dry_run=False
+            client, upload_ref=upload_ref, proteome_id=proteome_id, dry_run=False
         )
         assert apply_run["id"] != preview["id"], "apply must be a NEW run, not a mutation"
         await _run_worker(factory, apply_run["id"], workspace_id)
@@ -221,9 +241,10 @@ async def test_the_import_lands_in_the_callers_workspace_not_shared(
     factory = async_sessionmaker(engine, expire_on_commit=False)
     try:
         organism_id = await _organism(client)
+        proteome_id = await _proteome(client, organism_id)
         await _gene(client, organism_id, locus="Rv0003")
         upload_ref = await _upload(client, _workbook("vulnerability", ["locus_tag"], [["Rv0003"]]))
-        run = await _start(client, upload_ref=upload_ref, organism_id=organism_id, dry_run=False)
+        run = await _start(client, upload_ref=upload_ref, proteome_id=proteome_id, dry_run=False)
         await _run_worker(factory, run["id"], workspace_id)
 
         got_gene = await client.get(f"/api/v1/genes?name=Rv0003&organism_id={organism_id}")
@@ -254,12 +275,13 @@ async def test_a_client_supplied_target_workspace_id_is_ignored(
     try:
         smuggled_workspace_id = uuid.uuid4()
         organism_id = await _organism(client)
+        proteome_id = await _proteome(client, organism_id)
         await _gene(client, organism_id, locus="Rv0011")
         upload_ref = await _upload(client, _workbook("vulnerability", ["locus_tag"], [["Rv0011"]]))
         run = await _start(
             client,
             upload_ref=upload_ref,
-            organism_id=organism_id,
+            proteome_id=proteome_id,
             dry_run=False,
             target_workspace_id=str(smuggled_workspace_id),
         )
@@ -290,9 +312,10 @@ async def test_a_second_workspace_sees_none_of_it(
     factory = async_sessionmaker(engine, expire_on_commit=False)
     try:
         organism_id = await _organism(client)
+        proteome_id = await _proteome(client, organism_id)
         await _gene(client, organism_id, locus="Rv0004")
         upload_ref = await _upload(client, _workbook("vulnerability", ["locus_tag"], [["Rv0004"]]))
-        run = await _start(client, upload_ref=upload_ref, organism_id=organism_id, dry_run=False)
+        run = await _start(client, upload_ref=upload_ref, proteome_id=proteome_id, dry_run=False)
         await _run_worker(factory, run["id"], workspace_id)
 
         got_gene = await client.get(f"/api/v1/genes?name=Rv0004&organism_id={organism_id}")
@@ -314,12 +337,13 @@ async def test_an_unmatched_locus_fails_its_row_and_the_rest_still_import(
     factory = async_sessionmaker(engine, expire_on_commit=False)
     try:
         organism_id = await _organism(client)
+        proteome_id = await _proteome(client, organism_id)
         await _gene(client, organism_id, locus="Rv0005")
         upload_ref = await _upload(
             client,
             _workbook("vulnerability", ["locus_tag"], [["Rv0005"], ["Rv9999-does-not-exist"]]),
         )
-        run = await _start(client, upload_ref=upload_ref, organism_id=organism_id, dry_run=True)
+        run = await _start(client, upload_ref=upload_ref, proteome_id=proteome_id, dry_run=True)
         await _run_worker(factory, run["id"], workspace_id)
 
         summary = (await client.get(f"/api/v1/imports/{run['id']}")).json()["summary"]
@@ -342,6 +366,7 @@ async def test_an_ambiguous_gene_name_fails_its_row_and_names_the_candidates(
     factory = async_sessionmaker(engine, expire_on_commit=False)
     try:
         organism_id = await _organism(client)
+        proteome_id = await _proteome(client, organism_id)
         await _gene(client, organism_id, locus="Rv0006", synonyms=["sharedName"])
         await _gene(client, organism_id, locus="Rv0007", synonyms=["sharedName"])
         upload_ref = await _upload(
@@ -350,7 +375,7 @@ async def test_an_ambiguous_gene_name_fails_its_row_and_names_the_candidates(
         run = await _start(
             client,
             upload_ref=upload_ref,
-            organism_id=organism_id,
+            proteome_id=proteome_id,
             match_by="gene_name",
             dry_run=True,
         )
@@ -380,6 +405,7 @@ async def test_a_real_row_number_reaches_the_response_but_a_workbook_level_one_s
     factory = async_sessionmaker(engine, expire_on_commit=False)
     try:
         organism_id = await _organism(client)
+        proteome_id = await _proteome(client, organism_id)
         wb = openpyxl.Workbook()
         ws = wb.active
         assert ws is not None
@@ -393,7 +419,7 @@ async def test_a_real_row_number_reaches_the_response_but_a_workbook_level_one_s
         wb.save(buf)
         upload_ref = await _upload(client, buf.getvalue())
 
-        run = await _start(client, upload_ref=upload_ref, organism_id=organism_id, dry_run=True)
+        run = await _start(client, upload_ref=upload_ref, proteome_id=proteome_id, dry_run=True)
         await _run_worker(factory, run["id"], workspace_id)
 
         problems = (await client.get(f"/api/v1/imports/{run['id']}")).json()["summary"]["problems"]
@@ -414,6 +440,7 @@ async def test_ignored_columns_names_the_dropped_provenance_headers(
     factory = async_sessionmaker(engine, expire_on_commit=False)
     try:
         organism_id = await _organism(client)
+        proteome_id = await _proteome(client, organism_id)
         await _gene(client, organism_id, locus="Rv0008")
         upload_ref = await _upload(
             client,
@@ -423,7 +450,7 @@ async def test_ignored_columns_names_the_dropped_provenance_headers(
                 [["Rv0008", "J. Doe", "from a screen"]],
             ),
         )
-        run = await _start(client, upload_ref=upload_ref, organism_id=organism_id, dry_run=True)
+        run = await _start(client, upload_ref=upload_ref, proteome_id=proteome_id, dry_run=True)
         await _run_worker(factory, run["id"], workspace_id)
 
         summary = (await client.get(f"/api/v1/imports/{run['id']}")).json()["summary"]
@@ -440,16 +467,17 @@ async def test_already_present_counts_before_this_runs_own_writes(
     factory = async_sessionmaker(engine, expire_on_commit=False)
     try:
         organism_id = await _organism(client)
+        proteome_id = await _proteome(client, organism_id)
         await _gene(client, organism_id, locus="Rv0009")
         upload_ref = await _upload(client, _workbook("vulnerability", ["locus_tag"], [["Rv0009"]]))
 
-        first = await _start(client, upload_ref=upload_ref, organism_id=organism_id, dry_run=False)
+        first = await _start(client, upload_ref=upload_ref, proteome_id=proteome_id, dry_run=False)
         await _run_worker(factory, first["id"], workspace_id)
         first_summary = (await client.get(f"/api/v1/imports/{first['id']}")).json()["summary"]
         assert first_summary["already_present"]["vulnerability"] == 0
 
         second = await _start(
-            client, upload_ref=upload_ref, organism_id=organism_id, dry_run=False
+            client, upload_ref=upload_ref, proteome_id=proteome_id, dry_run=False
         )
         await _run_worker(factory, second["id"], workspace_id)
         second_summary = (await client.get(f"/api/v1/imports/{second['id']}")).json()["summary"]
@@ -479,13 +507,14 @@ async def test_update_mode_matches_instead_of_duplicating(
     factory = async_sessionmaker(engine, expire_on_commit=False)
     try:
         organism_id = await _organism(client)
+        proteome_id = await _proteome(client, organism_id)
         await _gene(client, organism_id, locus="Rv0010")
         upload_ref = await _upload(client, _workbook("vulnerability", ["locus_tag"], [["Rv0010"]]))
 
         first = await _start(
             client,
             upload_ref=upload_ref,
-            organism_id=organism_id,
+            proteome_id=proteome_id,
             update_existing=True,
             dry_run=False,
         )
@@ -494,7 +523,7 @@ async def test_update_mode_matches_instead_of_duplicating(
         second = await _start(
             client,
             upload_ref=upload_ref,
-            organism_id=organism_id,
+            proteome_id=proteome_id,
             update_existing=True,
             dry_run=False,
         )
@@ -524,6 +553,7 @@ async def test_already_present_ignores_unrelated_shared_reference_rows(
     factory = async_sessionmaker(engine, expire_on_commit=False)
     try:
         organism_id = await _organism(client)
+        proteome_id = await _proteome(client, organism_id)
         await _gene(client, organism_id, locus="Rv0012")
         got_gene = await client.get(f"/api/v1/genes?name=Rv0012&organism_id={organism_id}")
         gene_id = uuid.UUID(got_gene.json()["items"][0]["id"])
@@ -545,7 +575,7 @@ async def test_already_present_ignores_unrelated_shared_reference_rows(
             await uow.commit()
 
         upload_ref = await _upload(client, _workbook("vulnerability", ["locus_tag"], [["Rv0012"]]))
-        run = await _start(client, upload_ref=upload_ref, organism_id=organism_id, dry_run=True)
+        run = await _start(client, upload_ref=upload_ref, proteome_id=proteome_id, dry_run=True)
         await _run_worker(factory, run["id"], workspace_id)
 
         summary = (await client.get(f"/api/v1/imports/{run['id']}")).json()["summary"]
@@ -575,6 +605,7 @@ async def test_update_mode_warns_about_unresolved_ligand_text(
     factory = async_sessionmaker(engine, expire_on_commit=False)
     try:
         organism_id = await _organism(client)
+        proteome_id = await _proteome(client, organism_id)
         await _protein(client, organism_id, accession="P0DP99")
         upload_ref = await _upload(
             client,
@@ -590,7 +621,7 @@ async def test_update_mode_warns_about_unresolved_ligand_text(
         run = await _start(
             client,
             upload_ref=upload_ref,
-            organism_id=organism_id,
+            proteome_id=proteome_id,
             update_existing=True,
             dry_run=False,
         )
@@ -632,6 +663,7 @@ async def test_update_mode_warns_about_a_natural_key_collision_within_one_sheet(
     factory = async_sessionmaker(engine, expire_on_commit=False)
     try:
         organism_id = await _organism(client)
+        proteome_id = await _proteome(client, organism_id)
         await _gene(client, organism_id, locus="Rv0013")
         upload_ref = await _upload(
             client,
@@ -648,7 +680,7 @@ async def test_update_mode_warns_about_a_natural_key_collision_within_one_sheet(
         preview = await _start(
             client,
             upload_ref=upload_ref,
-            organism_id=organism_id,
+            proteome_id=proteome_id,
             update_existing=True,
             dry_run=True,
         )
@@ -662,7 +694,7 @@ async def test_update_mode_warns_about_a_natural_key_collision_within_one_sheet(
         apply_run = await _start(
             client,
             upload_ref=upload_ref,
-            organism_id=organism_id,
+            proteome_id=proteome_id,
             update_existing=True,
             dry_run=False,
         )
@@ -691,6 +723,7 @@ async def test_update_mode_collision_warning_never_fires_in_add_mode(
     factory = async_sessionmaker(engine, expire_on_commit=False)
     try:
         organism_id = await _organism(client)
+        proteome_id = await _proteome(client, organism_id)
         await _gene(client, organism_id, locus="Rv0015")
         upload_ref = await _upload(
             client,
@@ -704,7 +737,7 @@ async def test_update_mode_collision_warning_never_fires_in_add_mode(
             ),
         )
         run = await _start(
-            client, upload_ref=upload_ref, organism_id=organism_id, dry_run=True
+            client, upload_ref=upload_ref, proteome_id=proteome_id, dry_run=True
         )  # update_existing defaults to False
         await _run_worker(factory, run["id"], workspace_id)
 
@@ -727,6 +760,7 @@ async def test_hypomorph_resolves_a_same_workbook_strain_regardless_of_sheet_ord
     factory = async_sessionmaker(engine, expire_on_commit=False)
     try:
         organism_id = await _organism(client)
+        proteome_id = await _proteome(client, organism_id)
         await _gene(client, organism_id, locus="Rv0014")
 
         wb = openpyxl.Workbook()
@@ -742,7 +776,7 @@ async def test_hypomorph_resolves_a_same_workbook_strain_regardless_of_sheet_ord
         wb.save(buf)
         upload_ref = await _upload(client, buf.getvalue())
 
-        run = await _start(client, upload_ref=upload_ref, organism_id=organism_id, dry_run=False)
+        run = await _start(client, upload_ref=upload_ref, proteome_id=proteome_id, dry_run=False)
         await _run_worker(factory, run["id"], workspace_id)
 
         summary = (await client.get(f"/api/v1/imports/{run['id']}")).json()["summary"]
@@ -766,6 +800,7 @@ async def test_two_sheets_normalising_to_the_same_kind_only_the_first_is_used(
     factory = async_sessionmaker(engine, expire_on_commit=False)
     try:
         organism_id = await _organism(client)
+        proteome_id = await _proteome(client, organism_id)
         await _gene(client, organism_id, locus="Rv0016")
         await _gene(client, organism_id, locus="Rv0017")
 
@@ -782,7 +817,7 @@ async def test_two_sheets_normalising_to_the_same_kind_only_the_first_is_used(
         wb.save(buf)
         upload_ref = await _upload(client, buf.getvalue())
 
-        run = await _start(client, upload_ref=upload_ref, organism_id=organism_id, dry_run=True)
+        run = await _start(client, upload_ref=upload_ref, proteome_id=proteome_id, dry_run=True)
         await _run_worker(factory, run["id"], workspace_id)
 
         summary = (await client.get(f"/api/v1/imports/{run['id']}")).json()["summary"]
@@ -803,6 +838,7 @@ async def test_add_mode_never_triggers_the_ligand_warning(
     factory = async_sessionmaker(engine, expire_on_commit=False)
     try:
         organism_id = await _organism(client)
+        proteome_id = await _proteome(client, organism_id)
         await _protein(client, organism_id, accession="P0DP98")
         upload_ref = await _upload(
             client,
@@ -813,12 +849,120 @@ async def test_add_mode_never_triggers_the_ligand_warning(
             ),
         )
         run = await _start(
-            client, upload_ref=upload_ref, organism_id=organism_id, dry_run=True
+            client, upload_ref=upload_ref, proteome_id=proteome_id, dry_run=True
         )  # update_existing defaults to False
         await _run_worker(factory, run["id"], workspace_id)
 
         summary = (await client.get(f"/api/v1/imports/{run['id']}")).json()["summary"]
         assert summary["warnings"] == []
         assert summary["kinds"]["unpublished_structure"]["create"] == 2
+    finally:
+        await engine.dispose()
+
+
+# ---------------------------------------------------------------------------
+# proteome scoping (organism_id -> proteome_id)
+# ---------------------------------------------------------------------------
+
+
+async def test_an_unknown_proteome_fails_the_run(
+    client: AsyncClient, database_url: str, _run_migrations: None, workspace_id: uuid.UUID
+) -> None:
+    """proteome_id existence is a DB fact TargetBiologyParams (Pydantic) cannot
+    check — TargetBiologyAdapter.run resolves it and must fail clearly, before
+    ever touching the uploaded workbook, rather than 500 or silently no-op."""
+    engine = create_async_engine(database_url)
+    factory = async_sessionmaker(engine, expire_on_commit=False)
+    try:
+        upload_ref = await _upload(client, _workbook("vulnerability", ["locus_tag"], [["Rv0001"]]))
+        bogus_proteome_id = uuid.uuid4()
+        run = await _start(
+            client, upload_ref=upload_ref, proteome_id=str(bogus_proteome_id), dry_run=True
+        )
+        with pytest.raises(ValueError, match=str(bogus_proteome_id)):
+            await _run_worker(factory, run["id"], workspace_id)
+
+        got = await client.get(f"/api/v1/imports/{run['id']}")
+        body = got.json()
+        assert body["status"] == ImportStatus.FAILED.value
+        assert str(bogus_proteome_id) in body["error"]
+    finally:
+        await engine.dispose()
+
+
+async def test_a_strain_pinned_proteome_still_matches_that_strains_own_genes(
+    client: AsyncClient, database_url: str, _run_migrations: None, workspace_id: uuid.UUID
+) -> None:
+    """End-to-end proof that proteome_id -> (organism_id, strain_id)
+    resolution, plus the strain-restricted locus index (_genes_for_strain),
+    compose correctly for the ordinary case: an organism with two strains
+    (disjoint locus conventions, same shape as the real H37Rv/CDC1551 pair the
+    brief describes), a proteome pinned to one of them, and that strain's own
+    locus tag still resolves and creates — proving the proteome_id rename +
+    strain restriction didn't regress the case organism_id scoping used to
+    handle. (A *shared*-key collision across strains is covered at the unit
+    level by test_genes_for_strain_restricts_to_the_pinned_strain — the eight
+    bulk commands' own gene resolution stays organism-wide by design, so an
+    end-to-end row-succeeds assertion for that case would not hold: see this
+    task's report.)
+    """
+    engine = create_async_engine(database_url)
+    factory = async_sessionmaker(engine, expire_on_commit=False)
+    try:
+        organism_id = await _organism(client)
+
+        strain_a = await client.post(
+            "/api/v1/strains", json={"species_organism_id": organism_id, "name": "Strain A"}
+        )
+        assert strain_a.status_code == 201, strain_a.text
+        strain_a_id = strain_a.json()["id"]
+
+        strain_b = await client.post(
+            "/api/v1/strains", json={"species_organism_id": organism_id, "name": "Strain B"}
+        )
+        assert strain_b.status_code == 201, strain_b.text
+        strain_b_id = strain_b.json()["id"]
+
+        # BulkGeneRecordBody (the HTTP bulk-genes route) has no strain_id field
+        # — only the application layer's GeneImportRecord does — so these are
+        # created directly, the same shortcut this file already takes for a
+        # SHARED-workspace Vulnerability row in
+        # test_already_present_ignores_unrelated_shared_reference_rows.
+        async with AsyncUnitOfWork(factory) as gene_uow:
+            from protcellar.domain.protein_catalog.gene import Gene
+            from protcellar.infrastructure.persistence.sqlalchemy.protein_catalog.gene_repository import (  # noqa: E501
+                SQLAlchemyGeneRepository,
+            )
+
+            gene_repo = SQLAlchemyGeneRepository(gene_uow)
+            await gene_repo.save(
+                Gene.create(
+                    workspace_id=SHARED_WORKSPACE_ID,
+                    primary_name="AAA0001",
+                    organism_id=uuid.UUID(organism_id),
+                    strain_id=uuid.UUID(strain_a_id),
+                )
+            )
+            await gene_repo.save(
+                Gene.create(
+                    workspace_id=SHARED_WORKSPACE_ID,
+                    primary_name="BBB0001",
+                    organism_id=uuid.UUID(organism_id),
+                    strain_id=uuid.UUID(strain_b_id),
+                )
+            )
+            await gene_uow.commit()
+
+        proteome_a = await _proteome(client, organism_id, strain_id=strain_a_id)
+        upload_ref = await _upload(
+            client, _workbook("vulnerability", ["locus_tag"], [["AAA0001"]])
+        )
+        run = await _start(client, upload_ref=upload_ref, proteome_id=proteome_a, dry_run=True)
+        await _run_worker(factory, run["id"], workspace_id)
+
+        summary = (await client.get(f"/api/v1/imports/{run['id']}")).json()["summary"]
+        assert summary["kinds"]["vulnerability"]["create"] == 1
+        assert summary["kinds"]["vulnerability"]["failed"] == 0
+        assert summary["unmatched"]["count"] == 0
     finally:
         await engine.dispose()

@@ -10,6 +10,7 @@ from protcellar.application.imports.params import (
     GeneEnrichmentParams,
     GoOntologyParams,
     ProteomeParams,
+    TargetBiologyParams,
     target_key,
     validate_params,
 )
@@ -76,6 +77,46 @@ def test_go_ontology_params_defaults() -> None:
 def test_go_ontology_params_force() -> None:
     p = GoOntologyParams(force=True)
     assert p.force is True
+
+
+# ---------------------------------------------------------------------------
+# TargetBiologyParams
+# ---------------------------------------------------------------------------
+
+
+def test_target_biology_params_valid_minimal() -> None:
+    upload_ref = uuid.uuid4()
+    proteome_id = uuid.uuid4()
+    p = TargetBiologyParams(upload_ref=upload_ref, proteome_id=proteome_id)
+    assert p.upload_ref == upload_ref
+    assert p.proteome_id == proteome_id
+    assert p.match_by == "locus_tag"
+    assert p.update_existing is False
+    assert p.dry_run is True
+
+
+def test_target_biology_params_has_no_organism_id_field() -> None:
+    """organism_id was replaced by proteome_id — an organism alone cannot pin
+    a locus/name namespace when the organism holds multiple strains."""
+    assert "organism_id" not in TargetBiologyParams.model_fields
+    assert "proteome_id" in TargetBiologyParams.model_fields
+
+
+def test_target_biology_params_missing_proteome_id_raises() -> None:
+    with pytest.raises(ValidationError):
+        validate_params(ImportType.TARGET_BIOLOGY, {"upload_ref": str(uuid.uuid4())})
+
+
+def test_target_biology_params_rejects_a_non_uuid_proteome_id() -> None:
+    """The Pydantic layer only rejects malformed input — an unknown-but-well-formed
+    UUID is rejected later, by the adapter's own find_readable lookup (see
+    test_target_biology_import.py::test_an_unknown_proteome_fails_the_run),
+    since proteome existence is a DB fact this layer has no access to."""
+    with pytest.raises(ValidationError):
+        validate_params(
+            ImportType.TARGET_BIOLOGY,
+            {"upload_ref": str(uuid.uuid4()), "proteome_id": "not-a-uuid"},
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -153,3 +194,19 @@ def test_target_key_gene_enrichment_tax_id_fallback() -> None:
 def test_target_key_go_ontology() -> None:
     params = {"force": False}
     assert target_key(ImportType.GO_ONTOLOGY, params) == "go"
+
+
+def test_target_key_target_biology_dry_run() -> None:
+    proteome_id = uuid.uuid4()
+    upload_ref = uuid.uuid4()
+    params = {"proteome_id": str(proteome_id), "upload_ref": str(upload_ref), "dry_run": True}
+    assert target_key(ImportType.TARGET_BIOLOGY, params) == f"{proteome_id}:{upload_ref}:dry"
+
+
+def test_target_key_target_biology_apply() -> None:
+    """Same upload, dry_run=False — a distinct key from the preview above so
+    apply is never mistaken for an already-active run of its own preview."""
+    proteome_id = uuid.uuid4()
+    upload_ref = uuid.uuid4()
+    params = {"proteome_id": str(proteome_id), "upload_ref": str(upload_ref), "dry_run": False}
+    assert target_key(ImportType.TARGET_BIOLOGY, params) == f"{proteome_id}:{upload_ref}:run"

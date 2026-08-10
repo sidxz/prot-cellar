@@ -73,6 +73,7 @@ from protcellar.application.target_biology.bulk_upsert_vulnerability import (
 )
 from protcellar.application.target_biology.crud import RecordKind
 from protcellar.domain.imports.enums import ImportType
+from protcellar.domain.protein_catalog.gene import Gene
 from protcellar.domain.shared.global_workspace import SHARED_WORKSPACE_ID
 from protcellar.infrastructure.ingestion.gene_enrichment_runner import GeneEnrichmentRunner
 from protcellar.infrastructure.ingestion.go_import_runner import GoImportRunner
@@ -118,6 +119,9 @@ from protcellar.infrastructure.persistence.sqlalchemy.target_biology.unpublished
 )
 from protcellar.infrastructure.persistence.sqlalchemy.target_biology.vulnerability_repository import (  # noqa: E501
     SQLAlchemyVulnerabilityRepository,
+)
+from protcellar.infrastructure.persistence.sqlalchemy.taxonomy.proteome_repository import (
+    SQLAlchemyProteomeRepository,
 )
 from protcellar.infrastructure.persistence.sqlalchemy.workspace_config.extension_field_def_repository import (  # noqa: E501
     SQLAlchemyExtensionFieldDefRepository,
@@ -626,6 +630,24 @@ def _row_problem(sheet: str, reason: str, *, row: int | None = None) -> dict[str
     return {"sheet": sheet, "row": row, "reason": reason}
 
 
+def _genes_for_strain(genes: Sequence[Gene], strain_id: uuid.UUID | None) -> list[Gene]:
+    """Restrict the gene set a run's locus index is built from to one proteome's
+    strain — the strain pins the locus/name namespace unambiguously (see
+    TargetBiologyAdapter's own docstring on why a proteome, not an organism, is
+    the input). Genes with no strain are excluded when a strain is pinned:
+    restricting strictly is what removes the ambiguity a NULL-strain gene
+    could reintroduce; an operator importing MTB's CDC1551 data must not have
+    an unrelated, unstrained gene silently eligible for its locus index too.
+
+    A proteome with no strain (``strain_id is None``) is the species-level
+    case, not a defect — every gene for the organism stays in play, exactly
+    the behaviour before proteome scoping existed.
+    """
+    if strain_id is None:
+        return list(genes)
+    return [g for g in genes if g.strain_id == strain_id]
+
+
 def _drop_ambiguous(
     kind: RecordKind, records: list[Any], index: LocusIndex
 ) -> tuple[list[Any], list[dict[str, Any]]]:
@@ -809,6 +831,20 @@ class TargetBiologyAdapter:
         # own require_admin check). See ImportRuntime.workspace_id's docstring.
         target_workspace_id = rt.workspace_id
 
+        # Resolve the proteome to the organism + strain it pins, server-side —
+        # params carries only proteome_id (see TargetBiologyParams's own
+        # docstring on why). Done first, before touching the upload at all: a
+        # bad proteome_id should fail fast, not after parsing a whole workbook.
+        proteome_uow = AsyncUnitOfWork(rt.session_factory)
+        async with proteome_uow:
+            proteome = await SQLAlchemyProteomeRepository(proteome_uow).find_readable(
+                target_workspace_id, params.proteome_id
+            )
+        if proteome is None:
+            raise ValueError(f"proteome {params.proteome_id} not found")
+        organism_id = proteome.organism_id
+        strain_id = proteome.strain_id
+
         await rt.reporter.phase("loading upload")
         data = await rt.load_upload(params.upload_ref)
 
@@ -843,7 +879,7 @@ class TargetBiologyAdapter:
             dispatcher=rt.dispatcher,
             auth=rt.auth,
             target_workspace_id=target_workspace_id,
-            organism_id=params.organism_id,
+            organism_id=organism_id,
             dry_run=params.dry_run,
             update_existing=params.update_existing,
             gene_repo=SQLAlchemyGeneRepository(uow),
@@ -864,13 +900,18 @@ class TargetBiologyAdapter:
         # each bulk command below still rebuilds its own internally (it has no
         # way to accept one pre-built), but this pass exists only to catch
         # ambiguity before dispatch, which the commands cannot report at all.
+        # Restricted to the proteome's own strain (_genes_for_strain) before
+        # the index is built: the whole point of scoping by proteome instead
+        # of organism is an unambiguous locus namespace, and leaving a second
+        # strain's genes in here would reintroduce exactly the ambiguity a
+        # proteome pin exists to remove.
         locus_index: LocusIndex | None = None
         if any(plan.kind in _GENE_SIDE_KINDS for plan in plans):
             async with AsyncUnitOfWork(rt.session_factory) as genes_uow:
                 genes = await SQLAlchemyGeneRepository(genes_uow).list_by_organism(
-                    params.organism_id, workspace_id=target_workspace_id
+                    organism_id, workspace_id=target_workspace_id
                 )
-            locus_index = build_locus_index(genes)
+            locus_index = build_locus_index(_genes_for_strain(genes, strain_id))
 
         total_rows = sum(plan.rows_read for plan in plans)
         processed = 0

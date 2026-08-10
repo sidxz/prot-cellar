@@ -9873,6 +9873,28 @@
           "version": {
             "type": "integer",
             "title": "Version"
+          },
+          "organism_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Organism Name"
+          },
+          "strain_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Strain Name"
           }
         },
         "type": "object",

@@ -10,11 +10,11 @@ vi.mock("../../hooks/use-imports", () => ({
   useStartImport: () => ({ mutateAsync: startMutate, isPending: false }),
   useUploadEssentiality: () => ({ mutateAsync: uploadMutate, isPending: false }),
 }));
-vi.mock("../organism-combobox", () => ({
+vi.mock("../proteome-combobox", () => ({
   // biome-ignore lint/suspicious/noExplicitAny: test stub
-  OrganismCombobox: ({ onSelect }: any) => (
-    <button type="button" onClick={() => onSelect("org-7", "M. tb")}>
-      pick-org
+  ProteomeCombobox: ({ onSelect }: any) => (
+    <button type="button" onClick={() => onSelect("pt-7", "UP000001584 — M. tb")}>
+      pick-proteome
     </button>
   ),
 }));
@@ -39,11 +39,22 @@ describe("TargetBiologyParamsForm", () => {
     push.mockClear();
   });
 
-  it("rejects submit without a file or an organism", async () => {
+  it("rejects submit without a file or a proteome", async () => {
     render(<TargetBiologyParamsForm onSuccess={() => {}} />);
     fireEvent.click(screen.getByRole("button", { name: /start import/i }));
     expect(await screen.findByText(/upload a workbook first/i)).toBeInTheDocument();
-    expect(await screen.findByText(/organism is required/i)).toBeInTheDocument();
+    expect(await screen.findByText(/proteome is required/i)).toBeInTheDocument();
+    expect(startMutate).not.toHaveBeenCalled();
+  });
+
+  it("rejects submit when a proteome was typed but never picked", async () => {
+    render(<TargetBiologyParamsForm onSuccess={() => {}} />);
+    pickFile();
+    await waitFor(() => expect(uploadMutate).toHaveBeenCalled());
+    // No pick-proteome click — proteome_id stays "" even with text typed into
+    // the combobox (see ProteomeCombobox's own "clears on edit" behaviour).
+    fireEvent.click(screen.getByRole("button", { name: /start import/i }));
+    expect(await screen.findByText(/proteome is required/i)).toBeInTheDocument();
     expect(startMutate).not.toHaveBeenCalled();
   });
 
@@ -54,7 +65,7 @@ describe("TargetBiologyParamsForm", () => {
     pickFile();
     await waitFor(() => expect(uploadMutate).toHaveBeenCalled());
 
-    fireEvent.click(screen.getByText("pick-org"));
+    fireEvent.click(screen.getByText("pick-proteome"));
     fireEvent.click(screen.getByRole("button", { name: /start import/i }));
 
     await waitFor(() =>
@@ -63,7 +74,7 @@ describe("TargetBiologyParamsForm", () => {
           import_type: "target_biology",
           params: {
             upload_ref: "up-1",
-            organism_id: "org-7",
+            proteome_id: "pt-7",
             match_by: "locus_tag",
             update_existing: false,
             dry_run: true,

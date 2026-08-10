@@ -41,7 +41,7 @@ function baseRun(overrides: Record<string, unknown> = {}) {
     requested_by: "user-1",
     created_at: "2026-08-09T00:00:00Z",
     error: null,
-    params: { organism_id: "org-1", match_by: "locus_tag", update_existing: false },
+    params: { proteome_id: "pt-1", match_by: "locus_tag", update_existing: false },
     summary: {
       kinds: {
         vulnerability: {
@@ -123,7 +123,7 @@ describe("TargetBiologyPreview", () => {
 
   it("shows the already_present warning in add mode", () => {
     const run = baseRun({
-      params: { organism_id: "org-1", match_by: "locus_tag", update_existing: false },
+      params: { proteome_id: "pt-1", match_by: "locus_tag", update_existing: false },
       summary: { ...baseRun().summary, already_present: { vulnerability: 3 } },
     });
     render(<TargetBiologyPreview run={run} />);
@@ -132,7 +132,7 @@ describe("TargetBiologyPreview", () => {
 
   it("hides the already_present warning in update mode", () => {
     const run = baseRun({
-      params: { organism_id: "org-1", match_by: "locus_tag", update_existing: true },
+      params: { proteome_id: "pt-1", match_by: "locus_tag", update_existing: true },
       summary: { ...baseRun().summary, already_present: { vulnerability: 3 } },
     });
     render(<TargetBiologyPreview run={run} />);
@@ -170,7 +170,7 @@ describe("TargetBiologyPreview", () => {
 
   it("Apply resubmits the run's own params from the server, not anything client-remembered", async () => {
     const run = baseRun({
-      params: { organism_id: "org-9", match_by: "gene_name", update_existing: true },
+      params: { proteome_id: "pt-9", match_by: "gene_name", update_existing: true },
     });
     render(<TargetBiologyPreview run={run} />);
     fireEvent.click(screen.getByRole("button", { name: "Apply" }));
@@ -181,7 +181,7 @@ describe("TargetBiologyPreview", () => {
           import_type: "target_biology",
           params: {
             upload_ref: "up-1",
-            organism_id: "org-9",
+            proteome_id: "pt-9",
             match_by: "gene_name",
             update_existing: true,
             dry_run: false,

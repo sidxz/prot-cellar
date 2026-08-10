@@ -27,11 +27,11 @@ import {
 import { ImportType } from "@/shared/lib/api/model";
 
 import { useStartImport, useUploadEssentiality } from "../../hooks/use-imports";
-import { OrganismCombobox } from "../organism-combobox";
+import { ProteomeCombobox } from "../proteome-combobox";
 
 const schema = z.object({
   upload_ref: z.string().min(1, "Upload a workbook first"),
-  organism_id: z.string().min(1, "Organism is required"),
+  proteome_id: z.string().min(1, "Proteome is required"),
   match_by: z.enum(["locus_tag", "gene_name"]),
   update_existing: z.boolean(),
 });
@@ -54,7 +54,7 @@ export function TargetBiologyParamsForm({ onSuccess }: { onSuccess: () => void }
     resolver: zodResolver(schema),
     defaultValues: {
       upload_ref: "",
-      organism_id: "",
+      proteome_id: "",
       match_by: "locus_tag",
       update_existing: false,
     },
@@ -71,7 +71,7 @@ export function TargetBiologyParamsForm({ onSuccess }: { onSuccess: () => void }
   const onSubmit = async (values: Values) => {
     const params = {
       upload_ref: values.upload_ref,
-      organism_id: values.organism_id,
+      proteome_id: values.proteome_id,
       match_by: values.match_by,
       update_existing: values.update_existing,
       dry_run: true, // this form only ever previews — see the doc comment above
@@ -108,14 +108,14 @@ export function TargetBiologyParamsForm({ onSuccess }: { onSuccess: () => void }
         </div>
 
         <div className="grid gap-2">
-          <Label>Organism</Label>
+          <Label>Proteome</Label>
           <Controller
             control={form.control}
-            name="organism_id"
-            render={({ field }) => <OrganismCombobox onSelect={(id) => field.onChange(id)} />}
+            name="proteome_id"
+            render={({ field }) => <ProteomeCombobox onSelect={(id) => field.onChange(id)} />}
           />
-          {form.formState.errors.organism_id && (
-            <p className="text-xs text-destructive">{form.formState.errors.organism_id.message}</p>
+          {form.formState.errors.proteome_id && (
+            <p className="text-xs text-destructive">{form.formState.errors.proteome_id.message}</p>
           )}
         </div>
 
