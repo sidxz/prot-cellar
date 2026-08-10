@@ -36,7 +36,14 @@ class ImportRunResponse(BaseModel):
     phase: str | None = None
     progress: dict[str, Any]
     summary: dict[str, Any]
-    params: dict[str, Any]
+    # Write-only for every import type except TARGET_BIOLOGY, whose preview
+    # screen needs its own params back to drive Apply. Every other type's
+    # params can carry secrets (e.g. gene_enrichment's gff_url, which may
+    # embed credentials) that must never round-trip to a reader — including
+    # an admin's own StartImport response, and regardless of the caller's
+    # role, since GetImportRun/ListImportRuns are require_authenticated, not
+    # require_admin.
+    params: dict[str, Any] | None = None
     source_version: str | None = None
     error: str | None = None
     requested_by: uuid.UUID
@@ -55,7 +62,7 @@ class ImportRunResponse(BaseModel):
             phase=run.phase,
             progress={"processed": run.processed, "total": run.total},
             summary=run.summary,
-            params=run.params,
+            params=run.params if run.import_type is ImportType.TARGET_BIOLOGY else None,
             source_version=run.source_version,
             error=run.error,
             requested_by=run.requested_by,

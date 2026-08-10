@@ -59,6 +59,39 @@ async def test_start_import_returns_202_queued_and_enqueues(
     assert got.json()["target_key"] == proteome_id
 
 
+async def test_a_viewer_cannot_read_a_gene_enrichment_runs_params(
+    client: AsyncClient, viewer_client: AsyncClient
+) -> None:
+    """params are write-only except for TARGET_BIOLOGY (whose preview screen
+    needs them back to drive Apply) — every other import type's params, which
+    can carry secrets such as a gff_url with embedded credentials, must never
+    reach a reader, on either the detail or the list endpoint, and regardless
+    of the caller's own role (even the admin's own create response is
+    scrubbed)."""
+    secret_url = "https://user:s3cr3t-token@example.com/genes.gff3"
+    started = await client.post(
+        "/api/v1/imports",
+        json={
+            "import_type": "gene_enrichment",
+            "params": {"tax_id": 83332, "gff_url": secret_url},
+        },
+    )
+    assert started.status_code == 202, started.text
+    run_id = started.json()["id"]
+    assert started.json()["params"] is None
+
+    got = await viewer_client.get(f"/api/v1/imports/{run_id}")
+    assert got.status_code == 200, got.text
+    assert got.json()["params"] is None
+    assert "s3cr3t-token" not in got.text
+
+    listed = await viewer_client.get("/api/v1/imports")
+    assert listed.status_code == 200, listed.text
+    row = next(r for r in listed.json()["items"] if r["id"] == run_id)
+    assert row["params"] is None
+    assert "s3cr3t-token" not in listed.text
+
+
 async def test_duplicate_active_import_is_rejected(client: AsyncClient, fake_enqueuer) -> None:
     payload = {"import_type": "go_ontology", "params": {"force": False}}
     first = await client.post("/api/v1/imports", json=payload)

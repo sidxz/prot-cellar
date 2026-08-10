@@ -155,6 +155,10 @@ async def test_a_preview_run_commits_nothing(
         body = got.json()
         assert body["status"] == ImportStatus.SUCCEEDED.value
         assert body["summary"]["kinds"]["vulnerability"]["create"] == 1
+        # Unlike every other import type, TARGET_BIOLOGY's params must still
+        # round-trip — the preview screen's Apply button reads organism_id/
+        # match_by/update_existing straight off it.
+        assert body["params"]["organism_id"] == organism_id
 
         async with AsyncUnitOfWork(factory) as uow:
             repo = SQLAlchemyVulnerabilityRepository(uow)

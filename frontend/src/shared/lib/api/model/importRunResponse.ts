@@ -24,7 +24,7 @@ export interface ImportRunResponse {
   phase?: ImportRunResponsePhase;
   progress: ImportRunResponseProgress;
   summary: ImportRunResponseSummary;
-  params: ImportRunResponseParams;
+  params?: ImportRunResponseParams;
   source_version?: ImportRunResponseSourceVersion;
   error?: ImportRunResponseError;
   requested_by: string;

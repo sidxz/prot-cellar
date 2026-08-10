@@ -4,5 +4,6 @@
  * prot-cellar
  * OpenAPI spec version: 0.1.0
  */
+import type { ImportRunResponseParamsAnyOf } from './importRunResponseParamsAnyOf';
 
-export type ImportRunResponseParams = { [key: string]: unknown };
+export type ImportRunResponseParams = ImportRunResponseParamsAnyOf | null;
