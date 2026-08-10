@@ -76,3 +76,31 @@ describe("customInstance", () => {
     expect(out).toBe(">sp|P1|X\nMAAA\nKLL");
   });
 });
+
+describe("multipart uploads", () => {
+  it("strips a caller-supplied Content-Type when the body is FormData", async () => {
+    // orval hardcodes `Content-Type: multipart/form-data` on every upload
+    // operation. Without a boundary the server rejects the request outright,
+    // and only the browser can supply one.
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ ok: true }), {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const body = new FormData();
+    body.append("file", new Blob(["x"]), "x.xlsx");
+    await customInstance({
+      url: "/api/v1/imports/uploads",
+      method: "POST",
+      headers: { "Content-Type": "multipart/form-data" },
+      data: body,
+    });
+
+    const sent = fetchMock.mock.calls[0][1].headers as Record<string, string>;
+    expect(Object.keys(sent).map((k) => k.toLowerCase())).not.toContain("content-type");
+    vi.unstubAllGlobals();
+  });
+});

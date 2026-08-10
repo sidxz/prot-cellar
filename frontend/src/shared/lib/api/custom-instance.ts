@@ -50,7 +50,8 @@ export class ApiError extends Error {
  * - Prepends `_baseUrl` to the path.
  * - Serializes array params as repeated keys (`k=a&k=b`) for FastAPI `list[T]`.
  * - Merges `getAuthHeaders()` into request headers.
- * - Sets `Content-Type: application/json` unless body is `FormData`.
+ * - Sets `Content-Type: application/json` unless body is `FormData`, in which case
+ *   any caller-supplied `Content-Type` is stripped too — see `fetchHeaders` below.
  * - 204 responses → `undefined`.
  * - Non-2xx → throws `ApiError` with `status` and parsed `detail`.
  */
@@ -100,6 +101,17 @@ export const customInstance = async <T>({
     ...authHeaders,
     ...headers,
   };
+  if (isFormData) {
+    // orval emits a literal `Content-Type: multipart/form-data` on every upload
+    // operation, and `...headers` above spreads last, so omitting it from the
+    // defaults is not enough — it comes back in and carries no boundary, which
+    // the server rejects outright ("Missing boundary in multipart"). Only the
+    // browser can write this header, because only it knows the boundary it
+    // generated for the body.
+    for (const key of Object.keys(fetchHeaders)) {
+      if (key.toLowerCase() === "content-type") delete fetchHeaders[key];
+    }
+  }
 
   const response = await fetch(`${_baseUrl}${url}${queryString}`, {
     method,
