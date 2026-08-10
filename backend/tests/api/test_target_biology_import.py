@@ -23,6 +23,9 @@ from protcellar.domain.imports.enums import ImportStatus
 from protcellar.domain.shared.global_workspace import SHARED_WORKSPACE_ID
 from protcellar.infrastructure.ingestion import worker as worker_mod
 from protcellar.infrastructure.messaging.event_dispatcher import EventDispatcher
+from protcellar.infrastructure.persistence.sqlalchemy.target_biology.unpublished_structure_repository import (  # noqa: E501
+    SQLAlchemyUnpublishedStructureRepository,
+)
 from protcellar.infrastructure.persistence.sqlalchemy.target_biology.vulnerability_repository import (  # noqa: E501
     SQLAlchemyVulnerabilityRepository,
 )
@@ -106,6 +109,22 @@ async def _gene(
     if synonyms:
         rec["synonyms"] = synonyms
     resp = await client.post("/api/v1/genes/bulk", json={"records": [rec]})
+    assert resp.status_code == 200, resp.text
+    assert resp.json()["summary"]["created"] == 1, resp.json()
+
+
+async def _protein(client: AsyncClient, organism_id: str, *, accession: str) -> None:
+    rec = {
+        "primary_accession": accession,
+        "organism_id": organism_id,
+        "sequence": "MADQLTEEQIAEFKEAFSLF",
+        "is_reviewed": True,
+        "source": "test",
+        "source_release": "1",
+        "source_record_id": accession,
+        "source_record_checksum": "c1",
+    }
+    resp = await client.post("/api/v1/proteins/bulk", json={"records": [rec]})
     assert resp.status_code == 200, resp.text
     assert resp.json()["summary"]["created"] == 1, resp.json()
 
@@ -447,5 +466,141 @@ async def test_update_mode_matches_instead_of_duplicating(
             repo = SQLAlchemyVulnerabilityRepository(uow)
             records = await repo.find_by_gene(workspace_id, uuid.UUID(gene_id))
         assert len(records) == 1
+    finally:
+        await engine.dispose()
+
+
+async def test_already_present_ignores_unrelated_shared_reference_rows(
+    client: AsyncClient, database_url: str, _run_migrations: None, workspace_id: uuid.UUID
+) -> None:
+    """already_present must count only what the target workspace itself owns.
+    list_paginated is readable_by (target OR SHARED) — a brand-new tenant with
+    zero rows of its own must not see a nonzero count just because SHARED
+    holds an unrelated legacy row for the same gene."""
+    engine = create_async_engine(database_url)
+    factory = async_sessionmaker(engine, expire_on_commit=False)
+    try:
+        organism_id = await _organism(client)
+        await _gene(client, organism_id, locus="Rv0012")
+        got_gene = await client.get(f"/api/v1/genes?name=Rv0012&organism_id={organism_id}")
+        gene_id = uuid.UUID(got_gene.json()["items"][0]["id"])
+
+        # A SHARED vulnerability row for the same gene — legacy reference data,
+        # not this tenant's, and not something add mode run twice could ever
+        # double (the workbook import never writes SHARED).
+        async with AsyncUnitOfWork(factory) as uow:
+            from protcellar.domain.shared.provenance import Provenance, ProvenanceSourceType
+            from protcellar.domain.target_biology.vulnerability import Vulnerability
+
+            shared_record = Vulnerability.create(
+                workspace_id=SHARED_WORKSPACE_ID,
+                gene_id=gene_id,
+                provenance=Provenance(source_type=ProvenanceSourceType.PUBLISHED),
+                vulnerability_score=0.5,
+            )
+            await SQLAlchemyVulnerabilityRepository(uow).save(shared_record)
+            await uow.commit()
+
+        upload_ref = await _upload(client, _workbook("vulnerability", ["locus_tag"], [["Rv0012"]]))
+        run = await _start(client, upload_ref=upload_ref, organism_id=organism_id, dry_run=True)
+        await _run_worker(factory, run["id"], workspace_id)
+
+        summary = (await client.get(f"/api/v1/imports/{run['id']}")).json()["summary"]
+        assert summary["already_present"]["vulnerability"] == 0
+    finally:
+        await engine.dispose()
+
+
+async def test_update_mode_warns_about_unresolved_ligand_text(
+    client: AsyncClient, database_url: str, _run_migrations: None, workspace_id: uuid.UUID
+) -> None:
+    """unpublished_structure's update-mode key is (protein_id, method,
+    ligands), and ligands only ever means resolved compound ids. Two rows for
+    the same protein/method whose ligand text never resolved are
+    indistinguishable to that key — the second silently overwrites the first.
+    The preview must say so.
+
+    The warning is computed straight off the parsed rows (extensions
+    carrying ligand_reported), so it fires under dry_run too — but the count
+    collapse it describes is an *apply*-only observation: under dry_run the
+    bulk command never saves row 1, so row 2's own "does a match already
+    exist" lookup (a DB query) can't see it either, and both come back
+    "created". Only a real apply serializes the two rows against the database
+    in between, which is when the second one finds and overwrites the first.
+    """
+    engine = create_async_engine(database_url)
+    factory = async_sessionmaker(engine, expire_on_commit=False)
+    try:
+        organism_id = await _organism(client)
+        await _protein(client, organism_id, accession="P0DP99")
+        upload_ref = await _upload(
+            client,
+            _workbook(
+                "unpublished_structure",
+                ["accession", "method", "ligand_ids"],
+                [
+                    ["P0DP99", "X-ray", "Apo"],
+                    ["P0DP99", "X-ray", "SO4 bound"],
+                ],
+            ),
+        )
+        run = await _start(
+            client,
+            upload_ref=upload_ref,
+            organism_id=organism_id,
+            update_existing=True,
+            dry_run=False,
+        )
+        await _run_worker(factory, run["id"], workspace_id)
+
+        summary = (await client.get(f"/api/v1/imports/{run['id']}")).json()["summary"]
+        warning = next(w for w in summary["warnings"] if w["sheet"] == "unpublished_structure")
+        assert warning["count"] == 2
+
+        # The bug itself: both rows share the command's match key (method +
+        # empty resolved-ligands), so the second updates the first in place
+        # instead of creating a second, distinct structure.
+        kind = summary["kinds"]["unpublished_structure"]
+        assert kind["create"] == 1
+        assert kind["update"] == 1
+        assert kind["failed"] == 0
+
+        async with AsyncUnitOfWork(factory) as uow:
+            got_protein = await client.get("/api/v1/proteins/P0DP99")
+            protein_id = uuid.UUID(got_protein.json()["id"])
+            records = await SQLAlchemyUnpublishedStructureRepository(uow).find_by_protein(
+                workspace_id, protein_id
+            )
+        assert len(records) == 1, "the two distinct structures collapsed into one"
+    finally:
+        await engine.dispose()
+
+
+async def test_add_mode_never_triggers_the_ligand_warning(
+    client: AsyncClient, database_url: str, _run_migrations: None, workspace_id: uuid.UUID
+) -> None:
+    """Add mode never matches at all (see _NoExistingMatch) — the collapse the
+    warning describes can't happen there, so it must not fire."""
+    engine = create_async_engine(database_url)
+    factory = async_sessionmaker(engine, expire_on_commit=False)
+    try:
+        organism_id = await _organism(client)
+        await _protein(client, organism_id, accession="P0DP98")
+        upload_ref = await _upload(
+            client,
+            _workbook(
+                "unpublished_structure",
+                ["accession", "method", "ligand_ids"],
+                [["P0DP98", "X-ray", "Apo"], ["P0DP98", "X-ray", "SO4 bound"]],
+            ),
+        )
+        run = await _start(
+            client, upload_ref=upload_ref, organism_id=organism_id, dry_run=True
+        )  # update_existing defaults to False
+        await _run_worker(factory, run["id"], workspace_id)
+
+        summary = (await client.get(f"/api/v1/imports/{run['id']}")).json()["summary"]
+        assert summary["warnings"] == []
+        assert summary["kinds"]["unpublished_structure"]["create"] == 2
     finally:
         await engine.dispose()

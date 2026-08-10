@@ -75,4 +75,5 @@ def _runtime(*, params: dict):
         params=params,
         auth=FakeAuth(role="admin"),
         load_upload=_load_upload,
+        workspace_id=uuid.uuid4(),
     )

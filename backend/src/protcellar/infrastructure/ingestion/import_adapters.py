@@ -143,9 +143,6 @@ class ImportRuntime:
     params: dict[str, Any]
     auth: AuthContext
     load_upload: Callable[[uuid.UUID], Awaitable[bytes]]
-    # ponytail: defaulted so legacy adapters/tests need no change; the worker
-    # always injects the real ImportRun id for plugin lineage.
-    run_id: uuid.UUID = dataclasses.field(default_factory=uuid.uuid4)
     # The run's OWN workspace — set at StartImport time from the caller's real
     # auth.workspace_id, threaded through the arq job payload exactly like the
     # reporter's workspace_id already is (worker.py has no per-request auth of
@@ -153,10 +150,15 @@ class ImportRuntime:
     # and satisfies only the bulk commands' internal require_admin check — it is
     # NOT a tenant). TargetBiologyAdapter is the first adapter that needs to know
     # which tenant a run belongs to, so this is what it reads target_workspace_id
-    # from — never rt.auth, never params. ponytail: defaulted to SHARED so every
-    # other/legacy adapter and test needs no change; the worker always injects
-    # the real value.
-    workspace_id: uuid.UUID = SHARED_WORKSPACE_ID
+    # from — never rt.auth, never params. Required, not defaulted: a silently
+    # SHARED-defaulting tenancy field is exactly the shape of bug Task 1 spent
+    # its whole scope removing from the eight bulk commands. worker.py is the
+    # only real caller and already passes it; the one test that constructs
+    # ImportRuntime directly (test_import_adapters.py) now must too.
+    workspace_id: uuid.UUID
+    # ponytail: defaulted so legacy adapters/tests need no change; the worker
+    # always injects the real ImportRun id for plugin lineage.
+    run_id: uuid.UUID = dataclasses.field(default_factory=uuid.uuid4)
 
 
 # ---------------------------------------------------------------------------
@@ -394,10 +396,18 @@ class _KindContext:
 
 
 async def _already_present(repo: Any, ctx: _KindContext) -> int:
-    """How many records of this kind already exist for the target organism, in
-    the target workspace — so the preview can warn that add mode run twice
-    doubles the data (add mode never checks for a match; see
+    """How many records of this kind the target workspace itself already owns,
+    for the target organism — so the preview can warn that add mode run twice
+    doubles *this tenant's own* data (add mode never checks for a match; see
     ``_NoExistingMatch`` above).
+
+    ``list_paginated`` is ``readable_by`` (target workspace OR SHARED), so its
+    raw result includes shared reference rows this import will never touch and
+    add mode could never duplicate — a brand-new tenant with zero rows of its
+    own would otherwise see a nonzero count from unrelated legacy SHARED data
+    and learn to ignore the warning. Filtered here to rows the target
+    workspace itself owns, rather than adding an ``owned_by`` variant to any
+    of the eight repos (outside this task's file list).
 
     ponytail: counts by fetching every readable row and taking ``len()`` — none
     of the eight repos exposes a dedicated COUNT query (adding one is outside
@@ -416,7 +426,7 @@ async def _already_present(repo: Any, ctx: _KindContext) -> int:
         rows = await repo.list_paginated(
             ctx.target_workspace_id, organism_id=ctx.organism_id, limit=None
         )
-    return len(rows)
+    return sum(1 for r in rows if r.workspace_id == ctx.target_workspace_id)
 
 
 def _match_repo(repo: Any, ctx: _KindContext) -> Any:
@@ -625,6 +635,38 @@ def _drop_ambiguous(
     return kept, problems
 
 
+def _unresolved_ligand_warning(
+    kind: RecordKind, records: list[Any], update_existing: bool
+) -> dict[str, Any] | None:
+    """Update mode's natural key for ``unpublished_structure`` is ``(protein_id,
+    method, ligands)``, and ``ligands`` only ever means *resolved* compound ids
+    — a cell whose ligand text didn't resolve to one lands in
+    ``extensions["ligand_reported"]`` instead (``target_biology_workbook``'s
+    module docstring, "Unresolvable ligand text"), invisible to that key. Two
+    such rows for the same protein and method are indistinguishable to the
+    command and one silently overwrites the other on match — see
+    ``bulk_upsert_unpublished_structure.py``'s module docstring, the exact bug
+    class this migration exists to close. Add mode never matches at all (see
+    ``_NoExistingMatch``), so it can't hit this; only worth a warning when
+    update mode is actually selected.
+    """
+    if kind is not RecordKind.UNPUBLISHED_STRUCTURE or not update_existing:
+        return None
+    affected = sum(1 for rec in records if (rec.extensions or {}).get("ligand_reported"))
+    if affected == 0:
+        return None
+    return {
+        "sheet": kind.value,
+        "count": affected,
+        "reason": (
+            "update mode is selected and this sheet has rows whose ligand text "
+            "did not resolve to a compound id — the upsert key cannot "
+            "discriminate them by ligand, so a match may silently overwrite a "
+            "different structure"
+        ),
+    }
+
+
 def _ignored_columns(data: bytes) -> dict[str, list[str]]:
     """Per-sheet headers the parser recognises but drops on the floor — the
     five provenance columns the owner decided are not worth keeping (see
@@ -699,6 +741,7 @@ class TargetBiologyAdapter:
         unmatched: set[str] = set()
         kinds_summary: dict[str, dict[str, int]] = {}
         already_present: dict[str, int] = {}
+        warnings: list[dict[str, Any]] = []
 
         uow = AsyncUnitOfWork(rt.session_factory)
         ctx = _KindContext(
@@ -740,6 +783,10 @@ class TargetBiologyAdapter:
                 failed += len(ambiguous_problems)
                 plan_problems.extend(ambiguous_problems)
 
+            ligand_warning = _unresolved_ligand_warning(plan.kind, records, ctx.update_existing)
+            if ligand_warning is not None:
+                warnings.append(ligand_warning)
+
             results, present = await _DISPATCH[plan.kind](ctx, records)
             already_present[plan.kind.value] = present
 
@@ -776,6 +823,7 @@ class TargetBiologyAdapter:
             "problems_truncated": max(0, len(problems) - 50),
             "already_present": already_present,
             "ignored_columns": _ignored_columns(data),
+            "warnings": warnings,
         }
 
 
