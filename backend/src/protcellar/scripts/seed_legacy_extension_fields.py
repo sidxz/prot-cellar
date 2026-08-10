@@ -169,11 +169,17 @@ _FIELDS: dict[str, list[_Decl]] = {
         ("production", "Production", _T.TEXT, None, False),
         # ">90%", "90-95%", ">92%" — the comparator and the range are the point.
         ("purity_reported", "Purity as reported", _T.STRING, None, False),
+        # The core method column is varchar(64) and holds a short label; the source
+        # writes a full purification protocol there — 304 characters at its longest.
+        ("method_detail", "Method detail", _T.TEXT, None, False),
         ("date_produced", "Date produced", _T.DATE, None, True),
     ],
     # activity measured, readout, throughput, condition and method are core.
     "protein_activity_assay": [
         ("assay", "Assay", _T.TEXT, None, False),
+        # Same as protein_production: the source's Method is a protocol, not a label —
+        # 1,663 characters at its longest against a varchar(64) core column.
+        ("method_detail", "Method detail", _T.TEXT, None, False),
     ],
     # method, resolution, ligands and the two published/experimental flags are core.
     "unpublished_structure": [
