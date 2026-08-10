@@ -7,7 +7,6 @@ from datetime import UTC, datetime
 from typing import Any
 
 from protcellar.domain.shared.entity import AggregateRoot
-from protcellar.domain.shared.errors import ValidationError
 from protcellar.domain.shared.provenance import Provenance
 from protcellar.domain.target_biology.events import (
     ProteinActivityAssayCreated,
@@ -22,7 +21,7 @@ class ProteinActivityAssay(AggregateRoot):
         id: uuid.UUID | None = None,
         workspace_id: uuid.UUID,
         protein_id: uuid.UUID,
-        activity_measured: str,
+        activity_measured: str | None = None,
         provenance: Provenance,
         readout: str | None = None,
         throughput: str | None = None,
@@ -34,11 +33,13 @@ class ProteinActivityAssay(AggregateRoot):
         version: int = 1,
     ) -> None:
         super().__init__(id=id, created_at=created_at, updated_at=updated_at, version=version)
-        if not activity_measured or not activity_measured.strip():
-            raise ValidationError("ProteinActivityAssay activity_measured must not be empty")
         self.workspace_id = workspace_id
         self.protein_id = protein_id
-        self.activity_measured = activity_measured.strip()
+        # No longer required — the source corpus this optionality exists for records no
+        # short activity label at all, and one isn't invented. A supplied value is still
+        # normalised: stripped, and blank/whitespace-only collapses to None so "absent"
+        # has one representation, not two ("" and None).
+        self.activity_measured = (activity_measured.strip() or None) if activity_measured else None
         self.provenance = provenance
         self.readout = readout
         self.throughput = throughput
@@ -52,7 +53,7 @@ class ProteinActivityAssay(AggregateRoot):
         *,
         workspace_id: uuid.UUID,
         protein_id: uuid.UUID,
-        activity_measured: str,
+        activity_measured: str | None = None,
         provenance: Provenance,
         readout: str | None = None,
         throughput: str | None = None,
@@ -84,9 +85,7 @@ class ProteinActivityAssay(AggregateRoot):
     def update(self, **fields: Any) -> None:
         if "activity_measured" in fields:
             value = fields["activity_measured"]
-            if not value or not str(value).strip():
-                raise ValidationError("ProteinActivityAssay activity_measured must not be empty")
-            self.activity_measured = str(value).strip()
+            self.activity_measured = (str(value).strip() or None) if value else None
         if "readout" in fields:
             self.readout = fields["readout"]
         if "throughput" in fields:

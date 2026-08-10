@@ -26,7 +26,7 @@ from protcellar.domain.target_biology.repository import ProteinActivityAssayRepo
 @dataclass(frozen=True, kw_only=True)
 class ProteinActivityAssayImportRecord:
     accession: str
-    activity_measured: str
+    activity_measured: str | None = None
     readout: str | None = None
     throughput: str | None = None
     condition: str | None = None
@@ -81,12 +81,16 @@ class BulkUpsertProteinActivityAssay:
                     existing = await self._assay_repo.find_owned_by_protein(
                         input.target_workspace_id, protein.id
                     )
+                    # rec.activity_measured is optional (see the module docstring); the
+                    # key it feeds into must agree with the aggregate's own None
+                    # normalisation of a blank/absent value, or a re-imported row with
+                    # no activity would never match its own prior record.
+                    activity_key = rec.activity_measured.strip() if rec.activity_measured else None
                     match = next(
                         (
                             a
                             for a in existing
-                            if a.activity_measured == rec.activity_measured.strip()
-                            and a.method == rec.method
+                            if a.activity_measured == activity_key and a.method == rec.method
                         ),
                         None,
                     )

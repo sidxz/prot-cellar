@@ -26,7 +26,7 @@ from protcellar.domain.target_biology.repository import ProteinProductionReposit
 @dataclass(frozen=True, kw_only=True)
 class ProteinProductionImportRecord:
     accession: str
-    status: str
+    status: str | None = None
     expression_host: str | None = None
     purity: float | None = None
     condition: str | None = None

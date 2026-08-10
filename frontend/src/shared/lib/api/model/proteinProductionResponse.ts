@@ -4,6 +4,7 @@
  * prot-cellar
  * OpenAPI spec version: 0.1.0
  */
+import type { ProteinProductionResponseStatus } from './proteinProductionResponseStatus';
 import type { ProteinProductionResponseExpressionHost } from './proteinProductionResponseExpressionHost';
 import type { ProteinProductionResponsePurity } from './proteinProductionResponsePurity';
 import type { ProteinProductionResponseCondition } from './proteinProductionResponseCondition';
@@ -14,7 +15,7 @@ import type { ProteinProductionResponseExtensions } from './proteinProductionRes
 export interface ProteinProductionResponse {
   id: string;
   protein_id: string;
-  status: string;
+  status?: ProteinProductionResponseStatus;
   expression_host?: ProteinProductionResponseExpressionHost;
   purity?: ProteinProductionResponsePurity;
   condition?: ProteinProductionResponseCondition;

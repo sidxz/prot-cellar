@@ -301,6 +301,39 @@ def test_a_protein_side_sheet_with_no_accession_column_is_one_workbook_level_pro
     assert "accession" in problems[0].reason
 
 
+@pytest.mark.parametrize(
+    ("sheet", "header", "row", "optional_field"),
+    [
+        (
+            "protein_production",
+            ["accession", "expression_host"],
+            ["P9WGE9", "E. coli BL21"],
+            "status",
+        ),
+        (
+            "protein_activity_assay",
+            ["accession", "method"],
+            ["P9WGE9", "fluorescence"],
+            "activity_measured",
+        ),
+    ],
+)
+def test_a_sheet_omitting_the_now_optional_status_or_activity_column_still_imports(
+    sheet: str, header: list[str], row: list[Any], optional_field: str
+) -> None:
+    """status / activity_measured are no longer required on their dataclasses — a sheet
+    that never had that column at all (the legacy corpus this exists for) must still
+    import its row, unlike a genuinely missing identity column such as 'accession'
+    above, which fails every row in the sheet."""
+    data = _workbook({sheet: [header, row]})
+    plans, problems = _plan(data)
+    (plan,) = plans
+    assert problems == []
+    assert plan.problems == []
+    (record,) = plan.records
+    assert getattr(record, optional_field) is None
+
+
 # --- the two named traps ----------------------------------------------------------------
 
 

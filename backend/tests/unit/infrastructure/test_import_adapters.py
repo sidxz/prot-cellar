@@ -22,6 +22,23 @@ def test_every_import_type_has_an_adapter() -> None:
         assert adapter.import_type is t
 
 
+def test_natural_key_tolerates_a_missing_activity_measured() -> None:
+    """activity_measured is optional; a sheet omitting it entirely must not crash the
+    preview's collision check (a bare .strip() on None would)."""
+    from protcellar.application.target_biology.bulk_upsert_protein_activity_assay import (
+        ProteinActivityAssayImportRecord,
+    )
+    from protcellar.application.target_biology.crud import RecordKind
+    from protcellar.infrastructure.ingestion.import_adapters import _natural_key
+
+    rec = ProteinActivityAssayImportRecord(accession="P9WGE9", method="fluorescence")
+    assert _natural_key(RecordKind.PROTEIN_ACTIVITY_ASSAY, rec) == (
+        "P9WGE9",
+        None,
+        "fluorescence",
+    )
+
+
 def test_dispatch_order_runs_crispri_strain_before_hypomorph() -> None:
     """hypomorph resolves knockdown_strain against crispri_strain rows this
     same run may just have created — see _DISPATCH's own comment. A cheap,

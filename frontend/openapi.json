@@ -8800,7 +8800,14 @@
             "title": "Protein Id"
           },
           "activity_measured": {
-            "type": "string",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Activity Measured"
           },
           "readout": {
@@ -8868,7 +8875,6 @@
         "required": [
           "id",
           "protein_id",
-          "activity_measured",
           "provenance",
           "extensions",
           "version",
@@ -8879,7 +8885,14 @@
       "ProteinActivityAssayWriteBody": {
         "properties": {
           "activity_measured": {
-            "type": "string",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Activity Measured"
           },
           "readout": {
@@ -8944,7 +8957,6 @@
         },
         "type": "object",
         "required": [
-          "activity_measured",
           "provenance"
         ],
         "title": "ProteinActivityAssayWriteBody"
@@ -9272,7 +9284,14 @@
             "title": "Protein Id"
           },
           "status": {
-            "type": "string",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Status"
           },
           "expression_host": {
@@ -9340,7 +9359,6 @@
         "required": [
           "id",
           "protein_id",
-          "status",
           "provenance",
           "extensions",
           "version",
@@ -9351,7 +9369,14 @@
       "ProteinProductionWriteBody": {
         "properties": {
           "status": {
-            "type": "string",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Status"
           },
           "expression_host": {
@@ -9416,7 +9441,6 @@
         },
         "type": "object",
         "required": [
-          "status",
           "provenance"
         ],
         "title": "ProteinProductionWriteBody"

@@ -145,6 +145,28 @@ async def test_activity_assay_create_then_update() -> None:
 
 
 @pytest.mark.asyncio
+async def test_activity_assay_without_activity_measured_matches_on_reimport() -> None:
+    """activity_measured is optional; re-importing the same accession/method with no
+    value must match the record it already created (not crash on a None.strip(), and
+    not create a duplicate)."""
+    repo = _FakeRecordRepo()
+    uc = BulkUpsertProteinActivityAssay(  # type: ignore[arg-type]
+        _FakeUoW(), _FakeProteinRepo([_protein()]), repo, _NoopDispatcher()
+    )
+    cmd = BulkUpsertProteinActivityAssayCommand(
+        target_workspace_id=SHARED_WORKSPACE_ID,
+        records=(ProteinActivityAssayImportRecord(accession=_ACC, method="fluorescence"),),
+    )
+    res = (await uc(cmd, auth=_admin())).unwrap()
+    assert [r.status for r in res] == ["created"]
+    assert repo.items[0].activity_measured is None  # type: ignore[attr-defined]
+
+    res2 = (await uc(cmd, auth=_admin())).unwrap()
+    assert [r.status for r in res2] == ["updated"]
+    assert len(repo.items) == 1
+
+
+@pytest.mark.asyncio
 async def test_structure_ligands_and_bad_resolution() -> None:
     repo = _FakeRecordRepo()
     uc = BulkUpsertUnpublishedStructure(  # type: ignore[arg-type]

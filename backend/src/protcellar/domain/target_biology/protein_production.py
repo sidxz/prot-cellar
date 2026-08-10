@@ -7,7 +7,6 @@ from datetime import UTC, datetime
 from typing import Any
 
 from protcellar.domain.shared.entity import AggregateRoot
-from protcellar.domain.shared.errors import ValidationError
 from protcellar.domain.shared.provenance import Provenance
 from protcellar.domain.target_biology.events import (
     ProteinProductionCreated,
@@ -22,7 +21,7 @@ class ProteinProduction(AggregateRoot):
         id: uuid.UUID | None = None,
         workspace_id: uuid.UUID,
         protein_id: uuid.UUID,
-        status: str,
+        status: str | None = None,
         provenance: Provenance,
         expression_host: str | None = None,
         purity: float | None = None,
@@ -34,11 +33,13 @@ class ProteinProduction(AggregateRoot):
         version: int = 1,
     ) -> None:
         super().__init__(id=id, created_at=created_at, updated_at=updated_at, version=version)
-        if not status or not status.strip():
-            raise ValidationError("ProteinProduction status must not be empty")
         self.workspace_id = workspace_id
         self.protein_id = protein_id
-        self.status = status.strip()
+        # No longer required — the source corpus this optionality exists for records no
+        # status at all, and one isn't invented. A supplied value is still normalised:
+        # stripped, and blank/whitespace-only collapses to None so "absent" has one
+        # representation, not two ("" and None).
+        self.status = (status.strip() or None) if status else None
         self.provenance = provenance
         self.expression_host = expression_host
         self.purity = purity
@@ -52,7 +53,7 @@ class ProteinProduction(AggregateRoot):
         *,
         workspace_id: uuid.UUID,
         protein_id: uuid.UUID,
-        status: str,
+        status: str | None = None,
         provenance: Provenance,
         expression_host: str | None = None,
         purity: float | None = None,
@@ -84,9 +85,7 @@ class ProteinProduction(AggregateRoot):
     def update(self, **fields: Any) -> None:
         if "status" in fields:
             value = fields["status"]
-            if not value or not str(value).strip():
-                raise ValidationError("ProteinProduction status must not be empty")
-            self.status = str(value).strip()
+            self.status = (str(value).strip() or None) if value else None
         if "expression_host" in fields:
             self.expression_host = fields["expression_host"]
         if "purity" in fields:

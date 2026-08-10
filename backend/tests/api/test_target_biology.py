@@ -452,6 +452,41 @@ async def test_create_protein_production_protein_side(
 
 
 @pytest.mark.asyncio
+async def test_create_protein_production_without_status(
+    client: AsyncClient, database_url: str
+) -> None:
+    """The legacy corpus this optionality exists for records no status at all — the
+    write surface must accept the record anyway, and the response must carry the
+    absence as null rather than 500 on a response model that still required it."""
+    protein_id = await _seed_protein(client, database_url)
+    created = await client.post(
+        f"/api/v1/proteins/{protein_id}/target-biology/protein_production",
+        json={"expression_host": "E. coli BL21", "provenance": _INTERNAL_PROV},
+    )
+    assert created.status_code == 201, created.text
+    assert created.json()["status"] is None
+
+    bundle = (await client.get(f"/api/v1/proteins/{protein_id}/target-biology")).json()
+    assert bundle["protein_production"][0]["status"] is None
+
+
+@pytest.mark.asyncio
+async def test_create_protein_activity_assay_without_activity_measured(
+    client: AsyncClient, database_url: str
+) -> None:
+    protein_id = await _seed_protein(client, database_url)
+    created = await client.post(
+        f"/api/v1/proteins/{protein_id}/target-biology/protein_activity_assay",
+        json={"method": "fluorescence", "provenance": _INTERNAL_PROV},
+    )
+    assert created.status_code == 201, created.text
+    assert created.json()["activity_measured"] is None
+
+    bundle = (await client.get(f"/api/v1/proteins/{protein_id}/target-biology")).json()
+    assert bundle["protein_activity_assay"][0]["activity_measured"] is None
+
+
+@pytest.mark.asyncio
 async def test_hypomorph_severity_requires_growth_defect(
     client: AsyncClient, database_url: str
 ) -> None:

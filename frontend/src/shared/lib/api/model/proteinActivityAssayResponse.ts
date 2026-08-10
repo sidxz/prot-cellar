@@ -4,6 +4,7 @@
  * prot-cellar
  * OpenAPI spec version: 0.1.0
  */
+import type { ProteinActivityAssayResponseActivityMeasured } from './proteinActivityAssayResponseActivityMeasured';
 import type { ProteinActivityAssayResponseReadout } from './proteinActivityAssayResponseReadout';
 import type { ProteinActivityAssayResponseThroughput } from './proteinActivityAssayResponseThroughput';
 import type { ProteinActivityAssayResponseCondition } from './proteinActivityAssayResponseCondition';
@@ -14,7 +15,7 @@ import type { ProteinActivityAssayResponseExtensions } from './proteinActivityAs
 export interface ProteinActivityAssayResponse {
   id: string;
   protein_id: string;
-  activity_measured: string;
+  activity_measured?: ProteinActivityAssayResponseActivityMeasured;
   readout?: ProteinActivityAssayResponseReadout;
   throughput?: ProteinActivityAssayResponseThroughput;
   condition?: ProteinActivityAssayResponseCondition;

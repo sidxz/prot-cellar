@@ -90,7 +90,7 @@ class ProteinProductionModel(Base, EntityModelMixin, WorkspaceIdMixin, VersionMi
     __tablename__ = "protein_productions"
 
     protein_id: Mapped[uuid.UUID] = mapped_column(Uuid, nullable=False, index=True)
-    status: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+    status: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True)
     expression_host: Mapped[str | None] = mapped_column(String(128), nullable=True)
     purity: Mapped[float | None] = mapped_column(Float, nullable=True)
     condition: Mapped[str | None] = mapped_column(String(128), nullable=True)
@@ -103,7 +103,7 @@ class ProteinActivityAssayModel(Base, EntityModelMixin, WorkspaceIdMixin, Versio
     __tablename__ = "protein_activity_assays"
 
     protein_id: Mapped[uuid.UUID] = mapped_column(Uuid, nullable=False, index=True)
-    activity_measured: Mapped[str] = mapped_column(String(128), nullable=False, index=True)
+    activity_measured: Mapped[str | None] = mapped_column(String(128), nullable=True, index=True)
     readout: Mapped[str | None] = mapped_column(String(128), nullable=True)
     throughput: Mapped[str | None] = mapped_column(String(64), nullable=True)
     condition: Mapped[str | None] = mapped_column(String(128), nullable=True)

@@ -258,7 +258,7 @@ class ResistanceMutationResponse(BaseModel):
 class ProteinProductionResponse(BaseModel):
     id: uuid.UUID
     protein_id: uuid.UUID
-    status: str
+    status: str | None = None
     expression_host: str | None = None
     purity: float | None = None
     condition: str | None = None
@@ -288,7 +288,7 @@ class ProteinProductionResponse(BaseModel):
 class ProteinActivityAssayResponse(BaseModel):
     id: uuid.UUID
     protein_id: uuid.UUID
-    activity_measured: str
+    activity_measured: str | None = None
     readout: str | None = None
     throughput: str | None = None
     condition: str | None = None
@@ -536,7 +536,7 @@ class ResistanceMutationPatchBody(BaseModel):
 
 
 class ProteinProductionWriteBody(BaseModel):
-    status: str
+    status: str | None = None
     expression_host: str | None = None
     purity: float | None = None
     condition: str | None = None
@@ -559,7 +559,7 @@ class ProteinProductionPatchBody(BaseModel):
 
 
 class ProteinActivityAssayWriteBody(BaseModel):
-    activity_measured: str
+    activity_measured: str | None = None
     readout: str | None = None
     throughput: str | None = None
     condition: str | None = None

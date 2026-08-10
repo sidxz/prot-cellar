@@ -30,6 +30,14 @@ def test_optional_fields_are_not_required() -> None:
     assert field["required"] is False
 
 
+def test_protein_production_status_and_activity_measured_are_not_required() -> None:
+    """A legacy corpus records neither — both are optional, and the published write
+    contract must say so rather than restate the old required-ness."""
+    schema = describe_write_surface({}, {})
+    assert _field(schema, "protein_production", "status")["required"] is False
+    assert _field(schema, "protein_activity_assay", "activity_measured")["required"] is False
+
+
 def test_confidence_carries_its_domain_bounds() -> None:
     field = _field(describe_write_surface({}, {}), "essentiality", "confidence")
     assert field["type"] == "number"

@@ -4,6 +4,7 @@
  * prot-cellar
  * OpenAPI spec version: 0.1.0
  */
+import type { ProteinProductionWriteBodyStatus } from './proteinProductionWriteBodyStatus';
 import type { ProteinProductionWriteBodyExpressionHost } from './proteinProductionWriteBodyExpressionHost';
 import type { ProteinProductionWriteBodyPurity } from './proteinProductionWriteBodyPurity';
 import type { ProteinProductionWriteBodyCondition } from './proteinProductionWriteBodyCondition';
@@ -12,7 +13,7 @@ import type { ProvenanceBody } from './provenanceBody';
 import type { ProteinProductionWriteBodyExtensions } from './proteinProductionWriteBodyExtensions';
 
 export interface ProteinProductionWriteBody {
-  status: string;
+  status?: ProteinProductionWriteBodyStatus;
   expression_host?: ProteinProductionWriteBodyExpressionHost;
   purity?: ProteinProductionWriteBodyPurity;
   condition?: ProteinProductionWriteBodyCondition;

@@ -60,11 +60,14 @@ const PROD_COLUMNS: Column<ProteinProductionResponse, ProdDraft>[] = [
     field: "status",
     type: "text",
     placeholder: "e.g. purified",
-    render: (r) => (
-      <Badge variant="secondary" className="font-normal capitalize">
-        {r.status}
-      </Badge>
-    ),
+    render: (r) =>
+      r.status ? (
+        <Badge variant="secondary" className="font-normal capitalize">
+          {r.status}
+        </Badge>
+      ) : (
+        "—"
+      ),
   },
   {
     label: "Host",
@@ -117,7 +120,7 @@ export function ProteinProductionTable({
       provenanceFields={provenanceFields}
       extensionFields={extensionFields}
       toDraft={(p) => ({
-        status: p.status,
+        status: p.status ?? "",
         expression_host: p.expression_host ?? "",
         purity: p.purity != null ? String(p.purity) : "",
         condition: p.condition ?? "",
@@ -173,7 +176,7 @@ const ASSAY_COLUMNS: Column<ProteinActivityAssayResponse, AssayDraft>[] = [
     field: "activity_measured",
     type: "text",
     placeholder: "e.g. ATPase activity",
-    render: (r) => r.activity_measured,
+    render: (r) => dash(r.activity_measured),
   },
   {
     label: "Readout",
@@ -229,7 +232,7 @@ export function ProteinActivityAssayTable({
       provenanceFields={provenanceFields}
       extensionFields={extensionFields}
       toDraft={(a) => ({
-        activity_measured: a.activity_measured,
+        activity_measured: a.activity_measured ?? "",
         readout: a.readout ?? "",
         throughput: a.throughput ?? "",
         condition: a.condition ?? "",

@@ -710,7 +710,13 @@ def _natural_key(kind: RecordKind, rec: Any) -> tuple[Any, ...]:
         case RecordKind.PROTEIN_PRODUCTION:
             return (identity, rec.expression_host, rec.method)
         case RecordKind.PROTEIN_ACTIVITY_ASSAY:
-            return (identity, rec.activity_measured.strip(), rec.method)
+            # activity_measured is optional; None mirrors the aggregate's own
+            # normalisation of a blank/absent value (see bulk_upsert_protein_activity_assay).
+            return (
+                identity,
+                rec.activity_measured.strip() if rec.activity_measured else None,
+                rec.method,
+            )
         case RecordKind.UNPUBLISHED_STRUCTURE:
             return (identity, rec.method, tuple(sorted(str(x).lower() for x in rec.ligand_ids)))
     raise AssertionError(f"unhandled RecordKind {kind!r}")  # pragma: no cover

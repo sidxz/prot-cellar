@@ -4,6 +4,7 @@
  * prot-cellar
  * OpenAPI spec version: 0.1.0
  */
+import type { ProteinActivityAssayWriteBodyActivityMeasured } from './proteinActivityAssayWriteBodyActivityMeasured';
 import type { ProteinActivityAssayWriteBodyReadout } from './proteinActivityAssayWriteBodyReadout';
 import type { ProteinActivityAssayWriteBodyThroughput } from './proteinActivityAssayWriteBodyThroughput';
 import type { ProteinActivityAssayWriteBodyCondition } from './proteinActivityAssayWriteBodyCondition';
@@ -12,7 +13,7 @@ import type { ProvenanceBody } from './provenanceBody';
 import type { ProteinActivityAssayWriteBodyExtensions } from './proteinActivityAssayWriteBodyExtensions';
 
 export interface ProteinActivityAssayWriteBody {
-  activity_measured: string;
+  activity_measured?: ProteinActivityAssayWriteBodyActivityMeasured;
   readout?: ProteinActivityAssayWriteBodyReadout;
   throughput?: ProteinActivityAssayWriteBodyThroughput;
   condition?: ProteinActivityAssayWriteBodyCondition;
