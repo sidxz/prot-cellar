@@ -4,6 +4,17 @@ Upsert key is (protein_id, method, ligands) — a protein can hold many structur
 distinguished only by what is bound, so ligands are part of the key, not
 incidental detail. Compared via ``_ligand_key`` below: a sorted, case-folded
 tuple of compound ids, so column order in the source file never matters.
+
+The key only discriminates ligands that already resolved to a compound id.
+Ligand text that never became a ``ligand_ids`` UUID upstream (an unresolved
+compound name, a bare SMILES string) is indistinguishable here from "no
+ligand" — two such records legitimately collide on this key, same as the
+pre-fix bug this module exists to close. That gap is not this use case's to
+close: it belongs to the parser that builds these records, which is meant to
+carry unresolved ligand text into ``extensions`` instead, where full-row
+deduplication keeps the rows apart. Loosening this key to compensate would
+break the common, correct case where ``ligands=()`` really does mean none.
+
 ``ligand_ids`` are portable chem-cellar molecule ids; resolution (Å) must be
 positive (the aggregate enforces it).
 """

@@ -321,3 +321,32 @@ async def test_the_same_ligand_set_twice_still_updates_rather_than_duplicating()
     assert [r.status for r in res2] == ["updated"]
     assert len(repo.items) == 1
     assert repo.items[0].resolution == 1.5
+
+
+@pytest.mark.asyncio
+async def test_two_unresolved_ligand_structures_still_collapse_a_known_key_boundary() -> None:
+    """Documents a boundary, not a bug to fix here. ``ligand_ids`` only ever holds
+    UUIDs that already resolved to a compound id — ``unpublished_structure_csv.py``'s
+    ``_uuids()`` silently drops any token that isn't one (a bare compound name, "SO4
+    and PEG bound", a raw SMILES string), so two real, different ligands can both
+    reach this use case as ``ligand_ids=()``. This key cannot tell them apart from
+    each other, or from "no ligand" — that is by design, since ``ligands=()``
+    legitimately means none in the common case, and loosening the key to guess
+    around unresolved text would break that case instead.
+
+    The real fix lives upstream, in the workbook parser (Task 4): unresolved ligand
+    text is meant to land in ``extensions["ligand_reported"]``, where full-row
+    deduplication — every mapped column, not just this key — keeps the rows apart.
+    """
+    repo = _FakeStructRepo()
+    uc = _uc_struct(repo)
+    cmd = BulkUpsertUnpublishedStructureCommand(
+        target_workspace_id=SHARED_WORKSPACE_ID,
+        records=(
+            UnpublishedStructureImportRecord(accession=_ACC, method="X-ray"),
+            UnpublishedStructureImportRecord(accession=_ACC, method="X-ray"),
+        ),
+    )
+    res = (await uc(cmd, auth=_admin())).unwrap()
+    assert [r.status for r in res] == ["created", "updated"]
+    assert len(repo.items) == 1
