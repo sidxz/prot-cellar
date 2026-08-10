@@ -553,6 +553,35 @@ def _parse_ligands(value: Any) -> tuple[tuple[uuid.UUID, ...], str | None]:
     return tuple(ids), ("; ".join(unresolved) if unresolved else None)
 
 
+def _numeric_cell(value: Any, name: str, article: str) -> int | float:
+    """A numeric cell, accepting a numeric *string* as well as a real number.
+
+    This is the one place the parser deliberately diverges from
+    ``extension_validator.py``, and the reason is the input medium. The
+    validator reads JSON, where the difference between ``3`` and ``"3"`` is
+    real and a string is a genuine type error. A spreadsheet has no such
+    distinction to preserve: whether a cell arrives as a number or as text is
+    a formatting accident of how the sheet was produced, and an export from
+    almost any system writes numbers as text. Rejecting ``"3.0"`` here would
+    fail thousands of otherwise-valid rows for a property of the exporter
+    nobody chose.
+
+    Non-numeric text still fails, and ``bool`` is still rejected outright —
+    ``isinstance(True, int)`` is ``True``, so it has to be caught before the
+    numeric check rather than after.
+    """
+    if isinstance(value, bool):
+        raise ValueError(f"{name!r} must be {article}")
+    if isinstance(value, int | float):
+        return value
+    if isinstance(value, str) and value.strip():
+        try:
+            return float(value)
+        except ValueError:
+            raise ValueError(f"{name!r} must be {article}, got {value!r}") from None
+    raise ValueError(f"{name!r} must be {article}")
+
+
 def _coerce_extension_value(value: Any, field: KnownExtensionField, name: str) -> Any:
     """Mirrors ``extension_validator.py``'s coercion rules — duplicated, not
     imported; see the module docstring. ``field`` carries the declared type
@@ -581,16 +610,12 @@ def _coerce_extension_value(value: Any, field: KnownExtensionField, name: str) -
             raise ValueError(f"{name!r} must be a boolean")
         return value
     if field_type == "integer":
-        # isinstance(True, int) is True in Python — bool must be rejected explicitly.
-        if isinstance(value, bool) or not isinstance(value, int | float):
+        number = _numeric_cell(value, name, "an integer")
+        if not float(number).is_integer():
             raise ValueError(f"{name!r} must be an integer")
-        if isinstance(value, float) and not value.is_integer():
-            raise ValueError(f"{name!r} must be an integer")
-        return int(value)
+        return int(number)
     if field_type == "number":
-        if isinstance(value, bool) or not isinstance(value, int | float):
-            raise ValueError(f"{name!r} must be a number")
-        return value
+        return _numeric_cell(value, name, "a number")
     if field_type == "date":
         if not isinstance(value, str):
             raise ValueError(f"{name!r} must be an ISO-8601 date string")

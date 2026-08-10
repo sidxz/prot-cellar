@@ -8,6 +8,7 @@ from dataclasses import fields
 from typing import Any
 
 import openpyxl
+import pytest
 
 from protcellar.application.target_biology.crud import RecordKind
 from protcellar.infrastructure.ingestion.target_biology_workbook import (
@@ -22,6 +23,7 @@ from protcellar.infrastructure.ingestion.target_biology_workbook import (
     KnownExtensionField,
     RowProblem,
     SheetPlan,
+    _coerce_extension_value,
     parse_workbook,
 )
 
@@ -436,3 +438,40 @@ def test_core_field_tables_match_the_dataclasses() -> None:
         hints = typing.get_type_hints(record_cls)
         for name, shape in _CORE_FIELDS[kind].items():
             assert _expected_shape(hints[name]) == shape, (kind, name)
+
+
+@pytest.mark.parametrize(
+    ("declared", "cell", "expected"),
+    [
+        # A spreadsheet has no number-vs-string distinction to preserve: whether a
+        # cell arrives as text is a property of whatever produced the sheet. The
+        # corpus this importer was built for writes every numeric as text.
+        ("integer", "3.0", 3),
+        ("integer", "3", 3),
+        ("integer", 3.0, 3),
+        ("number", "347.0", 347.0),
+        ("number", "-8.4", -8.4),
+    ],
+)
+def test_a_text_formatted_number_is_accepted(
+    declared: str, cell: object, expected: object
+) -> None:
+    field = KnownExtensionField(field_type=declared)
+    assert _coerce_extension_value(cell, field, "x") == expected
+
+
+@pytest.mark.parametrize(
+    ("declared", "cell"),
+    [
+        ("integer", "5.5"),  # a fraction is still not an integer
+        ("integer", "2%"),  # a unit suffix is not a formatting accident
+        ("integer", True),  # isinstance(True, int) is True — must stay rejected
+        ("number", "abc"),
+        ("number", True),
+        ("number", ""),
+    ],
+)
+def test_text_that_is_not_a_number_still_fails(declared: str, cell: object) -> None:
+    field = KnownExtensionField(field_type=declared)
+    with pytest.raises(ValueError):
+        _coerce_extension_value(cell, field, "x")
