@@ -88,3 +88,37 @@ describe("gene-record-tables create payloads carry provenance", () => {
     expect(sent.data.provenance?.source_type).toBe("published");
   });
 });
+
+describe("HypomorphTable renders growth_defect", () => {
+  const provenance = {
+    source_type: "internal",
+    generation_method: "manual" as const,
+    citations: [],
+  };
+  const base = {
+    id: "h1",
+    gene_id: "g1",
+    provenance,
+    extensions: {},
+    version: 1,
+    is_shared: false,
+  };
+
+  it("shows an em dash for null (not determined), distinct from an explicit No", () => {
+    render(
+      <HypomorphTable
+        geneId="g1"
+        records={[
+          { ...base, id: "h1", growth_defect: null, method: "unknown-defect-row" },
+          { ...base, id: "h2", growth_defect: false, method: "no-defect-row" },
+        ]}
+      />,
+    );
+    const unknownRow = screen.getByText("unknown-defect-row").closest("tr");
+    const noRow = screen.getByText("no-defect-row").closest("tr");
+    // Growth defect is the first column — its cell is the row's first <td>.
+    expect(unknownRow?.querySelector("td")).toHaveTextContent("—");
+    expect(unknownRow?.querySelector("td")).not.toHaveTextContent("No");
+    expect(noRow?.querySelector("td")).toHaveTextContent("No");
+  });
+});

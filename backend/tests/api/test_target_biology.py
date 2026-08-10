@@ -504,6 +504,26 @@ async def test_hypomorph_severity_requires_growth_defect(
 
 
 @pytest.mark.asyncio
+async def test_create_hypomorph_without_growth_defect(
+    client: AsyncClient, database_url: str
+) -> None:
+    """The legacy corpus this optionality exists for records "TBD" rather than a
+    Yes/No determination — the write surface must accept the record anyway, and
+    the response must carry the absence as null rather than 500 on a response
+    model that still required it."""
+    gene_id = await _seed_gene(client, database_url)
+    created = await client.post(
+        f"/api/v1/genes/{gene_id}/target-biology/hypomorph",
+        json={"provenance": _INTERNAL_PROV},
+    )
+    assert created.status_code == 201, created.text
+    assert created.json()["growth_defect"] is None
+
+    bundle = (await client.get(f"/api/v1/genes/{gene_id}/target-biology")).json()
+    assert bundle["hypomorph"][0]["growth_defect"] is None
+
+
+@pytest.mark.asyncio
 async def test_delete_unknown_kind_is_422(client: AsyncClient) -> None:
     r = await client.delete(f"/api/v1/target-biology/not_a_kind/{uuid.uuid4()}")
     assert r.status_code == 422
@@ -600,7 +620,12 @@ async def test_patch_null_classification_is_422(client: AsyncClient, database_ur
     assert r.status_code == 422
 
 
-async def test_patch_null_growth_defect_is_422(client: AsyncClient, database_url: str) -> None:
+async def test_patch_null_clears_growth_defect(client: AsyncClient, database_url: str) -> None:
+    """growth_defect is nullable now — an explicit null on PATCH clears it back to
+    "not determined" rather than 422ing, unlike classification above (still
+    domain-required) and unlike growth_defect's own severity coupling (a null
+    growth_defect with a severity still left set is still rejected — see
+    test_hypomorph_severity_requires_growth_defect and the domain tests)."""
     gene_id = await _seed_gene(client, database_url)
     created = await client.post(
         f"/api/v1/genes/{gene_id}/target-biology/hypomorph",
@@ -611,7 +636,8 @@ async def test_patch_null_growth_defect_is_422(client: AsyncClient, database_url
         f"/api/v1/target-biology/hypomorph/{created.json()['id']}",
         json={"growth_defect": None},
     )
-    assert r.status_code == 422
+    assert r.status_code == 200, r.text
+    assert r.json()["growth_defect"] is None
 
 
 async def test_patch_null_clears_compound(client: AsyncClient, database_url: str) -> None:

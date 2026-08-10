@@ -41,6 +41,36 @@ def test_severity_requires_growth_defect() -> None:
         )
 
 
+def test_growth_defect_is_optional() -> None:
+    h = Hypomorph.create(workspace_id=uuid.uuid4(), gene_id=uuid.uuid4(), provenance=_prov())
+    assert h.growth_defect is None
+
+
+def test_growth_defect_true_and_false_both_round_trip() -> None:
+    yes = Hypomorph.create(
+        workspace_id=uuid.uuid4(), gene_id=uuid.uuid4(), growth_defect=True, provenance=_prov()
+    )
+    assert yes.growth_defect is True
+    no = Hypomorph.create(
+        workspace_id=uuid.uuid4(), gene_id=uuid.uuid4(), growth_defect=False, provenance=_prov()
+    )
+    assert no.growth_defect is False
+
+
+def test_severity_requires_growth_defect_true_not_merely_not_false() -> None:
+    """None ("not determined") is treated the same as False for this rule — a
+    severity claim makes no more sense for an undetermined defect than for a
+    confirmed-absent one."""
+    with pytest.raises(ValidationError):
+        Hypomorph.create(
+            workspace_id=uuid.uuid4(),
+            gene_id=uuid.uuid4(),
+            growth_defect=None,
+            growth_defect_severity="severe",
+            provenance=_prov(),
+        )
+
+
 def test_update_revalidates_and_records_event() -> None:
     h = Hypomorph.create(
         workspace_id=uuid.uuid4(),
@@ -57,3 +87,11 @@ def test_update_revalidates_and_records_event() -> None:
     assert h.growth_defect is False
     events = h.collect_events()
     assert len(events) == 1 and isinstance(events[0], HypomorphUpdated)
+
+
+def test_update_can_clear_growth_defect_to_not_determined() -> None:
+    h = Hypomorph.create(
+        workspace_id=uuid.uuid4(), gene_id=uuid.uuid4(), growth_defect=True, provenance=_prov()
+    )
+    h.update(growth_defect=None)
+    assert h.growth_defect is None

@@ -334,6 +334,27 @@ def test_a_sheet_omitting_the_now_optional_status_or_activity_column_still_impor
     assert getattr(record, optional_field) is None
 
 
+def test_a_hypomorph_sheet_with_a_blank_growth_defect_cell_still_imports() -> None:
+    """growth_defect is no longer required on the dataclass — a row with the column
+    present but the cell blank (the legacy corpus's 10 'TBD' rows, once a curator or
+    export step has cleared the cell rather than write "TBD" into a boolean column)
+    must still import, landing as None ("not determined") rather than failing the
+    row. Distinct from the sheet-omits-the-column case above: here the column is
+    present, just empty for this one row."""
+    rows = [
+        ["locus_tag", "growth_defect", "knockdown_strain"],
+        ["Rv0001", None, "strainA"],
+    ]
+    data = _workbook({"hypomorph": rows})
+    plans, problems = _plan(data)
+    (plan,) = plans
+    assert problems == []
+    assert plan.problems == []
+    (record,) = plan.records
+    assert record.growth_defect is None
+    assert record.knockdown_strain == "strainA"
+
+
 # --- the two named traps ----------------------------------------------------------------
 
 

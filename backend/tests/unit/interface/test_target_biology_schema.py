@@ -38,6 +38,14 @@ def test_protein_production_status_and_activity_measured_are_not_required() -> N
     assert _field(schema, "protein_activity_assay", "activity_measured")["required"] is False
 
 
+def test_hypomorph_growth_defect_is_not_required() -> None:
+    """A legacy corpus records "TBD" for 10 of 195 hypomorphs — growth_defect is
+    optional, and the published write contract must say so."""
+    field = _field(describe_write_surface({}, {}), "hypomorph", "growth_defect")
+    assert field["type"] == "boolean"
+    assert field["required"] is False
+
+
 def test_confidence_carries_its_domain_bounds() -> None:
     field = _field(describe_write_surface({}, {}), "essentiality", "confidence")
     assert field["type"] == "number"

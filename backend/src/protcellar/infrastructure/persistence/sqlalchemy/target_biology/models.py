@@ -63,7 +63,7 @@ class HypomorphModel(Base, EntityModelMixin, WorkspaceIdMixin, VersionMixin):
     __tablename__ = "hypomorphs"
 
     gene_id: Mapped[uuid.UUID] = mapped_column(Uuid, nullable=False, index=True)
-    growth_defect: Mapped[bool] = mapped_column(Boolean, nullable=False)
+    growth_defect: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
     knockdown_strain_id: Mapped[uuid.UUID | None] = mapped_column(Uuid, nullable=True, index=True)
     growth_defect_severity: Mapped[str | None] = mapped_column(String(64), nullable=True)
     condition: Mapped[str | None] = mapped_column(String(128), nullable=True)

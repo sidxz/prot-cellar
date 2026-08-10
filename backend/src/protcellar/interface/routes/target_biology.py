@@ -171,7 +171,7 @@ class VulnerabilityResponse(BaseModel):
 class HypomorphResponse(BaseModel):
     id: uuid.UUID
     gene_id: uuid.UUID
-    growth_defect: bool
+    growth_defect: bool | None = None
     growth_defect_severity: str | None = None
     knockdown_strain_id: uuid.UUID | None = None
     condition: str | None = None
@@ -473,7 +473,7 @@ class VulnerabilityPatchBody(BaseModel):
 
 
 class HypomorphWriteBody(BaseModel):
-    growth_defect: bool
+    growth_defect: bool | None = None
     growth_defect_severity: str | None = None
     knockdown_strain_id: uuid.UUID | None = None
     condition: str | None = None

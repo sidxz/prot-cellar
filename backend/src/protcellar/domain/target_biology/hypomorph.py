@@ -19,7 +19,7 @@ class Hypomorph(AggregateRoot):
         id: uuid.UUID | None = None,
         workspace_id: uuid.UUID,
         gene_id: uuid.UUID,
-        growth_defect: bool,
+        growth_defect: bool | None = None,
         provenance: Provenance,
         knockdown_strain_id: uuid.UUID | None = None,
         growth_defect_severity: str | None = None,
@@ -34,6 +34,10 @@ class Hypomorph(AggregateRoot):
         self._validate(growth_defect, growth_defect_severity)
         self.workspace_id = workspace_id
         self.gene_id = gene_id
+        # Nullable: the legacy corpus this optionality exists for records "TBD" for 10 of
+        # 195 hypomorphs — not determined, not a third boolean value. No blank/whitespace
+        # collapsing applies here, unlike the string fields elsewhere in this module: a
+        # bool is already exactly True, False, or absent.
         self.growth_defect = growth_defect
         self.provenance = provenance
         self.knockdown_strain_id = knockdown_strain_id
@@ -43,9 +47,12 @@ class Hypomorph(AggregateRoot):
         self.extensions = extensions if extensions is not None else {}
 
     @staticmethod
-    def _validate(growth_defect: bool, severity: str | None) -> None:
-        if growth_defect is None:
-            raise ValidationError("Hypomorph growth_defect must not be null")
+    def _validate(growth_defect: bool | None, severity: str | None) -> None:
+        # severity requires an affirmative growth_defect=True. None ("not determined")
+        # is deliberately treated the same as False here, not carved out as a special
+        # case — a severity claim makes no more sense for an undetermined defect than
+        # for a confirmed-absent one. Python truthiness already gives this for free:
+        # `not growth_defect` is True for both False and None.
         if severity is not None and not growth_defect:
             raise ValidationError("Hypomorph growth_defect_severity requires growth_defect=True")
 
@@ -55,7 +62,7 @@ class Hypomorph(AggregateRoot):
         *,
         workspace_id: uuid.UUID,
         gene_id: uuid.UUID,
-        growth_defect: bool,
+        growth_defect: bool | None = None,
         provenance: Provenance,
         knockdown_strain_id: uuid.UUID | None = None,
         growth_defect_severity: str | None = None,

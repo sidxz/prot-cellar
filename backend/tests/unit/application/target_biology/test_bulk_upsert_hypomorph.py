@@ -125,6 +125,30 @@ async def test_creates_then_updates_idempotently() -> None:
 
 
 @pytest.mark.asyncio
+async def test_creates_then_updates_idempotently_without_growth_defect() -> None:
+    """growth_defect is optional and, unlike activity_measured/status on the
+    sibling kinds, is not part of this upsert key at all (see the module
+    docstring) — a re-imported row with no determination must still match and
+    update the same record, not crash or create a duplicate."""
+    org = uuid.uuid4()
+    gene = Gene.create(workspace_id=SHARED_WORKSPACE_ID, primary_name="Rv0667", organism_id=org)
+    hyp_repo = _FakeHypRepo()
+    uc = _uc(_FakeGeneRepo([gene]), hyp_repo)
+    cmd = BulkUpsertHypomorphCommand(
+        target_workspace_id=SHARED_WORKSPACE_ID,
+        organism_id=org,
+        records=(HypomorphImportRecord(locus_key="Rv0667", method="CRISPRi"),),
+    )
+    res = (await uc(cmd, auth=_admin())).unwrap()
+    assert [r.status for r in res] == ["created"]
+    assert hyp_repo.items[0].growth_defect is None
+
+    res2 = (await uc(cmd, auth=_admin())).unwrap()
+    assert [r.status for r in res2] == ["updated"]
+    assert len(hyp_repo.items) == 1
+
+
+@pytest.mark.asyncio
 async def test_severity_without_defect_reported_failed() -> None:
     org = uuid.uuid4()
     gene = Gene.create(workspace_id=SHARED_WORKSPACE_ID, primary_name="Rv0667", organism_id=org)

@@ -267,7 +267,7 @@ export function VulnerabilityTable({
 // ── Hypomorph ─────────────────────────────────────────────────────────────────
 
 type HypoDraft = {
-  growth_defect: boolean;
+  growth_defect: boolean | null;
   growth_defect_severity: string;
   condition: string;
   method: string;
@@ -284,11 +284,16 @@ const HYPO_COLUMNS: Column<HypomorphResponse, HypoDraft>[] = [
     label: "Growth defect",
     field: "growth_defect",
     type: "bool",
-    render: (r) => (
-      <Badge variant={r.growth_defect ? "warning" : "secondary"} className="font-normal">
-        {r.growth_defect ? "Yes" : "No"}
-      </Badge>
-    ),
+    // null/undefined means "not determined" (a legacy TBD) — must read as "—",
+    // never as "No", which is a different, affirmative statement.
+    render: (r) =>
+      r.growth_defect == null ? (
+        "—"
+      ) : (
+        <Badge variant={r.growth_defect ? "warning" : "secondary"} className="font-normal">
+          {r.growth_defect ? "Yes" : "No"}
+        </Badge>
+      ),
   },
   {
     label: "Severity",
@@ -335,7 +340,7 @@ export function HypomorphTable({
       provenanceFields={provenanceFields}
       extensionFields={extensionFields}
       toDraft={(h) => ({
-        growth_defect: h.growth_defect,
+        growth_defect: h.growth_defect ?? null,
         growth_defect_severity: h.growth_defect_severity ?? "",
         condition: h.condition ?? "",
         method: h.method ?? "",

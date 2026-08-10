@@ -4,6 +4,7 @@
  * prot-cellar
  * OpenAPI spec version: 0.1.0
  */
+import type { HypomorphResponseGrowthDefect } from './hypomorphResponseGrowthDefect';
 import type { HypomorphResponseGrowthDefectSeverity } from './hypomorphResponseGrowthDefectSeverity';
 import type { HypomorphResponseKnockdownStrainId } from './hypomorphResponseKnockdownStrainId';
 import type { HypomorphResponseCondition } from './hypomorphResponseCondition';
@@ -14,7 +15,7 @@ import type { HypomorphResponseExtensions } from './hypomorphResponseExtensions'
 export interface HypomorphResponse {
   id: string;
   gene_id: string;
-  growth_defect: boolean;
+  growth_defect?: HypomorphResponseGrowthDefect;
   growth_defect_severity?: HypomorphResponseGrowthDefectSeverity;
   knockdown_strain_id?: HypomorphResponseKnockdownStrainId;
   condition?: HypomorphResponseCondition;

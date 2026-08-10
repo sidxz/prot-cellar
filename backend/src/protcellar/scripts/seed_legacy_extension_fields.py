@@ -119,6 +119,19 @@ _FIELDS: dict[str, list[_Decl]] = {
     # growth_defect, its severity, condition, method and the strain link are core.
     "hypomorph": [
         (
+            "growth_defect_reported",
+            "Growth defect as reported",
+            # The core `growth_defect` column takes the parsed Yes/No determination —
+            # TBD becomes NULL ("not determined"), not a third boolean value — and this
+            # keeps the curator's literal word alongside it. The source contradicts
+            # itself against `growth_defect_severity` in both directions (35 rows say
+            # No with a Mild severity, 3 say TBD with a Severe one), a further reason
+            # the literal is carried here rather than resolved by the importer.
+            _T.ENUM,
+            ["Yes", "No", "TBD"],
+            False,
+        ),
+        (
             "estimated_knockdown_relative_to_wt",
             "Estimated knockdown vs WT",
             # "~85%", "ND", "TBD", "100%" in one column — approximate, absent and

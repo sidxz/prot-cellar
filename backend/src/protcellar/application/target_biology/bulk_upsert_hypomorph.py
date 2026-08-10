@@ -9,8 +9,13 @@ lookup above it) — the same natural key ``bulk_upsert_crispri_strain`` itself
 upserts on. A name that matches none of them fails its row rather than silently
 importing strain-less, which would collide with any other strain-less row for
 the same gene/condition/method and reintroduce exactly the merge this key
-exists to prevent. ``growth_defect_severity`` without ``growth_defect`` is
-rejected by the aggregate and reported failed.
+exists to prevent. ``growth_defect`` itself is optional — "not determined" is a
+legitimate, distinct state from a confirmed no-defect, not something the importer
+invents a value for. ``growth_defect_severity`` without ``growth_defect`` (None
+included — see the aggregate) is rejected by the aggregate and reported failed.
+Note ``growth_defect`` is not part of this upsert key: a re-imported row with no
+determination still matches the same knockdown_strain/condition/method record it
+did before, and updates it in place.
 """
 
 from __future__ import annotations
@@ -43,7 +48,7 @@ from protcellar.domain.target_biology.repository import (
 @dataclass(frozen=True, kw_only=True)
 class HypomorphImportRecord:
     locus_key: str
-    growth_defect: bool
+    growth_defect: bool | None = None
     growth_defect_severity: str | None = None
     knockdown_strain: str | None = None
     condition: str | None = None

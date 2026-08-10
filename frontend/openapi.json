@@ -7376,7 +7376,14 @@
             "title": "Gene Id"
           },
           "growth_defect": {
-            "type": "boolean",
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Growth Defect"
           },
           "growth_defect_severity": {
@@ -7445,7 +7452,6 @@
         "required": [
           "id",
           "gene_id",
-          "growth_defect",
           "provenance",
           "extensions",
           "version",
@@ -7456,7 +7462,14 @@
       "HypomorphWriteBody": {
         "properties": {
           "growth_defect": {
-            "type": "boolean",
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Growth Defect"
           },
           "growth_defect_severity": {
@@ -7522,7 +7535,6 @@
         },
         "type": "object",
         "required": [
-          "growth_defect",
           "provenance"
         ],
         "title": "HypomorphWriteBody"
