@@ -14,10 +14,8 @@ them in ``ignored_columns``, not the shared ``provenance`` value object. Restati
 of the five as an extension field would be a second, unvalidated way to say the same
 thing.
 
-Two kinds get nothing, deliberately:
+One kind gets nothing, deliberately:
 
-* **essentiality** — its four legacy fields (classification, condition, method,
-  reference) all map onto core columns already.
 * **crispri_strain** — the legacy collection is empty, so there is no tail to host.
 
 Idempotent: a declaration whose ``(kind, name)`` already exists is left exactly as it
@@ -108,6 +106,15 @@ _FIELDS: dict[str, list[_Decl]] = {
             ["Essential", "NonEssential"],
             False,
         ),
+    ],
+    # Classification, method and reference map onto core columns. `condition` does
+    # not: the core column is varchar(128) and holds a short label ("7H9",
+    # "cholesterol"), while the source stores a full methods paragraph there —
+    # 187 characters at its longest, and over the cap on all 4,014 rows. An earlier
+    # draft of this file claimed essentiality needed no extension fields at all;
+    # a real import proved otherwise.
+    "essentiality": [
+        ("condition_detail", "Condition detail", _T.TEXT, None, False),
     ],
     # growth_defect, its severity, condition, method and the strain link are core.
     "hypomorph": [
