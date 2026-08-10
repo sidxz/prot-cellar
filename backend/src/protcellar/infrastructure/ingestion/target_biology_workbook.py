@@ -88,6 +88,16 @@ from protcellar.application.target_biology.bulk_upsert_vulnerability import (
     VulnerabilityImportRecord,
 )
 from protcellar.application.target_biology.crud import RecordKind
+from protcellar.infrastructure.persistence.sqlalchemy.target_biology.models import (
+    CrispriStrainModel,
+    EssentialityRecordModel,
+    HypomorphModel,
+    ProteinActivityAssayModel,
+    ProteinProductionModel,
+    ResistanceMutationModel,
+    UnpublishedStructureModel,
+    VulnerabilityRecordModel,
+)
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -126,6 +136,35 @@ _RECORD_CLASSES: dict[RecordKind, type[Any]] = {
     RecordKind.PROTEIN_ACTIVITY_ASSAY: ProteinActivityAssayImportRecord,
     RecordKind.UNPUBLISHED_STRUCTURE: UnpublishedStructureImportRecord,
 }
+
+# Column length caps, read from the ORM rather than restated. A core string that
+# exceeds its column raises asyncpg's StringDataRightTruncationError at flush time —
+# a DBAPIError, not a DomainError, so the bulk commands' per-row `except DomainError`
+# does not catch it and a single over-long cell fails the WHOLE run. Checking it here
+# turns that into one failed row, named in the preview, before anything is written.
+_MODELS: dict[RecordKind, type[Any]] = {
+    RecordKind.ESSENTIALITY: EssentialityRecordModel,
+    RecordKind.VULNERABILITY: VulnerabilityRecordModel,
+    RecordKind.HYPOMORPH: HypomorphModel,
+    RecordKind.CRISPRI_STRAIN: CrispriStrainModel,
+    RecordKind.RESISTANCE_MUTATION: ResistanceMutationModel,
+    RecordKind.PROTEIN_PRODUCTION: ProteinProductionModel,
+    RecordKind.PROTEIN_ACTIVITY_ASSAY: ProteinActivityAssayModel,
+    RecordKind.UNPUBLISHED_STRUCTURE: UnpublishedStructureModel,
+}
+
+
+def _max_lengths(kind: RecordKind) -> dict[str, int]:
+    out: dict[str, int] = {}
+    for column in _MODELS[kind].__table__.columns:
+        length = getattr(column.type, "length", None)
+        if isinstance(length, int):
+            out[column.name] = length
+    return out
+
+
+_MAX_LENGTHS: dict[RecordKind, dict[str, int]] = {k: _max_lengths(k) for k in _MODELS}
+
 
 _GENE_SIDE: frozenset[RecordKind] = frozenset(
     {
@@ -457,7 +496,7 @@ def _row_kwargs(
             if reported is not None:
                 extensions["ligand_reported"] = reported
             continue
-        coerced = _coerce_core(raw, shape, field_name)
+        coerced = _coerce_core(raw, shape, field_name, _MAX_LENGTHS[kind].get(field_name))
         if coerced is None:
             continue  # leave the dataclass's own default in place
         kwargs[field_name] = coerced
@@ -488,9 +527,15 @@ def _cell(row: tuple[Any, ...], idx: int | None) -> Any:
     return row[idx]
 
 
-def _coerce_core(value: Any, shape: str, name: str) -> Any:
+def _coerce_core(value: Any, shape: str, name: str, max_length: int | None = None) -> Any:
     if shape == _STR:
-        return _to_str(value)
+        text = _to_str(value)
+        if text is not None and max_length is not None and len(text) > max_length:
+            raise ValueError(
+                f"{name!r} is {len(text)} characters, longer than the {max_length} "
+                f"its column holds"
+            )
+        return text
     if shape == _BOOL:
         return None if value is None else _to_bool(value)
     if shape == _FLOAT:

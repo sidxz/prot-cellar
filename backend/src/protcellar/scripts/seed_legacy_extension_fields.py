@@ -141,6 +141,13 @@ _FIELDS: dict[str, list[_Decl]] = {
         # Empty across all 195 legacy records, declared so an import does not silently
         # drop a column that the source schema says exists.
         ("phenotype", "Phenotype", _T.STRING, None, False),
+        # The source's free-text note, and the only place the knockdown strain is
+        # actually recorded ("Gene name : AftB_03", alongside the background it was
+        # made in). Not `note`: that is a reserved provenance column, which the
+        # importer discards and — decisively — excludes from the identity used to
+        # deduplicate rows. Carried here instead, the strain identity survives and
+        # 195 source rows stay 195 records rather than collapsing to 133.
+        ("construct_note", "Construct note", _T.TEXT, None, False),
     ],
     # mutation, compound, parent strain, protein coordinate and method are core.
     "resistance_mutation": [

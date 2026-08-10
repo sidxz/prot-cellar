@@ -494,3 +494,26 @@ def test_text_that_is_not_a_boolean_still_fails(cell: object) -> None:
     field = KnownExtensionField(field_type="boolean")
     with pytest.raises(ValueError):
         _coerce_extension_value(cell, field, "x")
+
+
+def test_a_core_string_longer_than_its_column_fails_only_its_own_row() -> None:
+    """asyncpg raises StringDataRightTruncationError at flush — a DBAPIError, not a
+    DomainError — so the bulk commands' per-row handler does not catch it and one
+    over-long cell fails the entire run. A real import of the legacy corpus died
+    exactly this way, after a preview that had promised 4,002 creates."""
+    long_condition = "x" * 200  # essentiality_records.condition is varchar(128)
+    data = _workbook(
+        {
+            "essentiality": [
+                ["locus_tag", "classification", "condition"],
+                ["Rv0001", "essential", long_condition],
+                ["Rv0002", "essential", "7H9"],
+            ]
+        }
+    )
+    plans, _ = _plan(data)
+    plan = plans[0]
+    assert len(plan.records) == 1  # the short row survives
+    assert len(plan.problems) == 1
+    assert plan.problems[0].row == 2
+    assert "128" in plan.problems[0].reason
