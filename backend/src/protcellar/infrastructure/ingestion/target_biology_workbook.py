@@ -160,8 +160,11 @@ _CORE_FIELDS: dict[RecordKind, dict[str, str]] = {
     },
     RecordKind.RESISTANCE_MUTATION: {
         "mutation": _STR,
-        # Unlike ligands below, an unresolved compound has a textual home already
-        # (`compound_name`, a plain core column) — no `extensions` fallback needed here.
+        # Unlike ligands below, `compound_id` has no "unresolved" fallback: a cell
+        # that isn't a UUID fails its row (`_to_uuid` raises) rather than being
+        # silently dropped. A free-text compound label belongs in the separate
+        # `compound_name` column below — nothing routes a failed `compound_id`
+        # cell into it.
         "compound_id": _UUID,
         "compound_name": _STR,
         "mic_shift": _FLOAT,
@@ -444,7 +447,7 @@ def _coerce_core(value: Any, shape: str, name: str) -> Any:
     if shape == _FLOAT:
         return _to_float(value, name)
     if shape == _UUID:
-        return _to_uuid(value)
+        return _to_uuid(value, name)
     raise AssertionError(f"unhandled core field shape {shape!r}")  # pragma: no cover
 
 
@@ -474,14 +477,14 @@ def _to_float(value: Any, name: str) -> float | None:
         raise ValueError(f"{name!r} is not a number: {value!r}") from exc
 
 
-def _to_uuid(value: Any) -> uuid.UUID | None:
+def _to_uuid(value: Any, name: str) -> uuid.UUID | None:
     text = _to_str(value)
     if text is None:
         return None
     try:
         return uuid.UUID(text)
-    except ValueError:
-        return None
+    except ValueError as exc:
+        raise ValueError(f"{name!r} is not a valid UUID: {value!r}") from exc
 
 
 def _parse_ligands(value: Any) -> tuple[tuple[uuid.UUID, ...], str | None]:

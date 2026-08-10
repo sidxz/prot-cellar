@@ -180,6 +180,28 @@ def test_a_row_missing_the_gene_column_is_a_problem_not_a_crash() -> None:
     assert "locus_tag" in plan.problems[0].reason
 
 
+def test_an_unparseable_compound_id_fails_its_row_instead_of_merging_with_another() -> None:
+    """A cell that isn't a UUID must fail its row (`_to_uuid` raising, mirroring
+    `_to_float`) rather than silently becoming `None` — the old swallow-and-
+    return-None behaviour made two distinct resistance mutations, naming two
+    different compounds, dedup-collapse into one silently-merged record."""
+    data = _workbook(
+        {
+            "resistance_mutation": [
+                ["locus_tag", "mutation", "compound_id", "method"],
+                ["Rv1908c", "S315T", "Isoniazid", "MIC"],
+                ["Rv1908c", "S315T", "Rifampicin", "MIC"],
+            ]
+        }
+    )
+    plans, _ = _plan(data)
+    (plan,) = plans
+    assert plan.records == []
+    assert plan.merged_identical == 0
+    assert len(plan.problems) == 2
+    assert all("compound_id" in p.reason for p in plan.problems)
+
+
 def test_a_value_that_will_not_parse_fails_only_its_own_row() -> None:
     data = _workbook(
         {
