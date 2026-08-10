@@ -34,7 +34,6 @@ function pickFile() {
 
 describe("TargetBiologyParamsForm", () => {
   beforeEach(() => {
-    localStorage.clear();
     startMutate.mockClear();
     uploadMutate.mockClear();
     push.mockClear();
@@ -48,7 +47,7 @@ describe("TargetBiologyParamsForm", () => {
     expect(startMutate).not.toHaveBeenCalled();
   });
 
-  it("uploads the file, submits as a dry run, and remembers the params for Apply", async () => {
+  it("uploads the file and submits as a dry run", async () => {
     const onSuccess = vi.fn();
     render(<TargetBiologyParamsForm onSuccess={onSuccess} />);
 
@@ -74,11 +73,5 @@ describe("TargetBiologyParamsForm", () => {
     );
     await waitFor(() => expect(onSuccess).toHaveBeenCalled());
     expect(push).toHaveBeenCalledWith("/admin/imports/run-1");
-    // Apply (a separate run) needs these back — see types/index.ts.
-    expect(JSON.parse(localStorage.getItem("pc-target-biology-apply:run-1") ?? "null")).toEqual({
-      organism_id: "org-7",
-      match_by: "locus_tag",
-      update_existing: false,
-    });
   });
 });

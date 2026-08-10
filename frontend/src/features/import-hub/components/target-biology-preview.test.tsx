@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const push = vi.fn();
@@ -29,8 +29,6 @@ vi.mock("@/features/protein-catalog/hooks/use-target-biology-schema", () => ({
 
 import { TargetBiologyPreview } from "./target-biology-preview";
 
-const APPLY_KEY = "pc-target-biology-apply:run-1";
-
 function baseRun(overrides: Record<string, unknown> = {}) {
   return {
     id: "run-1",
@@ -43,6 +41,7 @@ function baseRun(overrides: Record<string, unknown> = {}) {
     requested_by: "user-1",
     created_at: "2026-08-09T00:00:00Z",
     error: null,
+    params: { organism_id: "org-1", match_by: "locus_tag", update_existing: false },
     summary: {
       kinds: {
         vulnerability: {
@@ -69,7 +68,6 @@ function baseRun(overrides: Record<string, unknown> = {}) {
 
 describe("TargetBiologyPreview", () => {
   beforeEach(() => {
-    localStorage.clear();
     startMutate.mockClear();
     push.mockClear();
   });
@@ -124,11 +122,8 @@ describe("TargetBiologyPreview", () => {
   });
 
   it("shows the already_present warning in add mode", () => {
-    localStorage.setItem(
-      APPLY_KEY,
-      JSON.stringify({ organism_id: "org-1", match_by: "locus_tag", update_existing: false }),
-    );
     const run = baseRun({
+      params: { organism_id: "org-1", match_by: "locus_tag", update_existing: false },
       summary: { ...baseRun().summary, already_present: { vulnerability: 3 } },
     });
     render(<TargetBiologyPreview run={run} />);
@@ -136,20 +131,8 @@ describe("TargetBiologyPreview", () => {
   });
 
   it("hides the already_present warning in update mode", () => {
-    localStorage.setItem(
-      APPLY_KEY,
-      JSON.stringify({ organism_id: "org-1", match_by: "locus_tag", update_existing: true }),
-    );
     const run = baseRun({
-      summary: { ...baseRun().summary, already_present: { vulnerability: 3 } },
-    });
-    render(<TargetBiologyPreview run={run} />);
-    expect(screen.queryByText(/add mode will duplicate/i)).not.toBeInTheDocument();
-  });
-
-  it("hides the already_present warning when the mode wasn't recovered", () => {
-    // no localStorage entry for this run id
-    const run = baseRun({
+      params: { organism_id: "org-1", match_by: "locus_tag", update_existing: true },
       summary: { ...baseRun().summary, already_present: { vulnerability: 3 } },
     });
     render(<TargetBiologyPreview run={run} />);
@@ -179,27 +162,37 @@ describe("TargetBiologyPreview", () => {
     expect(screen.queryByText(/did not resolve to a compound id/i)).not.toBeInTheDocument();
   });
 
-  it("offers Apply and Discard on a preview run whose settings are known", () => {
-    localStorage.setItem(
-      APPLY_KEY,
-      JSON.stringify({ organism_id: "org-1", match_by: "locus_tag", update_existing: false }),
-    );
+  it("offers Apply and Discard on a preview run", () => {
     render(<TargetBiologyPreview run={baseRun()} />);
     expect(screen.getByRole("button", { name: "Apply" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Discard" })).toBeInTheDocument();
   });
 
-  it("falls back to a plain link when the preview's settings are gone", () => {
-    render(<TargetBiologyPreview run={baseRun()} />);
-    expect(screen.queryByRole("button", { name: "Apply" })).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /back to imports/i })).toBeInTheDocument();
+  it("Apply resubmits the run's own params from the server, not anything client-remembered", async () => {
+    const run = baseRun({
+      params: { organism_id: "org-9", match_by: "gene_name", update_existing: true },
+    });
+    render(<TargetBiologyPreview run={run} />);
+    fireEvent.click(screen.getByRole("button", { name: "Apply" }));
+
+    await waitFor(() =>
+      expect(startMutate).toHaveBeenCalledWith({
+        data: {
+          import_type: "target_biology",
+          params: {
+            upload_ref: "up-1",
+            organism_id: "org-9",
+            match_by: "gene_name",
+            update_existing: true,
+            dry_run: false,
+          },
+        },
+      }),
+    );
+    await waitFor(() => expect(push).toHaveBeenCalledWith("/admin/imports/apply-run-1"));
   });
 
   it("offers no Apply/Discard on a run that was already applied", () => {
-    localStorage.setItem(
-      APPLY_KEY,
-      JSON.stringify({ organism_id: "org-1", match_by: "locus_tag", update_existing: false }),
-    );
     const run = baseRun({ target_key: "org-1:up-1:run" });
     render(<TargetBiologyPreview run={run} />);
     expect(screen.queryByRole("button", { name: "Apply" })).not.toBeInTheDocument();

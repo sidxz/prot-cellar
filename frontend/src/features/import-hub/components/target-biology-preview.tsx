@@ -8,7 +8,7 @@ import { Button } from "@/shared/components/ui/button";
 import { ImportType } from "@/shared/lib/api/model";
 
 import { useStartImport } from "../hooks/use-imports";
-import { type ImportRun, loadTargetBiologyApplyParams } from "../types";
+import type { ImportRun } from "../types";
 
 interface KindSummary {
   rows: number;
@@ -48,6 +48,19 @@ interface TargetBiologySummary {
 }
 
 /**
+ * `TargetBiologyParams` (backend `application/imports/params.py`), echoed
+ * back on every run's `params` — Pydantic-validated and defaulted at
+ * StartImport time, so a succeeded run always has all three. `run.params`
+ * comes back untyped for the same reason `run.summary` does; narrowed once
+ * here rather than cast at every access.
+ */
+interface TargetBiologyRunParams {
+  organism_id: string;
+  match_by: "locus_tag" | "gene_name";
+  update_existing: boolean;
+}
+
+/**
  * `target_key` for this import type is `"{organism_id}:{upload_ref}:{dry|
  * run}"` (`application/imports/params.py:target_key`) — the only place
  * "was this run a preview or an apply" is recorded, since neither is a
@@ -77,13 +90,11 @@ export function TargetBiologyPreview({ run }: { run: ImportRun }) {
   const warnings = summary.warnings ?? [];
 
   const preview = isTargetBiologyPreviewRun(run.target_key);
-  const stored = loadTargetBiologyApplyParams(run.id);
+  const params = (run.params ?? {}) as unknown as TargetBiologyRunParams;
   // "Already present" is only a meaningful warning in add mode (running it
-  // twice doubles the tenant's own data); update mode matches instead. When
-  // this browser has lost track of which mode the preview used, say nothing
-  // rather than assert a mode we can't confirm — see loadTargetBiologyApplyParams.
+  // twice doubles the tenant's own data); update mode matches instead.
   const alreadyPresent =
-    stored?.update_existing === false
+    params.update_existing === false
       ? Object.entries(summary.already_present ?? {}).filter(([, n]) => n > 0)
       : [];
 
@@ -96,16 +107,16 @@ export function TargetBiologyPreview({ run }: { run: ImportRun }) {
   }
 
   async function handleApply() {
-    if (!stored || !run.upload_ref) return;
+    if (!run.upload_ref) return;
     try {
       const applied = await apply.mutateAsync({
         data: {
           import_type: ImportType.target_biology,
           params: {
             upload_ref: run.upload_ref,
-            organism_id: stored.organism_id,
-            match_by: stored.match_by,
-            update_existing: stored.update_existing,
+            organism_id: params.organism_id,
+            match_by: params.match_by,
+            update_existing: params.update_existing,
             dry_run: false,
           },
         },
@@ -226,31 +237,16 @@ export function TargetBiologyPreview({ run }: { run: ImportRun }) {
         </div>
       ))}
 
-      {preview &&
-        (stored ? (
-          <div className="flex items-center justify-end gap-2 border-t pt-4">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={goToImports}
-              disabled={apply.isPending}
-            >
-              Discard
-            </Button>
-            <Button type="button" onClick={handleApply} disabled={apply.isPending}>
-              {apply.isPending ? "Applying…" : "Apply"}
-            </Button>
-          </div>
-        ) : (
-          <div className="flex items-center justify-between gap-4 border-t pt-4">
-            <p className="text-xs text-muted-foreground">
-              This browser no longer has the settings this preview used.
-            </p>
-            <Button type="button" variant="outline" onClick={goToImports}>
-              Back to imports
-            </Button>
-          </div>
-        ))}
+      {preview && (
+        <div className="flex items-center justify-end gap-2 border-t pt-4">
+          <Button type="button" variant="outline" onClick={goToImports} disabled={apply.isPending}>
+            Discard
+          </Button>
+          <Button type="button" onClick={handleApply} disabled={apply.isPending}>
+            {apply.isPending ? "Applying…" : "Apply"}
+          </Button>
+        </div>
+      )}
     </div>
   );
 }

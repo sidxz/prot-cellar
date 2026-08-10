@@ -9,6 +9,7 @@ import type { ImportStatus } from './importStatus';
 import type { ImportRunResponsePhase } from './importRunResponsePhase';
 import type { ImportRunResponseProgress } from './importRunResponseProgress';
 import type { ImportRunResponseSummary } from './importRunResponseSummary';
+import type { ImportRunResponseParams } from './importRunResponseParams';
 import type { ImportRunResponseSourceVersion } from './importRunResponseSourceVersion';
 import type { ImportRunResponseError } from './importRunResponseError';
 import type { ImportRunResponseUploadRef } from './importRunResponseUploadRef';
@@ -23,6 +24,7 @@ export interface ImportRunResponse {
   phase?: ImportRunResponsePhase;
   progress: ImportRunResponseProgress;
   summary: ImportRunResponseSummary;
+  params: ImportRunResponseParams;
   source_version?: ImportRunResponseSourceVersion;
   error?: ImportRunResponseError;
   requested_by: string;

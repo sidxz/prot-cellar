@@ -36,6 +36,7 @@ class ImportRunResponse(BaseModel):
     phase: str | None = None
     progress: dict[str, Any]
     summary: dict[str, Any]
+    params: dict[str, Any]
     source_version: str | None = None
     error: str | None = None
     requested_by: uuid.UUID
@@ -54,6 +55,7 @@ class ImportRunResponse(BaseModel):
             phase=run.phase,
             progress={"processed": run.processed, "total": run.total},
             summary=run.summary,
+            params=run.params,
             source_version=run.source_version,
             error=run.error,
             requested_by=run.requested_by,

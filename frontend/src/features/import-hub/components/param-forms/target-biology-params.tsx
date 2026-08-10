@@ -27,7 +27,6 @@ import {
 import { ImportType } from "@/shared/lib/api/model";
 
 import { useStartImport, useUploadEssentiality } from "../../hooks/use-imports";
-import { saveTargetBiologyApplyParams } from "../../types";
 import { OrganismCombobox } from "../organism-combobox";
 
 const schema = z.object({
@@ -80,11 +79,6 @@ export function TargetBiologyParamsForm({ onSuccess }: { onSuccess: () => void }
     try {
       const run = await start.mutateAsync({
         data: { import_type: ImportType.target_biology, params },
-      });
-      saveTargetBiologyApplyParams(run.id, {
-        organism_id: values.organism_id,
-        match_by: values.match_by,
-        update_existing: values.update_existing,
       });
       onSuccess();
       router.push(`/admin/imports/${run.id}`);

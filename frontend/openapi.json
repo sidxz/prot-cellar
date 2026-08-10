@@ -7565,6 +7565,11 @@
             "type": "object",
             "title": "Summary"
           },
+          "params": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Params"
+          },
           "source_version": {
             "anyOf": [
               {
@@ -7642,6 +7647,7 @@
           "status",
           "progress",
           "summary",
+          "params",
           "requested_by",
           "created_at"
         ],
