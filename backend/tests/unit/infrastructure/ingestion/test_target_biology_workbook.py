@@ -65,6 +65,32 @@ def test_a_sheet_per_kind_is_parsed_and_an_unknown_sheet_is_reported() -> None:
     assert "not_a_kind" in problems[0].reason
 
 
+def test_two_sheets_normalising_to_the_same_kind_the_second_is_rejected() -> None:
+    """ "Vulnerability" and "vulnerability " both normalise to the same kind —
+    the second must be a workbook-level problem, never silently written
+    alongside the first while its own summary counts get overwritten."""
+    data = _workbook(
+        {
+            "Vulnerability": [
+                ["locus_tag", "condition"],
+                ["Rv0001", "hypoxia"],
+            ],
+            "vulnerability ": [
+                ["locus_tag", "condition"],
+                ["Rv0002", "normoxia"],
+            ],
+        }
+    )
+    plans, problems = _plan(data)
+    assert len(plans) == 1
+    assert plans[0].kind == RecordKind.VULNERABILITY
+    assert plans[0].records[0].locus_key == "Rv0001"  # the first sheet in the workbook wins
+    assert len(problems) == 1
+    assert problems[0].sheet == "vulnerability "
+    assert "duplicate sheet" in problems[0].reason
+    assert "vulnerability" in problems[0].reason.lower()
+
+
 def test_two_identical_rows_become_one_record() -> None:
     data = _workbook(
         {

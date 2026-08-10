@@ -753,6 +753,47 @@ async def test_hypomorph_resolves_a_same_workbook_strain_regardless_of_sheet_ord
         await engine.dispose()
 
 
+async def test_two_sheets_normalising_to_the_same_kind_only_the_first_is_used(
+    client: AsyncClient, database_url: str, _run_migrations: None, workspace_id: uuid.UUID
+) -> None:
+    """ "vulnerability" and "Vulnerability " both normalise to the same kind.
+    Before the fix, one plan existed per *sheet*, so both got dispatched and
+    written while kinds_summary/already_present (assigned, not accumulated,
+    keyed by kind) silently kept only the last one's numbers. Now the second
+    sheet is a workbook-level problem and is never parsed at all — only the
+    first sheet's row lands."""
+    engine = create_async_engine(database_url)
+    factory = async_sessionmaker(engine, expire_on_commit=False)
+    try:
+        organism_id = await _organism(client)
+        await _gene(client, organism_id, locus="Rv0016")
+        await _gene(client, organism_id, locus="Rv0017")
+
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        assert ws is not None
+        ws.title = "vulnerability"
+        ws.append(["locus_tag", "condition"])
+        ws.append(["Rv0016", "hypoxia"])
+        dup = wb.create_sheet("Vulnerability ")
+        dup.append(["locus_tag", "condition"])
+        dup.append(["Rv0017", "normoxia"])
+        buf = io.BytesIO()
+        wb.save(buf)
+        upload_ref = await _upload(client, buf.getvalue())
+
+        run = await _start(client, upload_ref=upload_ref, organism_id=organism_id, dry_run=True)
+        await _run_worker(factory, run["id"], workspace_id)
+
+        summary = (await client.get(f"/api/v1/imports/{run['id']}")).json()["summary"]
+        assert list(summary["kinds"]) == ["vulnerability"]
+        assert summary["kinds"]["vulnerability"]["create"] == 1
+        assert summary["already_present"] == {"vulnerability": 0}
+        assert any("duplicate sheet" in p["reason"] for p in summary["problems"])
+    finally:
+        await engine.dispose()
+
+
 async def test_add_mode_never_triggers_the_ligand_warning(
     client: AsyncClient, database_url: str, _run_migrations: None, workspace_id: uuid.UUID
 ) -> None:

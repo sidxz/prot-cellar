@@ -402,6 +402,13 @@ async def _already_present(repo: Any, ctx: _KindContext) -> int:
     doubles *this tenant's own* data (add mode never checks for a match; see
     ``_NoExistingMatch`` above).
 
+    Called from a dedicated pass in ``TargetBiologyAdapter.run``, over every
+    plan, *before* any plan is dispatched — never from inside a ``_run_<kind>``
+    dispatcher interleaved with that kind's own writes, which would make a
+    plan processed later in the run see an earlier plan's own writes to a
+    *different* kind's table and, were duplicate-kind sheets ever mis-parsed
+    into two plans again, its own kind's table too.
+
     ``list_paginated`` is ``readable_by`` (target workspace OR SHARED), so its
     raw result includes shared reference rows this import will never touch and
     add mode could never duplicate — a brand-new tenant with zero rows of its
@@ -430,15 +437,31 @@ async def _already_present(repo: Any, ctx: _KindContext) -> int:
     return sum(1 for r in rows if r.workspace_id == ctx.target_workspace_id)
 
 
+# kind -> repo constructor, for _already_present's own upfront pass only —
+# each _run_<kind> dispatcher below still constructs its own repo instance
+# for the bulk command's use (a second, equally cheap instance over the same
+# uow/session; the repos are stateless wrappers, so this costs nothing beyond
+# object construction).
+_REPO_FOR: dict[RecordKind, Callable[[AsyncUnitOfWork], Any]] = {
+    RecordKind.ESSENTIALITY: SQLAlchemyEssentialityRepository,
+    RecordKind.VULNERABILITY: SQLAlchemyVulnerabilityRepository,
+    RecordKind.HYPOMORPH: SQLAlchemyHypomorphRepository,
+    RecordKind.CRISPRI_STRAIN: SQLAlchemyCrispriStrainRepository,
+    RecordKind.RESISTANCE_MUTATION: SQLAlchemyResistanceMutationRepository,
+    RecordKind.PROTEIN_PRODUCTION: SQLAlchemyProteinProductionRepository,
+    RecordKind.PROTEIN_ACTIVITY_ASSAY: SQLAlchemyProteinActivityAssayRepository,
+    RecordKind.UNPUBLISHED_STRUCTURE: SQLAlchemyUnpublishedStructureRepository,
+}
+
+
 def _match_repo(repo: Any, ctx: _KindContext) -> Any:
     """The repo a bulk command should see for its own "existing row" lookup:
     the real one in update mode, a wrapper that reports none in add mode."""
     return repo if ctx.update_existing else _NoExistingMatch(repo)
 
 
-async def _run_essentiality(ctx: _KindContext, records: list[Any]) -> tuple[list[ItemResult], int]:
+async def _run_essentiality(ctx: _KindContext, records: list[Any]) -> list[ItemResult]:
     repo = SQLAlchemyEssentialityRepository(ctx.uow)
-    present = await _already_present(repo, ctx)
     cmd = BulkUpsertEssentialityCommand(
         target_workspace_id=ctx.target_workspace_id,
         organism_id=ctx.organism_id,
@@ -448,14 +471,11 @@ async def _run_essentiality(ctx: _KindContext, records: list[Any]) -> tuple[list
     handler = BulkUpsertEssentiality(
         ctx.uow, ctx.gene_repo, _match_repo(repo, ctx), ctx.dispatcher
     )
-    return (await handler(cmd, ctx.auth)).unwrap(), present
+    return (await handler(cmd, ctx.auth)).unwrap()
 
 
-async def _run_vulnerability(
-    ctx: _KindContext, records: list[Any]
-) -> tuple[list[ItemResult], int]:
+async def _run_vulnerability(ctx: _KindContext, records: list[Any]) -> list[ItemResult]:
     repo = SQLAlchemyVulnerabilityRepository(ctx.uow)
-    present = await _already_present(repo, ctx)
     cmd = BulkUpsertVulnerabilityCommand(
         target_workspace_id=ctx.target_workspace_id,
         organism_id=ctx.organism_id,
@@ -465,12 +485,11 @@ async def _run_vulnerability(
     handler = BulkUpsertVulnerability(
         ctx.uow, ctx.gene_repo, _match_repo(repo, ctx), ctx.dispatcher
     )
-    return (await handler(cmd, ctx.auth)).unwrap(), present
+    return (await handler(cmd, ctx.auth)).unwrap()
 
 
-async def _run_hypomorph(ctx: _KindContext, records: list[Any]) -> tuple[list[ItemResult], int]:
+async def _run_hypomorph(ctx: _KindContext, records: list[Any]) -> list[ItemResult]:
     repo = SQLAlchemyHypomorphRepository(ctx.uow)
-    present = await _already_present(repo, ctx)
     # A fresh, unwrapped instance: hypomorph resolves knockdown_strain by name
     # against this repo's find_by_gene — a *foreign* lookup, not hypomorph's own
     # match — which must never be short-circuited by add mode.
@@ -484,14 +503,11 @@ async def _run_hypomorph(ctx: _KindContext, records: list[Any]) -> tuple[list[It
     handler = BulkUpsertHypomorph(
         ctx.uow, ctx.gene_repo, _match_repo(repo, ctx), strain_repo, ctx.dispatcher
     )
-    return (await handler(cmd, ctx.auth)).unwrap(), present
+    return (await handler(cmd, ctx.auth)).unwrap()
 
 
-async def _run_crispri_strain(
-    ctx: _KindContext, records: list[Any]
-) -> tuple[list[ItemResult], int]:
+async def _run_crispri_strain(ctx: _KindContext, records: list[Any]) -> list[ItemResult]:
     repo = SQLAlchemyCrispriStrainRepository(ctx.uow)
-    present = await _already_present(repo, ctx)
     cmd = BulkUpsertCrispriStrainCommand(
         target_workspace_id=ctx.target_workspace_id,
         organism_id=ctx.organism_id,
@@ -501,14 +517,11 @@ async def _run_crispri_strain(
     handler = BulkUpsertCrispriStrain(
         ctx.uow, ctx.gene_repo, _match_repo(repo, ctx), ctx.dispatcher
     )
-    return (await handler(cmd, ctx.auth)).unwrap(), present
+    return (await handler(cmd, ctx.auth)).unwrap()
 
 
-async def _run_resistance_mutation(
-    ctx: _KindContext, records: list[Any]
-) -> tuple[list[ItemResult], int]:
+async def _run_resistance_mutation(ctx: _KindContext, records: list[Any]) -> list[ItemResult]:
     repo = SQLAlchemyResistanceMutationRepository(ctx.uow)
-    present = await _already_present(repo, ctx)
     cmd = BulkUpsertResistanceMutationCommand(
         target_workspace_id=ctx.target_workspace_id,
         organism_id=ctx.organism_id,
@@ -518,14 +531,11 @@ async def _run_resistance_mutation(
     handler = BulkUpsertResistanceMutation(
         ctx.uow, ctx.gene_repo, _match_repo(repo, ctx), ctx.dispatcher
     )
-    return (await handler(cmd, ctx.auth)).unwrap(), present
+    return (await handler(cmd, ctx.auth)).unwrap()
 
 
-async def _run_protein_production(
-    ctx: _KindContext, records: list[Any]
-) -> tuple[list[ItemResult], int]:
+async def _run_protein_production(ctx: _KindContext, records: list[Any]) -> list[ItemResult]:
     repo = SQLAlchemyProteinProductionRepository(ctx.uow)
-    present = await _already_present(repo, ctx)
     cmd = BulkUpsertProteinProductionCommand(
         target_workspace_id=ctx.target_workspace_id,
         records=tuple(records),
@@ -534,14 +544,11 @@ async def _run_protein_production(
     handler = BulkUpsertProteinProduction(
         ctx.uow, ctx.protein_repo, _match_repo(repo, ctx), ctx.dispatcher
     )
-    return (await handler(cmd, ctx.auth)).unwrap(), present
+    return (await handler(cmd, ctx.auth)).unwrap()
 
 
-async def _run_protein_activity_assay(
-    ctx: _KindContext, records: list[Any]
-) -> tuple[list[ItemResult], int]:
+async def _run_protein_activity_assay(ctx: _KindContext, records: list[Any]) -> list[ItemResult]:
     repo = SQLAlchemyProteinActivityAssayRepository(ctx.uow)
-    present = await _already_present(repo, ctx)
     cmd = BulkUpsertProteinActivityAssayCommand(
         target_workspace_id=ctx.target_workspace_id,
         records=tuple(records),
@@ -550,14 +557,11 @@ async def _run_protein_activity_assay(
     handler = BulkUpsertProteinActivityAssay(
         ctx.uow, ctx.protein_repo, _match_repo(repo, ctx), ctx.dispatcher
     )
-    return (await handler(cmd, ctx.auth)).unwrap(), present
+    return (await handler(cmd, ctx.auth)).unwrap()
 
 
-async def _run_unpublished_structure(
-    ctx: _KindContext, records: list[Any]
-) -> tuple[list[ItemResult], int]:
+async def _run_unpublished_structure(ctx: _KindContext, records: list[Any]) -> list[ItemResult]:
     repo = SQLAlchemyUnpublishedStructureRepository(ctx.uow)
-    present = await _already_present(repo, ctx)
     cmd = BulkUpsertUnpublishedStructureCommand(
         target_workspace_id=ctx.target_workspace_id,
         records=tuple(records),
@@ -566,7 +570,7 @@ async def _run_unpublished_structure(
     handler = BulkUpsertUnpublishedStructure(
         ctx.uow, ctx.protein_repo, _match_repo(repo, ctx), ctx.dispatcher
     )
-    return (await handler(cmd, ctx.auth)).unwrap(), present
+    return (await handler(cmd, ctx.auth)).unwrap()
 
 
 # Fixed dependency order, not workbook sheet order: HYPOMORPH resolves its
@@ -579,9 +583,7 @@ async def _run_unpublished_structure(
 # dependency, so their relative order here is arbitrary. See
 # `_DISPATCH_ORDER` and its call site below — plans are walked in this order,
 # never in `plans`' own (workbook) order.
-_DISPATCH: dict[
-    RecordKind, Callable[[_KindContext, list[Any]], Awaitable[tuple[list[ItemResult], int]]]
-] = {
+_DISPATCH: dict[RecordKind, Callable[[_KindContext, list[Any]], Awaitable[list[ItemResult]]]] = {
     RecordKind.ESSENTIALITY: _run_essentiality,
     RecordKind.VULNERABILITY: _run_vulnerability,
     RecordKind.CRISPRI_STRAIN: _run_crispri_strain,
@@ -827,7 +829,6 @@ class TargetBiologyAdapter:
         ]
         unmatched: set[str] = set()
         kinds_summary: dict[str, dict[str, int]] = {}
-        already_present: dict[str, int] = {}
         warnings: list[dict[str, Any]] = []
 
         uow = AsyncUnitOfWork(rt.session_factory)
@@ -842,6 +843,16 @@ class TargetBiologyAdapter:
             gene_repo=SQLAlchemyGeneRepository(uow),
             protein_repo=SQLAlchemyProteinRepository(uow),
         )
+
+        # Hoisted out of the dispatch loop below, one pass over every plan,
+        # before any of them is dispatched — so every kind's count reflects
+        # the state before *this run's* own writes, full stop, rather than
+        # "before that kind's own dispatch" (see _already_present's own
+        # docstring for why those aren't the same guarantee).
+        already_present: dict[str, int] = {
+            plan.kind.value: await _already_present(_REPO_FOR[plan.kind](uow), ctx)
+            for plan in plans
+        }
 
         # One shared locus index for every gene-side sheet in this workbook —
         # each bulk command below still rebuilds its own internally (it has no
@@ -886,8 +897,7 @@ class TargetBiologyAdapter:
             if collision_warning is not None:
                 warnings.append(collision_warning)
 
-            results, present = await _DISPATCH[plan.kind](ctx, records)
-            already_present[plan.kind.value] = present
+            results = await _DISPATCH[plan.kind](ctx, records)
 
             created = updated = 0
             for result in results:

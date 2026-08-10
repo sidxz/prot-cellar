@@ -249,6 +249,7 @@ def parse_workbook(
 
     plans: list[SheetPlan] = []
     workbook_problems: list[RowProblem] = []
+    seen_kinds: dict[RecordKind, str] = {}  # kind -> the first sheet name that claimed it
     for sheet_name in wb.sheetnames:
         kind = kinds_by_sheet_name.get(sheet_name.strip().casefold())
         if kind is None:
@@ -256,6 +257,27 @@ def parse_workbook(
                 RowProblem(sheet=sheet_name, row=1, reason=f"unrecognised sheet {sheet_name!r}")
             )
             continue
+        first_sheet = seen_kinds.get(kind)
+        if first_sheet is not None:
+            # Two sheet names ("Vulnerability", "vulnerability ") can both
+            # normalise to the same kind. One plan exists per *sheet*
+            # downstream, keyed by kind — a second plan for a kind already
+            # claimed would silently overwrite the first's summary entry
+            # while both still got dispatched and written. Reject the
+            # duplicate outright instead: the first sheet in workbook order
+            # wins, later ones are a workbook-level problem, never parsed.
+            workbook_problems.append(
+                RowProblem(
+                    sheet=sheet_name,
+                    row=1,
+                    reason=(
+                        f"duplicate sheet for kind {kind.value!r} — {first_sheet!r} already "
+                        "supplies it in this workbook"
+                    ),
+                )
+            )
+            continue
+        seen_kinds[kind] = sheet_name
         plan, sheet_workbook_problems = _parse_sheet(
             wb[sheet_name],
             kind,
