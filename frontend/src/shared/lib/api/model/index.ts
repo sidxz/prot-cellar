@@ -606,6 +606,7 @@ export * from './updateTargetBodyOrganismId';
 export * from './updateTargetBodyPharmacologicalClass';
 export * from './updateTargetBodyPrefName';
 export * from './updateTargetBodyTargetType';
+export * from './uploadEssentialityFileApiV1ImportsUploadsPostParams';
 export * from './uploadResponse';
 export * from './validationError';
 export * from './validationErrorCtx';

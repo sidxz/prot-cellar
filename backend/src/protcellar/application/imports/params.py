@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import uuid
-from typing import Any
+from typing import Any, Literal
 
 import pydantic
 
@@ -35,10 +35,27 @@ class GoOntologyParams(pydantic.BaseModel):
     force: bool = False
 
 
+class TargetBiologyParams(pydantic.BaseModel):
+    """Params for :class:`ImportType.TARGET_BIOLOGY`. Deliberately has no
+    ``target_workspace_id`` field: that value is never client-settable — the
+    adapter derives it server-side from the run's own ``workspace_id`` (see
+    ``ImportRuntime.workspace_id`` in ``infrastructure/ingestion/import_adapters.py``),
+    which is itself set from the *caller's* ``auth.workspace_id`` at
+    ``StartImport`` time, never from this params bag.
+    """
+
+    upload_ref: uuid.UUID
+    organism_id: uuid.UUID
+    match_by: Literal["locus_tag", "gene_name"] = "locus_tag"
+    update_existing: bool = False
+    dry_run: bool = True  # preview is the default; applying is the deliberate act
+
+
 _PARAM_MODELS: dict[ImportType, type[pydantic.BaseModel]] = {
     ImportType.PROTEOME: ProteomeParams,
     ImportType.GENE_ENRICHMENT: GeneEnrichmentParams,
     ImportType.GO_ONTOLOGY: GoOntologyParams,
+    ImportType.TARGET_BIOLOGY: TargetBiologyParams,
 }
 
 
@@ -68,13 +85,18 @@ def target_key(import_type: ImportType, params: dict[str, Any]) -> str:
         return str(params["proteome_id"])
     if import_type is ImportType.GENE_ENRICHMENT:
         return str(params.get("organism_id") or params.get("tax_id"))
+    if import_type is ImportType.TARGET_BIOLOGY:
+        # organism + upload identify the target; dry/run keeps a preview from
+        # colliding with the apply that follows it (both target the same upload).
+        dry = "dry" if params.get("dry_run") else "run"
+        return f"{params['organism_id']}:{params['upload_ref']}:{dry}"
     # GO_ONTOLOGY
     return "go"
 
 
 def upload_ref_of(import_type: ImportType, params: dict[str, Any]) -> uuid.UUID | None:
     """Return the upload UUID for this run, or None."""
-    if import_type is ImportType.PLUGIN:
+    if import_type in (ImportType.PLUGIN, ImportType.TARGET_BIOLOGY):
         ref = params.get("upload_ref")
         return uuid.UUID(str(ref)) if ref else None
     return None

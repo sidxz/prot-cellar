@@ -2368,16 +2368,35 @@
           "imports"
         ],
         "summary": "Upload Essentiality File",
+        "description": "Store a raw upload for an import adapter to parse later.\n\n``import_type=target_biology`` stores the file's bytes unchanged \u2014\n``parse_workbook`` needs a real multi-sheet XLSX, not the two-column\n``locus\\tcall`` TSV every other caller of this route gets. Omitting\n``import_type`` (every other caller today) keeps the original behaviour:\nconvert to that TSV, which is what the DeJesus essentiality plugin expects.",
         "operationId": "upload_essentiality_file_api_v1_imports_uploads_post",
+        "parameters": [
+          {
+            "name": "import_type",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/ImportType"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Import Type"
+            }
+          }
+        ],
         "requestBody": {
+          "required": true,
           "content": {
             "multipart/form-data": {
               "schema": {
                 "$ref": "#/components/schemas/Body_upload_essentiality_file_api_v1_imports_uploads_post"
               }
             }
-          },
-          "required": true
+          }
         },
         "responses": {
           "200": {
@@ -7645,7 +7664,8 @@
           "proteome",
           "gene_enrichment",
           "go_ontology",
-          "plugin"
+          "plugin",
+          "target_biology"
         ],
         "title": "ImportType"
       },

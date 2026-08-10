@@ -119,8 +119,29 @@ async def upload_essentiality_file(
     auth: AuthDep,
     use_case: StoreUploadDep,
     file: UploadFile,
+    import_type: ImportType | None = None,
 ) -> UploadResponse:
+    """Store a raw upload for an import adapter to parse later.
+
+    ``import_type=target_biology`` stores the file's bytes unchanged —
+    ``parse_workbook`` needs a real multi-sheet XLSX, not the two-column
+    ``locus\\tcall`` TSV every other caller of this route gets. Omitting
+    ``import_type`` (every other caller today) keeps the original behaviour:
+    convert to that TSV, which is what the DeJesus essentiality plugin expects.
+    """
     data = await file.read()
+
+    if import_type is ImportType.TARGET_BIOLOGY:
+        upload = result_to_response(
+            await use_case(
+                filename=file.filename or "upload",
+                content_type=file.content_type,
+                data=data,
+                auth=auth,
+            )
+        )
+        return UploadResponse(upload_ref=str(upload.id))
+
     try:
         text = essentiality_upload_to_tsv(file.filename or "upload", data)
     except ValueError as e:

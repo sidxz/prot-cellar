@@ -8,6 +8,7 @@ class ImportType(StrEnum):
     GENE_ENRICHMENT = "gene_enrichment"
     GO_ONTOLOGY = "go_ontology"
     PLUGIN = "plugin"
+    TARGET_BIOLOGY = "target_biology"
 
 
 class ImportStatus(StrEnum):

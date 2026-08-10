@@ -15,6 +15,7 @@ resolves correctly in tests.
 from __future__ import annotations
 
 import dataclasses
+import io
 import os
 import uuid
 from collections.abc import Awaitable, Callable, Sequence
@@ -22,20 +23,55 @@ from dataclasses import dataclass
 from typing import Any, Protocol
 
 import httpx
+import openpyxl
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from protcellar.application.auth import AuthContext
+from protcellar.application.imports.params import TargetBiologyParams
 from protcellar.application.imports.progress_reporter import ProgressReporter
 from protcellar.application.plugins.context import PluginRunContext
 from protcellar.application.protein_catalog.bulk_enrich_genes import BulkEnrichGenes
 from protcellar.application.protein_catalog.bulk_upsert_genes import BulkUpsertGenes
 from protcellar.application.protein_catalog.bulk_upsert_proteins import BulkUpsertProteins
 from protcellar.application.shared.event_dispatcher import EventDispatcherProtocol
-from protcellar.application.target_biology._import_support import ItemResult
+from protcellar.application.target_biology._import_support import (
+    ItemResult,
+    LocusIndex,
+    build_locus_index,
+)
+from protcellar.application.target_biology.bulk_upsert_crispri_strain import (
+    BulkUpsertCrispriStrain,
+    BulkUpsertCrispriStrainCommand,
+)
 from protcellar.application.target_biology.bulk_upsert_essentiality import (
     BulkUpsertEssentiality,
     BulkUpsertEssentialityCommand,
 )
+from protcellar.application.target_biology.bulk_upsert_hypomorph import (
+    BulkUpsertHypomorph,
+    BulkUpsertHypomorphCommand,
+)
+from protcellar.application.target_biology.bulk_upsert_protein_activity_assay import (
+    BulkUpsertProteinActivityAssay,
+    BulkUpsertProteinActivityAssayCommand,
+)
+from protcellar.application.target_biology.bulk_upsert_protein_production import (
+    BulkUpsertProteinProduction,
+    BulkUpsertProteinProductionCommand,
+)
+from protcellar.application.target_biology.bulk_upsert_resistance_mutation import (
+    BulkUpsertResistanceMutation,
+    BulkUpsertResistanceMutationCommand,
+)
+from protcellar.application.target_biology.bulk_upsert_unpublished_structure import (
+    BulkUpsertUnpublishedStructure,
+    BulkUpsertUnpublishedStructureCommand,
+)
+from protcellar.application.target_biology.bulk_upsert_vulnerability import (
+    BulkUpsertVulnerability,
+    BulkUpsertVulnerabilityCommand,
+)
+from protcellar.application.target_biology.crud import RecordKind
 from protcellar.domain.imports.enums import ImportType
 from protcellar.domain.shared.global_workspace import SHARED_WORKSPACE_ID
 from protcellar.infrastructure.ingestion.gene_enrichment_runner import GeneEnrichmentRunner
@@ -46,6 +82,10 @@ from protcellar.infrastructure.ingestion.mycobrowser_client import (
     MycobrowserClient,
 )
 from protcellar.infrastructure.ingestion.organism_resolver import resolve_organism_id
+from protcellar.infrastructure.ingestion.target_biology_workbook import (
+    _PROVENANCE_DROPPED,  # reused, not duplicated — see _ignored_columns
+    parse_workbook,
+)
 from protcellar.infrastructure.ingestion.uniprot_client import UniProtClient
 from protcellar.infrastructure.ingestion.url_guard import validate_public_url
 from protcellar.infrastructure.persistence.sqlalchemy.protein_catalog.gene_repository import (
@@ -54,8 +94,32 @@ from protcellar.infrastructure.persistence.sqlalchemy.protein_catalog.gene_repos
 from protcellar.infrastructure.persistence.sqlalchemy.protein_catalog.protein_repository import (
     SQLAlchemyProteinRepository,
 )
+from protcellar.infrastructure.persistence.sqlalchemy.target_biology.crispri_strain_repository import (  # noqa: E501
+    SQLAlchemyCrispriStrainRepository,
+)
 from protcellar.infrastructure.persistence.sqlalchemy.target_biology.essentiality_repository import (  # noqa: E501
     SQLAlchemyEssentialityRepository,
+)
+from protcellar.infrastructure.persistence.sqlalchemy.target_biology.hypomorph_repository import (
+    SQLAlchemyHypomorphRepository,
+)
+from protcellar.infrastructure.persistence.sqlalchemy.target_biology.protein_activity_assay_repository import (  # noqa: E501
+    SQLAlchemyProteinActivityAssayRepository,
+)
+from protcellar.infrastructure.persistence.sqlalchemy.target_biology.protein_production_repository import (  # noqa: E501
+    SQLAlchemyProteinProductionRepository,
+)
+from protcellar.infrastructure.persistence.sqlalchemy.target_biology.resistance_mutation_repository import (  # noqa: E501
+    SQLAlchemyResistanceMutationRepository,
+)
+from protcellar.infrastructure.persistence.sqlalchemy.target_biology.unpublished_structure_repository import (  # noqa: E501
+    SQLAlchemyUnpublishedStructureRepository,
+)
+from protcellar.infrastructure.persistence.sqlalchemy.target_biology.vulnerability_repository import (  # noqa: E501
+    SQLAlchemyVulnerabilityRepository,
+)
+from protcellar.infrastructure.persistence.sqlalchemy.workspace_config.extension_field_def_repository import (  # noqa: E501
+    SQLAlchemyExtensionFieldDefRepository,
 )
 from protcellar.infrastructure.persistence.unit_of_work import AsyncUnitOfWork
 from protcellar.infrastructure.plugins.in_tree_sink import InTreeSink
@@ -82,6 +146,17 @@ class ImportRuntime:
     # ponytail: defaulted so legacy adapters/tests need no change; the worker
     # always injects the real ImportRun id for plugin lineage.
     run_id: uuid.UUID = dataclasses.field(default_factory=uuid.uuid4)
+    # The run's OWN workspace — set at StartImport time from the caller's real
+    # auth.workspace_id, threaded through the arq job payload exactly like the
+    # reporter's workspace_id already is (worker.py has no per-request auth of
+    # its own; `auth` above is ServiceAuth, which is always SHARED_WORKSPACE_ID
+    # and satisfies only the bulk commands' internal require_admin check — it is
+    # NOT a tenant). TargetBiologyAdapter is the first adapter that needs to know
+    # which tenant a run belongs to, so this is what it reads target_workspace_id
+    # from — never rt.auth, never params. ponytail: defaulted to SHARED so every
+    # other/legacy adapter and test needs no change; the worker always injects
+    # the real value.
+    workspace_id: uuid.UUID = SHARED_WORKSPACE_ID
 
 
 # ---------------------------------------------------------------------------
@@ -258,6 +333,453 @@ class PluginDispatchAdapter:
 
 
 # ---------------------------------------------------------------------------
+# TargetBiologyAdapter — ImportType.TARGET_BIOLOGY
+# ---------------------------------------------------------------------------
+
+_GENE_SIDE_KINDS: frozenset[RecordKind] = frozenset(
+    {
+        RecordKind.ESSENTIALITY,
+        RecordKind.VULNERABILITY,
+        RecordKind.HYPOMORPH,
+        RecordKind.CRISPRI_STRAIN,
+        RecordKind.RESISTANCE_MUTATION,
+    }
+)
+
+
+class _NoExistingMatch:
+    """Wraps a target-biology repo so its own-kind "find an existing row to
+    match" lookup always reports none — the seam that gives ``update_existing=
+    False`` (add mode, this adapter's default) real bypass-the-match semantics
+    without touching any of the eight bulk commands, none of which takes a
+    parameter to suppress their internal match-then-update. Every command calls
+    exactly one of the two methods below, exactly once per row, purely to find
+    something to merge into; forcing an empty result routes every row through
+    the command's own create branch instead — see the "Record identity, add
+    mode" row of the design's Decisions table.
+
+    Everything else — ``save()``, and a *different* repo's own
+    ``find_by_gene``/``find_by_protein`` used to resolve a foreign reference
+    (hypomorph resolving ``knockdown_strain`` by name against the CrispriStrain
+    repo is the one case of this in the eight commands) — passes straight
+    through untouched; only the two "owned" match lookups are ever intercepted.
+    """
+
+    def __init__(self, inner: Any) -> None:
+        self._inner = inner
+
+    async def find_owned_by_gene(self, *_args: Any, **_kwargs: Any) -> list[Any]:
+        return []
+
+    async def find_owned_by_protein(self, *_args: Any, **_kwargs: Any) -> list[Any]:
+        return []
+
+    def __getattr__(self, name: str) -> Any:
+        return getattr(self._inner, name)
+
+
+@dataclass(frozen=True, kw_only=True)
+class _KindContext:
+    """Shared per-run context every ``_run_<kind>`` dispatcher closes over."""
+
+    uow: AsyncUnitOfWork
+    dispatcher: EventDispatcherProtocol
+    auth: AuthContext
+    target_workspace_id: uuid.UUID
+    organism_id: uuid.UUID
+    dry_run: bool
+    update_existing: bool
+    gene_repo: Any
+    protein_repo: Any
+
+
+async def _already_present(repo: Any, ctx: _KindContext) -> int:
+    """How many records of this kind already exist for the target organism, in
+    the target workspace — so the preview can warn that add mode run twice
+    doubles the data (add mode never checks for a match; see
+    ``_NoExistingMatch`` above).
+
+    ponytail: counts by fetching every readable row and taking ``len()`` — none
+    of the eight repos exposes a dedicated COUNT query (adding one is outside
+    this task's file list). Fine at this corpus's scale (tens of thousands of
+    rows, one fetch per kind per run, mirroring the cost ``build_locus_index``'s
+    own callers already each pay); upgrade to a real ``COUNT(*)`` if a kind's
+    table grows past what fits comfortably in memory.
+
+    Runs its own ``async with ctx.uow:`` — the repository is a normal one, so a
+    call outside an active UnitOfWork raises ``RuntimeError`` at runtime while
+    mypy stays silent (this exact mistake has already been made once in this
+    codebase; see ``_require_readable_protein`` in ``interface/routes/target_biology.py``
+    for the correct shape).
+    """
+    async with ctx.uow:
+        rows = await repo.list_paginated(
+            ctx.target_workspace_id, organism_id=ctx.organism_id, limit=None
+        )
+    return len(rows)
+
+
+def _match_repo(repo: Any, ctx: _KindContext) -> Any:
+    """The repo a bulk command should see for its own "existing row" lookup:
+    the real one in update mode, a wrapper that reports none in add mode."""
+    return repo if ctx.update_existing else _NoExistingMatch(repo)
+
+
+async def _run_essentiality(ctx: _KindContext, records: list[Any]) -> tuple[list[ItemResult], int]:
+    repo = SQLAlchemyEssentialityRepository(ctx.uow)
+    present = await _already_present(repo, ctx)
+    cmd = BulkUpsertEssentialityCommand(
+        target_workspace_id=ctx.target_workspace_id,
+        organism_id=ctx.organism_id,
+        records=tuple(records),
+        dry_run=ctx.dry_run,
+    )
+    handler = BulkUpsertEssentiality(
+        ctx.uow, ctx.gene_repo, _match_repo(repo, ctx), ctx.dispatcher
+    )
+    return (await handler(cmd, ctx.auth)).unwrap(), present
+
+
+async def _run_vulnerability(
+    ctx: _KindContext, records: list[Any]
+) -> tuple[list[ItemResult], int]:
+    repo = SQLAlchemyVulnerabilityRepository(ctx.uow)
+    present = await _already_present(repo, ctx)
+    cmd = BulkUpsertVulnerabilityCommand(
+        target_workspace_id=ctx.target_workspace_id,
+        organism_id=ctx.organism_id,
+        records=tuple(records),
+        dry_run=ctx.dry_run,
+    )
+    handler = BulkUpsertVulnerability(
+        ctx.uow, ctx.gene_repo, _match_repo(repo, ctx), ctx.dispatcher
+    )
+    return (await handler(cmd, ctx.auth)).unwrap(), present
+
+
+async def _run_hypomorph(ctx: _KindContext, records: list[Any]) -> tuple[list[ItemResult], int]:
+    repo = SQLAlchemyHypomorphRepository(ctx.uow)
+    present = await _already_present(repo, ctx)
+    # A fresh, unwrapped instance: hypomorph resolves knockdown_strain by name
+    # against this repo's find_by_gene — a *foreign* lookup, not hypomorph's own
+    # match — which must never be short-circuited by add mode.
+    strain_repo = SQLAlchemyCrispriStrainRepository(ctx.uow)
+    cmd = BulkUpsertHypomorphCommand(
+        target_workspace_id=ctx.target_workspace_id,
+        organism_id=ctx.organism_id,
+        records=tuple(records),
+        dry_run=ctx.dry_run,
+    )
+    handler = BulkUpsertHypomorph(
+        ctx.uow, ctx.gene_repo, _match_repo(repo, ctx), strain_repo, ctx.dispatcher
+    )
+    return (await handler(cmd, ctx.auth)).unwrap(), present
+
+
+async def _run_crispri_strain(
+    ctx: _KindContext, records: list[Any]
+) -> tuple[list[ItemResult], int]:
+    repo = SQLAlchemyCrispriStrainRepository(ctx.uow)
+    present = await _already_present(repo, ctx)
+    cmd = BulkUpsertCrispriStrainCommand(
+        target_workspace_id=ctx.target_workspace_id,
+        organism_id=ctx.organism_id,
+        records=tuple(records),
+        dry_run=ctx.dry_run,
+    )
+    handler = BulkUpsertCrispriStrain(
+        ctx.uow, ctx.gene_repo, _match_repo(repo, ctx), ctx.dispatcher
+    )
+    return (await handler(cmd, ctx.auth)).unwrap(), present
+
+
+async def _run_resistance_mutation(
+    ctx: _KindContext, records: list[Any]
+) -> tuple[list[ItemResult], int]:
+    repo = SQLAlchemyResistanceMutationRepository(ctx.uow)
+    present = await _already_present(repo, ctx)
+    cmd = BulkUpsertResistanceMutationCommand(
+        target_workspace_id=ctx.target_workspace_id,
+        organism_id=ctx.organism_id,
+        records=tuple(records),
+        dry_run=ctx.dry_run,
+    )
+    handler = BulkUpsertResistanceMutation(
+        ctx.uow, ctx.gene_repo, _match_repo(repo, ctx), ctx.dispatcher
+    )
+    return (await handler(cmd, ctx.auth)).unwrap(), present
+
+
+async def _run_protein_production(
+    ctx: _KindContext, records: list[Any]
+) -> tuple[list[ItemResult], int]:
+    repo = SQLAlchemyProteinProductionRepository(ctx.uow)
+    present = await _already_present(repo, ctx)
+    cmd = BulkUpsertProteinProductionCommand(
+        target_workspace_id=ctx.target_workspace_id,
+        records=tuple(records),
+        dry_run=ctx.dry_run,
+    )
+    handler = BulkUpsertProteinProduction(
+        ctx.uow, ctx.protein_repo, _match_repo(repo, ctx), ctx.dispatcher
+    )
+    return (await handler(cmd, ctx.auth)).unwrap(), present
+
+
+async def _run_protein_activity_assay(
+    ctx: _KindContext, records: list[Any]
+) -> tuple[list[ItemResult], int]:
+    repo = SQLAlchemyProteinActivityAssayRepository(ctx.uow)
+    present = await _already_present(repo, ctx)
+    cmd = BulkUpsertProteinActivityAssayCommand(
+        target_workspace_id=ctx.target_workspace_id,
+        records=tuple(records),
+        dry_run=ctx.dry_run,
+    )
+    handler = BulkUpsertProteinActivityAssay(
+        ctx.uow, ctx.protein_repo, _match_repo(repo, ctx), ctx.dispatcher
+    )
+    return (await handler(cmd, ctx.auth)).unwrap(), present
+
+
+async def _run_unpublished_structure(
+    ctx: _KindContext, records: list[Any]
+) -> tuple[list[ItemResult], int]:
+    repo = SQLAlchemyUnpublishedStructureRepository(ctx.uow)
+    present = await _already_present(repo, ctx)
+    cmd = BulkUpsertUnpublishedStructureCommand(
+        target_workspace_id=ctx.target_workspace_id,
+        records=tuple(records),
+        dry_run=ctx.dry_run,
+    )
+    handler = BulkUpsertUnpublishedStructure(
+        ctx.uow, ctx.protein_repo, _match_repo(repo, ctx), ctx.dispatcher
+    )
+    return (await handler(cmd, ctx.auth)).unwrap(), present
+
+
+_DISPATCH: dict[
+    RecordKind, Callable[[_KindContext, list[Any]], Awaitable[tuple[list[ItemResult], int]]]
+] = {
+    RecordKind.ESSENTIALITY: _run_essentiality,
+    RecordKind.VULNERABILITY: _run_vulnerability,
+    RecordKind.HYPOMORPH: _run_hypomorph,
+    RecordKind.CRISPRI_STRAIN: _run_crispri_strain,
+    RecordKind.RESISTANCE_MUTATION: _run_resistance_mutation,
+    RecordKind.PROTEIN_PRODUCTION: _run_protein_production,
+    RecordKind.PROTEIN_ACTIVITY_ASSAY: _run_protein_activity_assay,
+    RecordKind.UNPUBLISHED_STRUCTURE: _run_unpublished_structure,
+}
+
+
+_UNMATCHED_PREFIXES = ("unmatched locus ", "unmatched accession ")
+
+
+def _unmatched_value(error: str) -> str | None:
+    """Recovers the offending locus/accession from a bulk command's own failure
+    message. Coupled to the exact wording every one of the eight commands uses
+    (``f"unmatched locus {x}"`` / ``f"unmatched accession {x}"``) rather than
+    re-deriving unmatched-ness independently, so this always agrees with what
+    the command itself decided — never a second, possibly-diverging guess.
+    """
+    for prefix in _UNMATCHED_PREFIXES:
+        if error.startswith(prefix):
+            return error[len(prefix) :]
+    return None
+
+
+def _row_problem(sheet: str, reason: str) -> dict[str, Any]:
+    # row is None: this problem was found after parse-time deduplication, which
+    # does not carry the original spreadsheet row number forward onto a record
+    # (RowProblem.row exists only for problems parse_workbook itself raises —
+    # see SheetPlan vs *ImportRecord in target_biology_workbook.py). Naming the
+    # sheet and the exact offending value is the most that can be said here.
+    return {"sheet": sheet, "row": None, "reason": reason}
+
+
+def _drop_ambiguous(
+    kind: RecordKind, records: list[Any], index: LocusIndex
+) -> tuple[list[Any], list[dict[str, Any]]]:
+    """Splits out rows whose locus/name is claimed by more than one gene before
+    dispatch. Left in, they would reach the bulk command's own "unmatched"
+    check indistinguishably from a genuinely-missing locus — build_locus_index
+    already excludes ambiguous keys from what ``.get()`` returns, so the
+    command would just say "unmatched locus X" either way. Pulled out here
+    instead, the row is failed naming every candidate gene, which the command
+    has no way to do (it never sees the ambiguity, only the miss).
+    """
+    kept: list[Any] = []
+    problems: list[dict[str, Any]] = []
+    for rec in records:
+        candidates = index.ambiguous.get(rec.locus_key.upper())
+        if candidates is None:
+            kept.append(rec)
+            continue
+        names = ", ".join(sorted(g.primary_name for g in candidates))
+        problems.append(
+            _row_problem(
+                kind.value,
+                f"ambiguous locus {rec.locus_key!r}: matches {len(candidates)} genes ({names})",
+            )
+        )
+    return kept, problems
+
+
+def _ignored_columns(data: bytes) -> dict[str, list[str]]:
+    """Per-sheet headers the parser recognises but drops on the floor — the
+    five provenance columns the owner decided are not worth keeping (see
+    ``target_biology_workbook``'s module docstring, header group 2: source_type/
+    url/note/contributor/observed_on). A second, cheap pass over just each
+    sheet's header row — ``parse_workbook`` already read the whole workbook
+    once and does not surface which of these it saw, only that it skipped them.
+    """
+    wb = openpyxl.load_workbook(io.BytesIO(data), read_only=True, data_only=True)
+    kind_names = {k.value for k in RecordKind}
+    found: dict[str, list[str]] = {}
+    for sheet_name in wb.sheetnames:
+        key = sheet_name.strip().casefold()
+        if key not in kind_names:
+            continue
+        header_row = next(wb[sheet_name].iter_rows(values_only=True), ())
+        header = {
+            str(c).strip().casefold() for c in header_row if c is not None and str(c).strip()
+        }
+        dropped = sorted(_PROVENANCE_DROPPED & header)
+        if dropped:
+            found[key] = dropped
+    return found
+
+
+class TargetBiologyAdapter:
+    """Wires the eight target-biology bulk-upsert commands from a parsed
+    workbook (Task 4's ``parse_workbook``).
+
+    Preview (``dry_run=True``) and apply (``dry_run=False``) are two ``ImportRun``s
+    over the *same* stored upload — this adapter does not distinguish them
+    beyond passing ``dry_run`` straight through to every bulk command, each of
+    which already no-ops its write when it is set; this adapter's own reads
+    (``already_present``, the locus index) never write anything, so they are
+    preview-safe by construction too.
+    """
+
+    import_type = ImportType.TARGET_BIOLOGY
+
+    async def run(self, rt: ImportRuntime) -> dict[str, Any]:
+        params = TargetBiologyParams(**rt.params)
+        # SECURITY: the target workspace is the run's OWN workspace_id — set at
+        # StartImport time from the *caller's* real auth.workspace_id, and
+        # threaded here exactly like the reporter's workspace already is. Never
+        # params (client-settable) and never rt.auth (ServiceAuth, always
+        # SHARED_WORKSPACE_ID — it exists only to satisfy each bulk command's
+        # own require_admin check). See ImportRuntime.workspace_id's docstring.
+        target_workspace_id = rt.workspace_id
+
+        await rt.reporter.phase("loading upload")
+        data = await rt.load_upload(params.upload_ref)
+
+        await rt.reporter.phase("parsing")
+        ext_uow = AsyncUnitOfWork(rt.session_factory)
+        async with ext_uow:
+            field_defs = await SQLAlchemyExtensionFieldDefRepository(ext_uow).list_all(
+                target_workspace_id
+            )
+        known_extension_fields: dict[str, dict[str, str]] = {}
+        for field_def in field_defs:
+            known_extension_fields.setdefault(field_def.kind, {})[field_def.name] = (
+                field_def.field_type.value
+            )
+
+        plans, workbook_problems = parse_workbook(
+            data, match_by=params.match_by, known_extension_fields=known_extension_fields
+        )
+
+        problems: list[dict[str, Any]] = [
+            _row_problem(p.sheet, p.reason) for p in workbook_problems
+        ]
+        unmatched: set[str] = set()
+        kinds_summary: dict[str, dict[str, int]] = {}
+        already_present: dict[str, int] = {}
+
+        uow = AsyncUnitOfWork(rt.session_factory)
+        ctx = _KindContext(
+            uow=uow,
+            dispatcher=rt.dispatcher,
+            auth=rt.auth,
+            target_workspace_id=target_workspace_id,
+            organism_id=params.organism_id,
+            dry_run=params.dry_run,
+            update_existing=params.update_existing,
+            gene_repo=SQLAlchemyGeneRepository(uow),
+            protein_repo=SQLAlchemyProteinRepository(uow),
+        )
+
+        # One shared locus index for every gene-side sheet in this workbook —
+        # each bulk command below still rebuilds its own internally (it has no
+        # way to accept one pre-built), but this pass exists only to catch
+        # ambiguity before dispatch, which the commands cannot report at all.
+        locus_index: LocusIndex | None = None
+        if any(plan.kind in _GENE_SIDE_KINDS for plan in plans):
+            async with AsyncUnitOfWork(rt.session_factory) as genes_uow:
+                genes = await SQLAlchemyGeneRepository(genes_uow).list_by_organism(
+                    params.organism_id, workspace_id=target_workspace_id
+                )
+            locus_index = build_locus_index(genes)
+
+        total_rows = sum(plan.rows_read for plan in plans)
+        processed = 0
+        await rt.reporter.advance(processed, total_rows)
+
+        for plan in plans:
+            await rt.reporter.phase(f"importing {plan.kind.value}")
+            records = plan.records
+            plan_problems = [_row_problem(plan.kind.value, p.reason) for p in plan.problems]
+            failed = len(plan.problems)
+
+            if plan.kind in _GENE_SIDE_KINDS and locus_index is not None:
+                records, ambiguous_problems = _drop_ambiguous(plan.kind, records, locus_index)
+                failed += len(ambiguous_problems)
+                plan_problems.extend(ambiguous_problems)
+
+            results, present = await _DISPATCH[plan.kind](ctx, records)
+            already_present[plan.kind.value] = present
+
+            created = updated = 0
+            for result in results:
+                if result.status == "created":
+                    created += 1
+                elif result.status == "updated":
+                    updated += 1
+                elif result.status == "failed":
+                    failed += 1
+                    reason = result.error or "failed"
+                    value = _unmatched_value(reason)
+                    if value is not None:
+                        unmatched.add(value)
+                    plan_problems.append(_row_problem(plan.kind.value, reason))
+
+            kinds_summary[plan.kind.value] = {
+                "rows": plan.rows_read,
+                "records": len(plan.records),
+                "merged_identical": plan.merged_identical,
+                "create": created,
+                "update": updated,
+                "failed": failed,
+            }
+            problems.extend(plan_problems)
+            processed += plan.rows_read
+            await rt.reporter.advance(processed, total_rows)
+
+        return {
+            "kinds": kinds_summary,
+            "unmatched": {"count": len(unmatched), "examples": sorted(unmatched)[:50]},
+            "problems": problems[:50],
+            "problems_truncated": max(0, len(problems) - 50),
+            "already_present": already_present,
+            "ignored_columns": _ignored_columns(data),
+        }
+
+
+# ---------------------------------------------------------------------------
 # Registry — the worker looks up adapters here
 # ---------------------------------------------------------------------------
 
@@ -266,4 +788,5 @@ IMPORT_ADAPTERS: dict[ImportType, ImportAdapter] = {
     ImportType.GENE_ENRICHMENT: GeneEnrichmentAdapter(),
     ImportType.GO_ONTOLOGY: GoOntologyAdapter(),
     ImportType.PLUGIN: PluginDispatchAdapter(),
+    ImportType.TARGET_BIOLOGY: TargetBiologyAdapter(),
 }

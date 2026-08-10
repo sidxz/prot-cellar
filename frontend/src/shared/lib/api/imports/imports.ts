@@ -30,6 +30,7 @@ import type {
   ListImportRunsApiV1ImportsGetParams,
   PaginatedResponseImportRunResponse,
   StartImportBody,
+  UploadEssentialityFileApiV1ImportsUploadsPostParams,
   UploadResponse
 } from '.././model';
 
@@ -288,10 +289,18 @@ export function useGetImportRunApiV1ImportsImportRunIdGet<TData = Awaited<Return
 
 
 /**
+ * Store a raw upload for an import adapter to parse later.
+
+``import_type=target_biology`` stores the file's bytes unchanged —
+``parse_workbook`` needs a real multi-sheet XLSX, not the two-column
+``locus\tcall`` TSV every other caller of this route gets. Omitting
+``import_type`` (every other caller today) keeps the original behaviour:
+convert to that TSV, which is what the DeJesus essentiality plugin expects.
  * @summary Upload Essentiality File
  */
 export const uploadEssentialityFileApiV1ImportsUploadsPost = (
     bodyUploadEssentialityFileApiV1ImportsUploadsPost: BodyUploadEssentialityFileApiV1ImportsUploadsPost,
+    params?: UploadEssentialityFileApiV1ImportsUploadsPostParams,
  signal?: AbortSignal
 ) => {
       
@@ -301,7 +310,8 @@ formData.append(`file`, bodyUploadEssentialityFileApiV1ImportsUploadsPost.file)
       return customInstance<UploadResponse>(
       {url: `/api/v1/imports/uploads`, method: 'POST',
       headers: {'Content-Type': 'multipart/form-data', },
-       data: formData, signal
+       data: formData,
+        params, signal
     },
       );
     }
@@ -309,8 +319,8 @@ formData.append(`file`, bodyUploadEssentialityFileApiV1ImportsUploadsPost.file)
 
 
 export const getUploadEssentialityFileApiV1ImportsUploadsPostMutationOptions = <TError = HTTPValidationError,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof uploadEssentialityFileApiV1ImportsUploadsPost>>, TError,{data: BodyUploadEssentialityFileApiV1ImportsUploadsPost}, TContext>, }
-): UseMutationOptions<Awaited<ReturnType<typeof uploadEssentialityFileApiV1ImportsUploadsPost>>, TError,{data: BodyUploadEssentialityFileApiV1ImportsUploadsPost}, TContext> => {
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof uploadEssentialityFileApiV1ImportsUploadsPost>>, TError,{data: BodyUploadEssentialityFileApiV1ImportsUploadsPost;params?: UploadEssentialityFileApiV1ImportsUploadsPostParams}, TContext>, }
+): UseMutationOptions<Awaited<ReturnType<typeof uploadEssentialityFileApiV1ImportsUploadsPost>>, TError,{data: BodyUploadEssentialityFileApiV1ImportsUploadsPost;params?: UploadEssentialityFileApiV1ImportsUploadsPostParams}, TContext> => {
 
 const mutationKey = ['uploadEssentialityFileApiV1ImportsUploadsPost'];
 const {mutation: mutationOptions} = options ?
@@ -322,10 +332,10 @@ const {mutation: mutationOptions} = options ?
       
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof uploadEssentialityFileApiV1ImportsUploadsPost>>, {data: BodyUploadEssentialityFileApiV1ImportsUploadsPost}> = (props) => {
-          const {data} = props ?? {};
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof uploadEssentialityFileApiV1ImportsUploadsPost>>, {data: BodyUploadEssentialityFileApiV1ImportsUploadsPost;params?: UploadEssentialityFileApiV1ImportsUploadsPostParams}> = (props) => {
+          const {data,params} = props ?? {};
 
-          return  uploadEssentialityFileApiV1ImportsUploadsPost(data,)
+          return  uploadEssentialityFileApiV1ImportsUploadsPost(data,params,)
         }
 
         
@@ -341,11 +351,11 @@ const {mutation: mutationOptions} = options ?
  * @summary Upload Essentiality File
  */
 export const useUploadEssentialityFileApiV1ImportsUploadsPost = <TError = HTTPValidationError,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof uploadEssentialityFileApiV1ImportsUploadsPost>>, TError,{data: BodyUploadEssentialityFileApiV1ImportsUploadsPost}, TContext>, }
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof uploadEssentialityFileApiV1ImportsUploadsPost>>, TError,{data: BodyUploadEssentialityFileApiV1ImportsUploadsPost;params?: UploadEssentialityFileApiV1ImportsUploadsPostParams}, TContext>, }
  , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof uploadEssentialityFileApiV1ImportsUploadsPost>>,
         TError,
-        {data: BodyUploadEssentialityFileApiV1ImportsUploadsPost},
+        {data: BodyUploadEssentialityFileApiV1ImportsUploadsPost;params?: UploadEssentialityFileApiV1ImportsUploadsPostParams},
         TContext
       > => {
 
