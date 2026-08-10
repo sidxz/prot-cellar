@@ -364,6 +364,45 @@ async def test_an_ambiguous_gene_name_fails_its_row_and_names_the_candidates(
         await engine.dispose()
 
 
+async def test_a_real_row_number_reaches_the_response_but_a_workbook_level_one_stays_none(
+    client: AsyncClient, database_url: str, _run_migrations: None, workspace_id: uuid.UUID
+) -> None:
+    """`parse_workbook` puts a real spreadsheet row on a problem raised while
+    walking actual rows (an unrecognised column here), and a placeholder
+    ``row=1`` on a workbook-level one (no locus_tag column at all) — the
+    latter is not a row an operator should go check, so it must not reach the
+    API pretending to be one."""
+    engine = create_async_engine(database_url)
+    factory = async_sessionmaker(engine, expire_on_commit=False)
+    try:
+        organism_id = await _organism(client)
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        assert ws is not None
+        ws.title = "vulnerability"
+        ws.append(["locus_tag", "bogus_column"])
+        ws.append(["Rv0099", "x"])
+        hypomorph = wb.create_sheet("hypomorph")
+        hypomorph.append(["condition"])  # no locus_tag column at all
+        hypomorph.append(["stress"])
+        buf = io.BytesIO()
+        wb.save(buf)
+        upload_ref = await _upload(client, buf.getvalue())
+
+        run = await _start(client, upload_ref=upload_ref, organism_id=organism_id, dry_run=True)
+        await _run_worker(factory, run["id"], workspace_id)
+
+        problems = (await client.get(f"/api/v1/imports/{run['id']}")).json()["summary"]["problems"]
+
+        real_row = next(p for p in problems if "unrecognised column" in p["reason"])
+        assert real_row["row"] == 2
+
+        workbook_level = next(p for p in problems if "no 'locus_tag' column found" in p["reason"])
+        assert workbook_level["row"] is None
+    finally:
+        await engine.dispose()
+
+
 async def test_ignored_columns_names_the_dropped_provenance_headers(
     client: AsyncClient, database_url: str, _run_migrations: None, workspace_id: uuid.UUID
 ) -> None:

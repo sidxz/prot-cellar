@@ -598,13 +598,17 @@ def _unmatched_value(error: str) -> str | None:
     return None
 
 
-def _row_problem(sheet: str, reason: str) -> dict[str, Any]:
-    # row is None: this problem was found after parse-time deduplication, which
-    # does not carry the original spreadsheet row number forward onto a record
-    # (RowProblem.row exists only for problems parse_workbook itself raises —
-    # see SheetPlan vs *ImportRecord in target_biology_workbook.py). Naming the
-    # sheet and the exact offending value is the most that can be said here.
-    return {"sheet": sheet, "row": None, "reason": reason}
+def _row_problem(sheet: str, reason: str, *, row: int | None = None) -> dict[str, Any]:
+    # row defaults to None for the two kinds of problem with no real spreadsheet
+    # row to name: workbook-level ones (RowProblem.row is hardcoded to 1 as a
+    # filler value for "unrecognised sheet" / "no {match_by} column" — the
+    # dataclass field isn't optional, but that 1 is not a row an operator
+    # should go check), and problems raised after parse-time deduplication —
+    # ambiguous-locus drops and a bulk command's own "failed" results — where
+    # the value in hand is a *ImportRecord, which SheetPlan never back-links to
+    # its source row. SheetPlan.problems (RowProblem instances raised while
+    # walking actual rows) do carry a real one; pass it through explicitly.
+    return {"sheet": sheet, "row": row, "reason": reason}
 
 
 def _drop_ambiguous(
@@ -775,7 +779,9 @@ class TargetBiologyAdapter:
         for plan in plans:
             await rt.reporter.phase(f"importing {plan.kind.value}")
             records = plan.records
-            plan_problems = [_row_problem(plan.kind.value, p.reason) for p in plan.problems]
+            plan_problems = [
+                _row_problem(plan.kind.value, p.reason, row=p.row) for p in plan.problems
+            ]
             failed = len(plan.problems)
 
             if plan.kind in _GENE_SIDE_KINDS and locus_index is not None:
