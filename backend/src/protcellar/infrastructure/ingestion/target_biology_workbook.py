@@ -106,6 +106,16 @@ class SheetPlan:
     problems: list[RowProblem]
 
 
+@dataclass(frozen=True, kw_only=True)
+class KnownExtensionField:
+    """One workspace-declared extension field, as ``known_extension_fields``
+    carries it in — enough to both coerce a cell (``field_type``) and, for
+    ``enum``, check it against the declared options."""
+
+    field_type: str
+    options: list[str] | None = None
+
+
 _RECORD_CLASSES: dict[RecordKind, type[Any]] = {
     RecordKind.ESSENTIALITY: EssentialityImportRecord,
     RecordKind.VULNERABILITY: VulnerabilityImportRecord,
@@ -230,7 +240,7 @@ def parse_workbook(
     data: bytes,
     *,
     match_by: str,
-    known_extension_fields: dict[str, dict[str, str]],
+    known_extension_fields: dict[str, dict[str, KnownExtensionField]],
 ) -> tuple[list[SheetPlan], list[RowProblem]]:
     """Parse a workbook into one plan per recognised sheet. The second element holds
     workbook-level problems (unrecognised sheet, missing gene column)."""
@@ -263,7 +273,7 @@ def _parse_sheet(
     kind: RecordKind,
     sheet_name: str,
     match_by: str,
-    known_ext: dict[str, str],
+    known_ext: dict[str, KnownExtensionField],
 ) -> tuple[SheetPlan, list[RowProblem]]:
     rows = ws.iter_rows(values_only=True)
     header = [str(cell).strip().casefold() if cell is not None else "" for cell in next(rows, ())]
@@ -339,8 +349,14 @@ def _classify_header(
     header: list[str],
     kind: RecordKind,
     match_by: str,
-    known_ext: dict[str, str],
-) -> tuple[int | None, dict[int, str], list[tuple[int, str, str]], dict[int, str], list[str]]:
+    known_ext: dict[str, KnownExtensionField],
+) -> tuple[
+    int | None,
+    dict[int, str],
+    list[tuple[int, str, KnownExtensionField]],
+    dict[int, str],
+    list[str],
+]:
     """One pass over the header row. Returns ``(gene_col, core_cols, ext_cols,
     provenance_cols, unknown_column_names)`` — see the module docstring for the
     classification order."""
@@ -349,7 +365,7 @@ def _classify_header(
 
     gene_col: int | None = None
     core_cols: dict[int, str] = {}
-    ext_cols: list[tuple[int, str, str]] = []
+    ext_cols: list[tuple[int, str, KnownExtensionField]] = []
     provenance_cols: dict[int, str] = {}
     unknown: list[str] = []
 
@@ -367,11 +383,11 @@ def _classify_header(
             continue
         if name in _PROVENANCE_DROPPED:
             continue
-        field_type = known_ext.get(name)
-        if field_type is None:
+        field = known_ext.get(name)
+        if field is None:
             unknown.append(name)
             continue
-        ext_cols.append((idx, name, field_type))
+        ext_cols.append((idx, name, field))
 
     return gene_col, core_cols, ext_cols, provenance_cols, unknown
 
@@ -382,7 +398,7 @@ def _row_kwargs(
     match_by: str,
     gene_col: int | None,
     core_cols: dict[int, str],
-    ext_cols: list[tuple[int, str, str]],
+    ext_cols: list[tuple[int, str, KnownExtensionField]],
     provenance_cols: dict[int, str],
 ) -> dict[str, Any]:
     kwargs: dict[str, Any] = {}
@@ -413,11 +429,11 @@ def _row_kwargs(
             continue  # leave the dataclass's own default in place
         kwargs[field_name] = coerced
 
-    for col_idx, field_name, field_type in ext_cols:
+    for col_idx, field_name, field in ext_cols:
         raw = _cell(row, col_idx)
         if raw is None or (isinstance(raw, str) and not raw.strip()):
             continue
-        extensions[field_name] = _coerce_extension_value(raw, field_type, field_name)
+        extensions[field_name] = _coerce_extension_value(raw, field, field_name)
 
     if extensions:
         kwargs["extensions"] = extensions
@@ -504,21 +520,28 @@ def _parse_ligands(value: Any) -> tuple[tuple[uuid.UUID, ...], str | None]:
     return tuple(ids), ("; ".join(unresolved) if unresolved else None)
 
 
-def _coerce_extension_value(value: Any, field_type: str, name: str) -> Any:
-    """Mirrors ``extension_validator.py``'s four coercion rules (string/text/enum share the
-    same rule) — duplicated, not imported; see the module docstring.
-
-    ``enum`` is treated like ``string``: ``known_extension_fields`` carries a type name
-    only, never the field's declared options, so membership can't be checked here.
+def _coerce_extension_value(value: Any, field: KnownExtensionField, name: str) -> Any:
+    """Mirrors ``extension_validator.py``'s coercion rules — duplicated, not
+    imported; see the module docstring. ``field`` carries the declared type
+    *and* (for ``enum``) the declared options, exactly like the validator's
+    own ``ExtensionFieldDef``, so an enum cell that isn't one of them fails
+    its row here too.
     """
+    field_type = field.field_type
     if isinstance(value, datetime.datetime):
         value = value.date().isoformat()
     elif isinstance(value, datetime.date):
         value = value.isoformat()
 
-    if field_type in ("string", "text", "enum"):
+    if field_type in ("string", "text"):
         if not isinstance(value, str):
             raise ValueError(f"{name!r} must be a string")
+        return value
+    if field_type == "enum":
+        if not isinstance(value, str):
+            raise ValueError(f"{name!r} must be a string")
+        if value not in (field.options or ()):
+            raise ValueError(f"{name!r} must be one of {field.options}")
         return value
     if field_type == "boolean":
         if not isinstance(value, bool):

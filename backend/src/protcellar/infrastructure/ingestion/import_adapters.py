@@ -84,6 +84,7 @@ from protcellar.infrastructure.ingestion.mycobrowser_client import (
 from protcellar.infrastructure.ingestion.organism_resolver import resolve_organism_id
 from protcellar.infrastructure.ingestion.target_biology_workbook import (
     _PROVENANCE_DROPPED,  # reused, not duplicated — see _ignored_columns
+    KnownExtensionField,
     parse_workbook,
 )
 from protcellar.infrastructure.ingestion.uniprot_client import UniProtClient
@@ -809,10 +810,12 @@ class TargetBiologyAdapter:
             field_defs = await SQLAlchemyExtensionFieldDefRepository(ext_uow).list_all(
                 target_workspace_id
             )
-        known_extension_fields: dict[str, dict[str, str]] = {}
+        known_extension_fields: dict[str, dict[str, KnownExtensionField]] = {}
         for field_def in field_defs:
             known_extension_fields.setdefault(field_def.kind, {})[field_def.name] = (
-                field_def.field_type.value
+                KnownExtensionField(
+                    field_type=field_def.field_type.value, options=field_def.options
+                )
             )
 
         plans, workbook_problems = parse_workbook(

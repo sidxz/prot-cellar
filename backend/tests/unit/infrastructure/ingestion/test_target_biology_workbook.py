@@ -12,6 +12,7 @@ from protcellar.infrastructure.ingestion.target_biology_workbook import (
     _CORE_FIELDS,
     _EXCLUDED_FROM_REQUIRED,
     _RECORD_CLASSES,
+    KnownExtensionField,
     RowProblem,
     SheetPlan,
     parse_workbook,
@@ -34,7 +35,7 @@ def _workbook(sheets: dict[str, list[list[Any]]]) -> bytes:
 def _plan(
     data: bytes,
     match_by: str = "locus_tag",
-    known_ext: dict[str, dict[str, str]] | None = None,
+    known_ext: dict[str, dict[str, KnownExtensionField]] | None = None,
 ) -> tuple[list[SheetPlan], list[RowProblem]]:
     return parse_workbook(data, match_by=match_by, known_extension_fields=known_ext or {})
 
@@ -136,7 +137,7 @@ def test_an_unrecognised_column_becomes_an_extension_when_declared() -> None:
             ]
         }
     )
-    known_ext = {"essentiality": {"vi_bin": "integer"}}
+    known_ext = {"essentiality": {"vi_bin": KnownExtensionField(field_type="integer")}}
     plans, _ = _plan(data, known_ext=known_ext)
     (plan,) = plans
     assert plan.problems == []
@@ -254,7 +255,7 @@ def test_a_boolean_cell_is_rejected_for_a_declared_integer_extension() -> None:
             ]
         }
     )
-    known_ext = {"essentiality": {"vi_bin": "integer"}}
+    known_ext = {"essentiality": {"vi_bin": KnownExtensionField(field_type="integer")}}
     plans, _ = _plan(data, known_ext=known_ext)
     (plan,) = plans
     assert plan.records == []
@@ -271,13 +272,57 @@ def test_a_date_formatted_cell_lands_as_an_iso_string_not_a_datetime() -> None:
             ]
         }
     )
-    known_ext = {"protein_production": {"date_produced": "date"}}
+    known_ext = {"protein_production": {"date_produced": KnownExtensionField(field_type="date")}}
     plans, _ = _plan(data, known_ext=known_ext)
     (plan,) = plans
     assert plan.problems == []
     value = plan.records[0].extensions["date_produced"]
     assert value == "2024-01-15"
     assert isinstance(value, str)
+
+
+# --- enum extension fields check declared options, not just "is a string" -------------
+
+
+def test_an_enum_cell_outside_its_declared_options_fails_its_row() -> None:
+    data = _workbook(
+        {
+            "essentiality": [
+                ["locus_tag", "classification", "vi_bin_category"],
+                ["Rv0001", "essential", "banana"],
+            ]
+        }
+    )
+    known_ext = {
+        "essentiality": {
+            "vi_bin_category": KnownExtensionField(field_type="enum", options=["low", "high"])
+        }
+    }
+    plans, _ = _plan(data, known_ext=known_ext)
+    (plan,) = plans
+    assert plan.records == []
+    assert len(plan.problems) == 1
+    assert "vi_bin_category" in plan.problems[0].reason
+
+
+def test_an_enum_cell_matching_a_declared_option_is_accepted() -> None:
+    data = _workbook(
+        {
+            "essentiality": [
+                ["locus_tag", "classification", "vi_bin_category"],
+                ["Rv0001", "essential", "high"],
+            ]
+        }
+    )
+    known_ext = {
+        "essentiality": {
+            "vi_bin_category": KnownExtensionField(field_type="enum", options=["low", "high"])
+        }
+    }
+    plans, _ = _plan(data, known_ext=known_ext)
+    (plan,) = plans
+    assert plan.problems == []
+    assert plan.records[0].extensions == {"vi_bin_category": "high"}
 
 
 # --- provenance columns are recognised without needing a landing field ----------------
