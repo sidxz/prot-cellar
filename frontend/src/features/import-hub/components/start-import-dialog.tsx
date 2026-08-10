@@ -24,6 +24,7 @@ import { IMPORT_TYPE_LABELS } from "../types";
 import { GeneEnrichmentForm } from "./param-forms/gene-enrichment-form";
 import { GoOntologyForm } from "./param-forms/go-ontology-form";
 import { ProteomeForm } from "./param-forms/proteome-form";
+import { TargetBiologyParamsForm } from "./param-forms/target-biology-params";
 
 const IMPORT_TYPE_VALUES = Object.values(ImportType);
 
@@ -64,6 +65,9 @@ export function StartImportDialog({ open, onOpenChange }: StartImportDialogProps
         {importType === ImportType.proteome && <ProteomeForm key="prot" onSuccess={close} />}
         {importType === ImportType.gene_enrichment && (
           <GeneEnrichmentForm key="gene" onSuccess={close} />
+        )}
+        {importType === ImportType.target_biology && (
+          <TargetBiologyParamsForm key="target_biology" onSuccess={close} />
         )}
       </DialogContent>
     </Dialog>

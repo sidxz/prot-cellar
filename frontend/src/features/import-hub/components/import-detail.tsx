@@ -1,10 +1,12 @@
 "use client";
 
 import { Badge } from "@/shared/components/ui/badge";
+import { ImportType } from "@/shared/lib/api/model";
 
 import { useBreadcrumbOverride } from "@/shared/lib/stores/breadcrumb-store";
 import { useImportRun } from "../hooks/use-imports";
 import { IMPORT_TYPE_LABELS, STATUS_VARIANTS } from "../types";
+import { TargetBiologyPreview } from "./target-biology-preview";
 
 function asNumber(v: unknown): number {
   return typeof v === "number" ? v : Number(v ?? 0) || 0;
@@ -73,34 +75,40 @@ export function ImportDetailPage({ importRunId }: { importRunId: string }) {
         </div>
       )}
 
-      {/* Compact counts strip (plugin runs) */}
-      {["created", "updated", "skipped", "failed"].some(
-        (k) => k in ((data.summary as Record<string, unknown>) ?? {}),
-      ) ? (
-        <div className="flex flex-wrap gap-2 text-sm">
-          {(["created", "updated", "skipped", "failed"] as const).map((k) => (
-            <span key={k} className="rounded bg-muted px-2 py-0.5">
-              {k}: {asNumber((data.summary as Record<string, unknown>)?.[k])}
-            </span>
-          ))}
-        </div>
-      ) : null}
+      {data.import_type === ImportType.target_biology ? (
+        <TargetBiologyPreview run={data} />
+      ) : (
+        <>
+          {/* Compact counts strip (plugin runs) */}
+          {["created", "updated", "skipped", "failed"].some(
+            (k) => k in ((data.summary as Record<string, unknown>) ?? {}),
+          ) ? (
+            <div className="flex flex-wrap gap-2 text-sm">
+              {(["created", "updated", "skipped", "failed"] as const).map((k) => (
+                <span key={k} className="rounded bg-muted px-2 py-0.5">
+                  {k}: {asNumber((data.summary as Record<string, unknown>)?.[k])}
+                </span>
+              ))}
+            </div>
+          ) : null}
 
-      {/* Summary */}
-      {summaryEntries.length > 0 && (
-        <div className="flex flex-col gap-2">
-          <h2 className="text-sm font-semibold">Summary</h2>
-          <dl className="grid grid-cols-[max-content_1fr] gap-x-4 gap-y-1 text-sm">
-            {summaryEntries.map(([k, v]) => (
-              <div key={k} className="contents">
-                <dt className="text-muted-foreground">{k}</dt>
-                <dd className="font-mono">
-                  {typeof v === "object" ? JSON.stringify(v) : String(v)}
-                </dd>
-              </div>
-            ))}
-          </dl>
-        </div>
+          {/* Summary */}
+          {summaryEntries.length > 0 && (
+            <div className="flex flex-col gap-2">
+              <h2 className="text-sm font-semibold">Summary</h2>
+              <dl className="grid grid-cols-[max-content_1fr] gap-x-4 gap-y-1 text-sm">
+                {summaryEntries.map(([k, v]) => (
+                  <div key={k} className="contents">
+                    <dt className="text-muted-foreground">{k}</dt>
+                    <dd className="font-mono">
+                      {typeof v === "object" ? JSON.stringify(v) : String(v)}
+                    </dd>
+                  </div>
+                ))}
+              </dl>
+            </div>
+          )}
+        </>
       )}
     </div>
   );

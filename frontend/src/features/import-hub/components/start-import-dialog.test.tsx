@@ -11,6 +11,9 @@ vi.mock("./param-forms/proteome-form", () => ({
 vi.mock("./param-forms/gene-enrichment-form", () => ({
   GeneEnrichmentForm: () => <div>gene-form</div>,
 }));
+vi.mock("./param-forms/target-biology-params", () => ({
+  TargetBiologyParamsForm: () => <div>target-biology-form</div>,
+}));
 
 import { StartImportDialog } from "./start-import-dialog";
 

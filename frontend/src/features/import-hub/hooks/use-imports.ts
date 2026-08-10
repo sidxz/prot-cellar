@@ -7,7 +7,8 @@ import {
   useStartImportApiV1ImportsPost,
   useUploadEssentialityFileApiV1ImportsUploadsPost,
 } from "@/shared/lib/api/imports/imports";
-import { ImportStatus } from "@/shared/lib/api/model";
+import type { BodyUploadEssentialityFileApiV1ImportsUploadsPost } from "@/shared/lib/api/model";
+import { ImportStatus, type ImportType } from "@/shared/lib/api/model";
 import { showSuccess } from "@/shared/lib/toast";
 
 /** Statuses still in progress — poll while in one of these. */
@@ -45,9 +46,23 @@ export function useStartImport() {
   });
 }
 
-/** Upload an essentiality file → resolves to { upload_ref }. */
-export function useUploadEssentiality() {
-  return useUploadEssentialityFileApiV1ImportsUploadsPost({
+/**
+ * Upload a file → resolves to { upload_ref }. Omitting `importType` keeps the
+ * route's default behaviour (convert to the DeJesus locus/call TSV); passing
+ * `ImportType.target_biology` stores the workbook's raw bytes instead (see
+ * the route's own docstring in imports.ts) — required for `parse_workbook`,
+ * which needs a real multi-sheet XLSX.
+ */
+export function useUploadEssentiality(importType?: ImportType) {
+  const mutation = useUploadEssentialityFileApiV1ImportsUploadsPost({
     mutation: { onSuccess: () => showSuccess("File uploaded") },
   });
+  return {
+    ...mutation,
+    mutateAsync: (vars: { data: BodyUploadEssentialityFileApiV1ImportsUploadsPost }) =>
+      mutation.mutateAsync({
+        ...vars,
+        params: importType ? { import_type: importType } : undefined,
+      }),
+  };
 }
