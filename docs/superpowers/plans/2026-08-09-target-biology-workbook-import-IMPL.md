@@ -524,8 +524,21 @@ Read the neighbouring param forms first; this is extension by addition, not a ne
 expected column names per kind **read from `GET /api/v1/target-biology/schema`** — it already
 publishes core and extension fields with their types, so do not restate the lists.
 
-**The preview** renders on the run detail: per-kind counts, the unmatched list, the problem list with
-its truncation stated, and the `already_present` warning when add-mode would double existing data.
+**The preview** renders on the run detail. Everything the summary carries has to appear — each of
+these exists because something would otherwise be silent:
+
+| Summary key | Renders as |
+|---|---|
+| `kinds[k]` | per-kind counts: rows, records, merged, create, update, failed |
+| `unmatched` | the distinct unmatched gene values, with counts |
+| `problems` | the list, **with `problems_truncated` stated when non-zero** — a silent cut reads as "no further problems" |
+| `ignored_columns` | per sheet, the headers the parser recognised but did not use |
+| `already_present` | a warning, in add mode only, that the target workspace already holds records of that kind |
+| the update-mode ligand warning | a warning, in update mode only, naming the sheet and affected row count |
+
+The last one is not decoration: in update mode two structure rows whose ligand text did not resolve
+collide on the natural key and overwrite each other, and the operator has no other way to know.
+
 Apply and Discard are explicit buttons.
 
 **UI rules, hard, not preferences:**
