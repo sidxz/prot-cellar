@@ -67,8 +67,14 @@ _FIELDS: dict[str, list[_Decl]] = {
         ("vi_upper_bound", "VI upper bound", _T.NUMBER, None, False),
         # "5.0" in the source, but it is a 1-5 percentile bucket, not a measurement.
         ("vi_bin", "VI bin", _T.INTEGER, None, True),
-        # "7%" — uniformly suffixed, so the sign carries no information the name doesn't.
-        ("pct_of_max", "Percent of max", _T.INTEGER, None, False),
+        # "7%" — a numeric with a unit suffix, exactly like purity_reported and
+        # resolution_reported below. An earlier draft declared this INTEGER on the
+        # theory that the "%" is uniform and therefore carries nothing; live QA
+        # settled it the other way. The importer will not strip a suffix for one
+        # named field, and asking the export to do it for this column alone while
+        # copying every other faithfully is more moving parts than storing what the
+        # source actually says.
+        ("pct_of_max", "Percent of max", _T.STRING, None, False),
         ("rank", "Rank", _T.NUMBER, None, False),
         ("score", "Score", _T.NUMBER, None, False),
         ("certain", "Certain", _T.BOOLEAN, None, False),
