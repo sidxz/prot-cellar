@@ -22,6 +22,16 @@ def test_every_import_type_has_an_adapter() -> None:
         assert adapter.import_type is t
 
 
+def test_dispatch_order_runs_crispri_strain_before_hypomorph() -> None:
+    """hypomorph resolves knockdown_strain against crispri_strain rows this
+    same run may just have created — see _DISPATCH's own comment. A cheap,
+    DB-free guard against that order silently drifting back."""
+    from protcellar.application.target_biology.crud import RecordKind
+    from protcellar.infrastructure.ingestion.import_adapters import _DISPATCH_ORDER
+
+    assert _DISPATCH_ORDER[RecordKind.CRISPRI_STRAIN] < _DISPATCH_ORDER[RecordKind.HYPOMORPH]
+
+
 @pytest.mark.asyncio
 async def test_proteome_adapter_passes_reporter_to_runner(monkeypatch) -> None:
     captured: dict = {}

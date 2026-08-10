@@ -568,18 +568,30 @@ async def _run_unpublished_structure(
     return (await handler(cmd, ctx.auth)).unwrap(), present
 
 
+# Fixed dependency order, not workbook sheet order: HYPOMORPH resolves its
+# knockdown_strain name against CrispriStrain rows (BulkUpsertHypomorph's own
+# module docstring) — rows this *same run* may be about to create on the
+# CRISPRI_STRAIN sheet. Dispatching CRISPRI_STRAIN first means those rows are
+# already committed by the time HYPOMORPH's command queries for them, so an
+# operator reordering sheets in the workbook can't silently flip whether a
+# same-workbook strain resolves. The other six kinds have no cross-kind
+# dependency, so their relative order here is arbitrary. See
+# `_DISPATCH_ORDER` and its call site below — plans are walked in this order,
+# never in `plans`' own (workbook) order.
 _DISPATCH: dict[
     RecordKind, Callable[[_KindContext, list[Any]], Awaitable[tuple[list[ItemResult], int]]]
 ] = {
     RecordKind.ESSENTIALITY: _run_essentiality,
     RecordKind.VULNERABILITY: _run_vulnerability,
-    RecordKind.HYPOMORPH: _run_hypomorph,
     RecordKind.CRISPRI_STRAIN: _run_crispri_strain,
+    RecordKind.HYPOMORPH: _run_hypomorph,
     RecordKind.RESISTANCE_MUTATION: _run_resistance_mutation,
     RecordKind.PROTEIN_PRODUCTION: _run_protein_production,
     RecordKind.PROTEIN_ACTIVITY_ASSAY: _run_protein_activity_assay,
     RecordKind.UNPUBLISHED_STRUCTURE: _run_unpublished_structure,
 }
+
+_DISPATCH_ORDER: dict[RecordKind, int] = {kind: i for i, kind in enumerate(_DISPATCH)}
 
 
 _UNMATCHED_PREFIXES = ("unmatched locus ", "unmatched accession ")
@@ -667,6 +679,74 @@ def _unresolved_ligand_warning(
             "did not resolve to a compound id — the upsert key cannot "
             "discriminate them by ligand, so a match may silently overwrite a "
             "different structure"
+        ),
+    }
+
+
+def _natural_key(kind: RecordKind, rec: Any) -> tuple[Any, ...]:
+    """The subset of a parsed record's own fields each bulk command's "does a
+    match already exist" lookup compares — see each ``bulk_upsert_<kind>.py``
+    module docstring's stated Upsert key. Works from the record alone, no DB
+    resolution (``_natural_key_collision_warning`` runs before dispatch): for
+    HYPOMORPH that means the raw ``knockdown_strain`` name rather than the
+    strain id only the command itself can resolve, and for
+    UNPUBLISHED_STRUCTURE the raw ``ligand_ids`` tuple rather than the sorted/
+    case-folded key the command computes — both close enough to catch the
+    collision this warns about.
+    """
+    identity: Any = rec.locus_key.upper() if kind in _GENE_SIDE_KINDS else rec.accession
+    match kind:
+        case RecordKind.ESSENTIALITY | RecordKind.VULNERABILITY:
+            return (identity, rec.condition, rec.method)
+        case RecordKind.HYPOMORPH:
+            return (identity, rec.knockdown_strain, rec.condition, rec.method)
+        case RecordKind.CRISPRI_STRAIN:
+            return (identity, rec.name.strip())
+        case RecordKind.RESISTANCE_MUTATION:
+            return (identity, rec.mutation.strip(), rec.compound_id)
+        case RecordKind.PROTEIN_PRODUCTION:
+            return (identity, rec.expression_host, rec.method)
+        case RecordKind.PROTEIN_ACTIVITY_ASSAY:
+            return (identity, rec.activity_measured.strip(), rec.method)
+        case RecordKind.UNPUBLISHED_STRUCTURE:
+            return (identity, rec.method, tuple(sorted(str(x).lower() for x in rec.ligand_ids)))
+    raise AssertionError(f"unhandled RecordKind {kind!r}")  # pragma: no cover
+
+
+def _natural_key_collision_warning(
+    kind: RecordKind, records: list[Any], update_existing: bool
+) -> dict[str, Any] | None:
+    """Preview and apply disagree whenever two rows in one sheet share a kind's
+    upsert key and update mode is selected: a bulk command's own ``save()``
+    inside its per-row loop autoflushes, so row 2's "does a match already
+    exist" query sees row 1's write within the *same apply run* — but dry_run
+    skips every ``save()`` (see each ``bulk_upsert_*.py``), so preview's row 2
+    never sees row 1 and both come back "created". Apply then serialises them
+    for real and row 2 updates row 1 in place, discarding it — the exact
+    "distinct records silently merged" failure this whole feature exists to
+    prevent, just deferred from parse-time dedup to DB-time match. Add mode
+    never matches at all (see ``_NoExistingMatch``), so it can't hit this;
+    only worth a warning when update mode is actually selected. Mirrors
+    ``_unresolved_ligand_warning``'s shape.
+    """
+    if not update_existing:
+        return None
+    seen: dict[tuple[Any, ...], int] = {}
+    for rec in records:
+        key = _natural_key(kind, rec)
+        seen[key] = seen.get(key, 0) + 1
+    affected = sum(count for count in seen.values() if count > 1)
+    if affected == 0:
+        return None
+    return {
+        "sheet": kind.value,
+        "count": affected,
+        "reason": (
+            "update mode is selected and this sheet has multiple rows sharing "
+            "the same upsert key — apply will match the later rows against "
+            "the earlier ones already written in this same run and update "
+            "them in place, so the preview's create/update split will not "
+            "match what apply produces"
         ),
     }
 
@@ -776,7 +856,11 @@ class TargetBiologyAdapter:
         processed = 0
         await rt.reporter.advance(processed, total_rows)
 
-        for plan in plans:
+        # Fixed dependency order (see _DISPATCH's own comment), never plans'
+        # own workbook-sheet order — sorted() is stable, so two sheets that
+        # (until parse_workbook rejects it) still map to the same kind keep
+        # their relative workbook order.
+        for plan in sorted(plans, key=lambda p: _DISPATCH_ORDER[p.kind]):
             await rt.reporter.phase(f"importing {plan.kind.value}")
             records = plan.records
             plan_problems = [
@@ -792,6 +876,12 @@ class TargetBiologyAdapter:
             ligand_warning = _unresolved_ligand_warning(plan.kind, records, ctx.update_existing)
             if ligand_warning is not None:
                 warnings.append(ligand_warning)
+
+            collision_warning = _natural_key_collision_warning(
+                plan.kind, records, ctx.update_existing
+            )
+            if collision_warning is not None:
+                warnings.append(collision_warning)
 
             results, present = await _DISPATCH[plan.kind](ctx, records)
             already_present[plan.kind.value] = present

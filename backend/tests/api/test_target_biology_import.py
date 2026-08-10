@@ -615,6 +615,140 @@ async def test_update_mode_warns_about_unresolved_ligand_text(
         await engine.dispose()
 
 
+async def test_update_mode_warns_about_a_natural_key_collision_within_one_sheet(
+    client: AsyncClient, database_url: str, _run_migrations: None, workspace_id: uuid.UUID
+) -> None:
+    """Two rows in one sheet sharing the kind's upsert key (condition + method,
+    here) are indistinguishable to preview — dry_run never saves, so row 2's
+    own "does a match exist" lookup can't see row 1 — but apply's row 1 save()
+    autoflushes, so row 2 matches and updates it in place instead of creating
+    a second record. The preview must warn, even though (without touching the
+    eight commands) its create/update split still won't equal apply's."""
+    engine = create_async_engine(database_url)
+    factory = async_sessionmaker(engine, expire_on_commit=False)
+    try:
+        organism_id = await _organism(client)
+        await _gene(client, organism_id, locus="Rv0013")
+        upload_ref = await _upload(
+            client,
+            _workbook(
+                "vulnerability",
+                ["locus_tag", "condition", "method", "vulnerability_score"],
+                [
+                    ["Rv0013", "hypoxia", "CRISPRi", "0.5"],
+                    ["Rv0013", "hypoxia", "CRISPRi", "0.9"],
+                ],
+            ),
+        )
+
+        preview = await _start(
+            client,
+            upload_ref=upload_ref,
+            organism_id=organism_id,
+            update_existing=True,
+            dry_run=True,
+        )
+        await _run_worker(factory, preview["id"], workspace_id)
+        preview_summary = (await client.get(f"/api/v1/imports/{preview['id']}")).json()["summary"]
+        warning = next(w for w in preview_summary["warnings"] if w["sheet"] == "vulnerability")
+        assert warning["count"] == 2
+        assert preview_summary["kinds"]["vulnerability"]["create"] == 2
+        assert preview_summary["kinds"]["vulnerability"]["update"] == 0
+
+        apply_run = await _start(
+            client,
+            upload_ref=upload_ref,
+            organism_id=organism_id,
+            update_existing=True,
+            dry_run=False,
+        )
+        await _run_worker(factory, apply_run["id"], workspace_id)
+        apply_summary = (await client.get(f"/api/v1/imports/{apply_run['id']}")).json()["summary"]
+        assert apply_summary["kinds"]["vulnerability"]["create"] == 1
+        assert apply_summary["kinds"]["vulnerability"]["update"] == 1
+
+        got_gene = await client.get(f"/api/v1/genes?name=Rv0013&organism_id={organism_id}")
+        gene_id = uuid.UUID(got_gene.json()["items"][0]["id"])
+        async with AsyncUnitOfWork(factory) as uow:
+            repo = SQLAlchemyVulnerabilityRepository(uow)
+            records = await repo.find_by_gene(workspace_id, gene_id)
+        assert len(records) == 1, "the second row overwrote the first in place"
+    finally:
+        await engine.dispose()
+
+
+async def test_update_mode_collision_warning_never_fires_in_add_mode(
+    client: AsyncClient, database_url: str, _run_migrations: None, workspace_id: uuid.UUID
+) -> None:
+    """Add mode never matches at all (see _NoExistingMatch), so two rows
+    sharing a natural key just become two separate records — nothing for the
+    warning to say."""
+    engine = create_async_engine(database_url)
+    factory = async_sessionmaker(engine, expire_on_commit=False)
+    try:
+        organism_id = await _organism(client)
+        await _gene(client, organism_id, locus="Rv0015")
+        upload_ref = await _upload(
+            client,
+            _workbook(
+                "vulnerability",
+                ["locus_tag", "condition", "method", "vulnerability_score"],
+                [
+                    ["Rv0015", "hypoxia", "CRISPRi", "0.5"],
+                    ["Rv0015", "hypoxia", "CRISPRi", "0.9"],
+                ],
+            ),
+        )
+        run = await _start(
+            client, upload_ref=upload_ref, organism_id=organism_id, dry_run=True
+        )  # update_existing defaults to False
+        await _run_worker(factory, run["id"], workspace_id)
+
+        summary = (await client.get(f"/api/v1/imports/{run['id']}")).json()["summary"]
+        assert summary["warnings"] == []
+        assert summary["kinds"]["vulnerability"]["create"] == 2
+    finally:
+        await engine.dispose()
+
+
+async def test_hypomorph_resolves_a_same_workbook_strain_regardless_of_sheet_order(
+    client: AsyncClient, database_url: str, _run_migrations: None, workspace_id: uuid.UUID
+) -> None:
+    """crispri_strain must dispatch before hypomorph even when the workbook
+    lists hypomorph's sheet first — otherwise apply's result depends on an
+    operator's sheet order, which a dry-run preview (which persists nothing,
+    so it always fails to resolve a same-workbook strain either way) could
+    never foretell."""
+    engine = create_async_engine(database_url)
+    factory = async_sessionmaker(engine, expire_on_commit=False)
+    try:
+        organism_id = await _organism(client)
+        await _gene(client, organism_id, locus="Rv0014")
+
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        assert ws is not None
+        ws.title = "hypomorph"  # listed BEFORE crispri_strain in the workbook
+        ws.append(["locus_tag", "growth_defect", "knockdown_strain"])
+        ws.append(["Rv0014", "true", "strainA"])
+        strains = wb.create_sheet("crispri_strain")
+        strains.append(["locus_tag", "name"])
+        strains.append(["Rv0014", "strainA"])
+        buf = io.BytesIO()
+        wb.save(buf)
+        upload_ref = await _upload(client, buf.getvalue())
+
+        run = await _start(client, upload_ref=upload_ref, organism_id=organism_id, dry_run=False)
+        await _run_worker(factory, run["id"], workspace_id)
+
+        summary = (await client.get(f"/api/v1/imports/{run['id']}")).json()["summary"]
+        assert summary["kinds"]["crispri_strain"]["create"] == 1
+        assert summary["kinds"]["hypomorph"]["create"] == 1
+        assert summary["kinds"]["hypomorph"]["failed"] == 0
+    finally:
+        await engine.dispose()
+
+
 async def test_add_mode_never_triggers_the_ligand_warning(
     client: AsyncClient, database_url: str, _run_migrations: None, workspace_id: uuid.UUID
 ) -> None:
