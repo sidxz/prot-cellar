@@ -358,6 +358,25 @@ Deduplicate within a sheet on the full tuple of mapped domain values — core pl
 **excluding provenance**, which is metadata about the row rather than the record's identity. Count
 the merges; do not report them as problems.
 
+**Unresolvable ligand text is this parser's job, and Task 3's review proved why.** `ligands` is a
+list of `CompoundRef`, whose `compound_id` is a required UUID; the existing
+`unpublished_structure_csv.py:_uuids()` silently drops any token that will not parse as one. The
+corpus holds `"Apo"`, `"SO4 and PEG bound"` and raw SMILES strings — all of which become
+`ligand_ids=()`, making thirteen distinct structures identical under Task 3's widened
+`(protein_id, method, ligands)` key. Reproduced against the shipped code: two such records give
+`['created', 'updated']`, one record stored.
+
+So for `unpublished_structure`, a ligand cell token that is **not** a UUID goes to
+`extensions["ligand_reported"]` (joined in source order when a cell holds several) rather than being
+dropped. Full-row deduplication then keeps those rows distinct, which is what makes the add-mode
+legacy load correct. Declare `ligand_reported` alongside `resolution_reported` in
+`scripts/seed_legacy_extension_fields.py` — it exists for the same reason: a value the core column
+cannot hold.
+
+This closes the gap for add mode only. **Update mode's natural key still cannot discriminate
+structures whose ligands do not resolve**, so Task 5's preview warns when update mode is selected
+and a structure sheet contains unresolved ligand text.
+
 - [ ] **Step 4: Verify and commit**
 
 Run: `uv run pytest tests/unit/infrastructure/ingestion -v`
