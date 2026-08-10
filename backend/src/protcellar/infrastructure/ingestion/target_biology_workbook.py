@@ -553,6 +553,35 @@ def _parse_ligands(value: Any) -> tuple[tuple[uuid.UUID, ...], str | None]:
     return tuple(ids), ("; ".join(unresolved) if unresolved else None)
 
 
+_TRUE_TEXT = frozenset({"true", "yes", "y", "1"})
+_FALSE_TEXT = frozenset({"false", "no", "n", "0"})
+
+
+def _boolean_cell(value: Any, name: str) -> bool:
+    """A boolean cell, accepting the textual spellings a spreadsheet actually holds.
+
+    Same reasoning as ``_numeric_cell``: whether a cell arrives as a real bool or
+    as the text ``"True"`` is a property of whatever wrote the sheet, not a
+    statement about the data. The corpus this importer exists for writes every
+    boolean as text.
+
+    ``"yes"``/``"no"`` are accepted here because a *declared boolean* leaves no
+    room for them to mean anything else. Where a source genuinely has three
+    states, the answer is an ``enum`` declaration with its own options — which is
+    what ``suitable_for_screening`` does — not a boolean that silently swallows
+    the third.
+    """
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, str):
+        folded = value.strip().casefold()
+        if folded in _TRUE_TEXT:
+            return True
+        if folded in _FALSE_TEXT:
+            return False
+    raise ValueError(f"{name!r} must be a boolean, got {value!r}")
+
+
 def _numeric_cell(value: Any, name: str, article: str) -> int | float:
     """A numeric cell, accepting a numeric *string* as well as a real number.
 
@@ -606,9 +635,7 @@ def _coerce_extension_value(value: Any, field: KnownExtensionField, name: str) -
             raise ValueError(f"{name!r} must be one of {field.options}")
         return value
     if field_type == "boolean":
-        if not isinstance(value, bool):
-            raise ValueError(f"{name!r} must be a boolean")
-        return value
+        return _boolean_cell(value, name)
     if field_type == "integer":
         number = _numeric_cell(value, name, "an integer")
         if not float(number).is_integer():

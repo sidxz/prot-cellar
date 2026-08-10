@@ -63,6 +63,11 @@ _FIELDS: dict[str, list[_Decl]] = {
     # Core columns already hold condition, method and the 0-1 score. What is left is
     # the CRISPRi-VI statistical tail, ~2,900 of 3,000 records deep.
     "vulnerability": [
+        # The source's VulnerabilityIndex. It cannot go in the core
+        # ``vulnerability_score`` column, which the aggregate constrains to [0, 1]
+        # while this ranges roughly -21..0.8 — a different quantity wearing a
+        # similar name.
+        ("vulnerability_index", "Vulnerability index", _T.NUMBER, None, True),
         ("vi_lower_bound", "VI lower bound", _T.NUMBER, None, False),
         ("vi_upper_bound", "VI upper bound", _T.NUMBER, None, False),
         # "5.0" in the source, but it is a 1-5 percentile bucket, not a measurement.

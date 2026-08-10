@@ -475,3 +475,22 @@ def test_text_that_is_not_a_number_still_fails(declared: str, cell: object) -> N
     field = KnownExtensionField(field_type=declared)
     with pytest.raises(ValueError):
         _coerce_extension_value(cell, field, "x")
+
+
+@pytest.mark.parametrize(
+    ("cell", "expected"),
+    [("True", True), ("FALSE", False), ("true", True), ("Yes", True), ("no", False), (True, True)],
+)
+def test_a_text_formatted_boolean_is_accepted(cell: object, expected: bool) -> None:
+    # The corpus writes every boolean as text. A declared boolean leaves no room
+    # for "yes" to mean anything but true; a source with three states wants an
+    # enum declaration instead, which is what suitable_for_screening uses.
+    field = KnownExtensionField(field_type="boolean")
+    assert _coerce_extension_value(cell, field, "x") is expected
+
+
+@pytest.mark.parametrize("cell", ["TBD", "maybe", "", 1, 0, None])
+def test_text_that_is_not_a_boolean_still_fails(cell: object) -> None:
+    field = KnownExtensionField(field_type="boolean")
+    with pytest.raises(ValueError):
+        _coerce_extension_value(cell, field, "x")
