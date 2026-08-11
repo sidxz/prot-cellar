@@ -11,7 +11,7 @@ import type { Gene } from "../../types";
 
 // ---------------------------------------------------------------------------
 // Neighborhood track (only rendered with >= 2 coordinate-bearing neighbors) —
-// the track itself lives in @structflo/components, shared with daikon.
+// the track itself lives in @structflo/components.
 // ---------------------------------------------------------------------------
 
 function NeighborhoodTrack({ gene }: { gene: Gene }) {
