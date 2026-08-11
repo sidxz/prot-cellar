@@ -43,7 +43,14 @@ describe("GenomicContextSection", () => {
     expect(screen.getByText(/3,519 bp/)).toBeInTheDocument();
   });
 
-  it("renders a neighborhood track when the hook returns >= 2 neighbors", () => {
+  it("shows a skeleton while the neighborhood hook is loading", () => {
+    mockedNeighborhood.mockReturnValue({ data: undefined, isLoading: true, isError: false });
+
+    const { container } = render(<GenomicContextSection gene={gene} />);
+    expect(container.querySelector('[data-slot="skeleton"]')).toBeInTheDocument();
+  });
+
+  it("renders the shared track when the hook returns >= 2 neighbors", () => {
     mockedNeighborhood.mockReturnValue({
       data: {
         center_id: "g1",
@@ -84,36 +91,18 @@ describe("GenomicContextSection", () => {
 
     render(<GenomicContextSection gene={gene} />);
 
-    // Neighbors render as links to /genes/{id}
-    const neighborLink = screen.getByRole("link", { name: /rpoC/ });
-    expect(neighborLink).toHaveAttribute("href", "/genes/g0");
-    expect(screen.getByRole("link", { name: /rpsL/ })).toHaveAttribute("href", "/genes/g2");
-
-    // The current gene is shown but marked current (aria-current), not a link.
-    const current = screen.getByText("rpoB");
-    expect(current.closest("a")).toBeNull();
-
-    // The proportional SVG track renders as a labelled figure.
+    // The shared GenomicContext rendered a track at all — proof that
+    // genomic_start/genomic_end/genomic_strand were mapped onto its
+    // start/end/strand shape (unmapped fields get filtered out and no
+    // track would appear).
     expect(screen.getByRole("figure", { name: /genomic neighborhood track/i })).toBeInTheDocument();
 
-    // The essentiality legend renders alongside the track (fitness-axis buckets).
-    const legend = screen.getByLabelText("Essentiality legend");
-    expect(legend).toBeInTheDocument();
-    expect(screen.getByText("Essential")).toBeInTheDocument();
-    expect(screen.getByText("Growth-defect")).toBeInTheDocument();
-    expect(screen.getByText("Non-essential")).toBeInTheDocument();
-    expect(screen.getByText("Growth-adv.")).toBeInTheDocument();
-  });
+    // Neighbors render as links to /genes/{id} (default hrefFor, next/link as LinkComponent).
+    expect(screen.getByRole("link", { name: /rpoC/ })).toHaveAttribute("href", "/genes/g0");
+    expect(screen.getByRole("link", { name: /rpsL/ })).toHaveAttribute("href", "/genes/g2");
 
-  it("does not render the legend when there is no neighborhood track", () => {
-    mockedNeighborhood.mockReturnValue({
-      data: { center_id: "g1", accession: "NC_000962.3", neighbors: [] },
-      isLoading: false,
-      isError: false,
-    });
-
-    render(<GenomicContextSection gene={gene} />);
-    expect(screen.queryByLabelText("Essentiality legend")).not.toBeInTheDocument();
+    // The current gene is shown but marked current, not a link.
+    expect(screen.getByText("rpoB").closest("a")).toBeNull();
   });
 
   it("renders only the location row when there are fewer than 2 neighbors", () => {
