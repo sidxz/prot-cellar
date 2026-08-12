@@ -94,19 +94,19 @@ uv run python -m protcellar.scripts.export_data -o protcellar-data.tar.gz
 
 # On your machine, after `alembic upgrade head`
 uv run python -m protcellar.scripts.import_data protcellar-data.tar.gz \
-    --workspace <your-workspace-uuid> [--user <your-user-uuid>] [--truncate]
+    [--workspace <your-workspace-uuid>] [--user <your-user-uuid>] [--truncate]
 ```
 
-Shared reference data (owned by the fixed `SHARED_WORKSPACE_ID`) imports
-unchanged. Rows from the exporter's private workspace(s) are adopted by
-`--workspace` — a workspace UUID from **your** Sentinel, since workspaces and
-users live in Sentinel and differ per developer. Your `SENTINEL_SERVICE_NAME`
+By default all ids import verbatim — right whenever both installs use the
+**same** Sentinel. If your Sentinel is a separate install (workspace and user
+UUIDs live in Sentinel and differ per install), pass `--workspace`/`--user`
+with ids from **your** Sentinel to adopt the exporter's non-shared rows;
+shared reference data (owned by the fixed `SHARED_WORKSPACE_ID`) always
+imports unchanged. Your `SENTINEL_SERVICE_NAME`
 does not have to match the exporter's (`prot-cellar-dev` vs `prot-cellar-dev1`
 is fine): the importer registers the `protcellar:*` actions under *your* app
 name and fails fast if your `SENTINEL_*` env vars aren't valid for your
-Sentinel (`--skip-sentinel-check` to bypass). If both installs point at the
-**same** Sentinel, pass `--keep-workspaces` instead of `--workspace` to import
-workspace ids verbatim. The import is atomic and refuses
+Sentinel (`--skip-sentinel-check` to bypass). The import is atomic and refuses
 non-empty tables unless you pass `--truncate`. Operational history
 (`import_runs`, `import_uploads`, audit tables) is never exported.
 

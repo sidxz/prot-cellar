@@ -1,10 +1,11 @@
 """CLI: restore an archive produced by ``export_data.py`` into this developer's database.
 
-Every entity keeps its original UUID. Only Sentinel-owned identifiers are
-rewritten: rows of the shared reference workspace import unchanged (the id is
-the same deterministic constant in every install), while rows of any other
-workspace are reassigned to ``--workspace`` — a workspace UUID from *your*
-Sentinel, since each developer's Sentinel has its own workspaces and users.
+Every entity keeps its original UUID, and by default workspace/user ids import
+verbatim — right whenever both installs talk to the same Sentinel. If your
+Sentinel is a different install (its workspace and user UUIDs differ), pass
+``--workspace``/``--user`` with ids from *your* Sentinel: non-shared rows are
+reassigned to them, while rows of the shared reference workspace always import
+unchanged (that id is the same deterministic constant everywhere).
 
 Before touching the database the importer registers the ``protcellar:*`` RBAC
 actions in your Sentinel under *your* app name (``SENTINEL_SERVICE_NAME``) —
@@ -132,20 +133,16 @@ async def import_data(
     truncate: bool,
     skip_sentinel_check: bool,
     force: bool,
-    keep_workspaces: bool = False,
 ) -> None:
-    if keep_workspaces and workspace is not None:
-        raise SystemExit("--keep-workspaces and --workspace are mutually exclusive.")
     with tarfile.open(archive) as tar:
         manifest = json.load(tar.extractfile(MANIFEST_NAME))  # type: ignore[arg-type]
 
-        if manifest["foreign_workspace_ids"] and workspace is None and not keep_workspaces:
-            raise SystemExit(
-                "Archive contains rows from non-shared workspace(s) "
-                f"{manifest['foreign_workspace_ids']}. Those workspace ids exist only "
-                "in the exporter's Sentinel — pass --workspace <uuid> with a workspace "
-                "id from YOUR Sentinel to adopt them, or --keep-workspaces to import "
-                "them verbatim (only useful when both installs share a Sentinel)."
+        if manifest["foreign_workspace_ids"] and workspace is None:
+            print(
+                "NOTE: importing non-shared workspace id(s) "
+                f"{manifest['foreign_workspace_ids']} verbatim. If your Sentinel is not "
+                "the exporter's, those rows will be invisible until you re-import with "
+                "--workspace <uuid> from YOUR Sentinel."
             )
         if workspace is not None and len(manifest["foreign_workspace_ids"]) > 1:
             print(
@@ -233,18 +230,13 @@ def main() -> None:
     parser.add_argument(
         "--workspace",
         type=uuid.UUID,
-        help="Workspace UUID from YOUR Sentinel; adopts all non-shared rows",
+        help="Remap all non-shared rows to this workspace UUID from YOUR Sentinel "
+        "(default: keep workspace ids verbatim)",
     )
     parser.add_argument(
         "--user",
         type=uuid.UUID,
         help="User UUID from YOUR Sentinel; rewrites created_by/assigned_by/enabled_by",
-    )
-    parser.add_argument(
-        "--keep-workspaces",
-        action="store_true",
-        help="Import non-shared workspace ids verbatim instead of remapping "
-        "(only useful when both installs share the same Sentinel)",
     )
     parser.add_argument(
         "--truncate",
@@ -270,7 +262,6 @@ def main() -> None:
             truncate=args.truncate,
             skip_sentinel_check=args.skip_sentinel_check,
             force=args.force,
-            keep_workspaces=args.keep_workspaces,
         )
     )
 
