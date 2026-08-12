@@ -104,7 +104,9 @@ users live in Sentinel and differ per developer. Your `SENTINEL_SERVICE_NAME`
 does not have to match the exporter's (`prot-cellar-dev` vs `prot-cellar-dev1`
 is fine): the importer registers the `protcellar:*` actions under *your* app
 name and fails fast if your `SENTINEL_*` env vars aren't valid for your
-Sentinel (`--skip-sentinel-check` to bypass). The import is atomic and refuses
+Sentinel (`--skip-sentinel-check` to bypass). If both installs point at the
+**same** Sentinel, pass `--keep-workspaces` instead of `--workspace` to import
+workspace ids verbatim. The import is atomic and refuses
 non-empty tables unless you pass `--truncate`. Operational history
 (`import_runs`, `import_uploads`, audit tables) is never exported.
 

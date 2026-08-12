@@ -132,18 +132,22 @@ async def import_data(
     truncate: bool,
     skip_sentinel_check: bool,
     force: bool,
+    keep_workspaces: bool = False,
 ) -> None:
+    if keep_workspaces and workspace is not None:
+        raise SystemExit("--keep-workspaces and --workspace are mutually exclusive.")
     with tarfile.open(archive) as tar:
         manifest = json.load(tar.extractfile(MANIFEST_NAME))  # type: ignore[arg-type]
 
-        if manifest["foreign_workspace_ids"] and workspace is None:
+        if manifest["foreign_workspace_ids"] and workspace is None and not keep_workspaces:
             raise SystemExit(
                 "Archive contains rows from non-shared workspace(s) "
                 f"{manifest['foreign_workspace_ids']}. Those workspace ids exist only "
                 "in the exporter's Sentinel — pass --workspace <uuid> with a workspace "
-                "id from YOUR Sentinel to adopt them."
+                "id from YOUR Sentinel to adopt them, or --keep-workspaces to import "
+                "them verbatim (only useful when both installs share a Sentinel)."
             )
-        if len(manifest["foreign_workspace_ids"]) > 1:
+        if workspace is not None and len(manifest["foreign_workspace_ids"]) > 1:
             print(
                 f"NOTE: collapsing {len(manifest['foreign_workspace_ids'])} source "
                 "workspaces into one; identical natural keys across them would abort "
@@ -237,6 +241,12 @@ def main() -> None:
         help="User UUID from YOUR Sentinel; rewrites created_by/assigned_by/enabled_by",
     )
     parser.add_argument(
+        "--keep-workspaces",
+        action="store_true",
+        help="Import non-shared workspace ids verbatim instead of remapping "
+        "(only useful when both installs share the same Sentinel)",
+    )
+    parser.add_argument(
         "--truncate",
         action="store_true",
         help="Delete existing rows from replicated tables before importing",
@@ -260,6 +270,7 @@ def main() -> None:
             truncate=args.truncate,
             skip_sentinel_check=args.skip_sentinel_check,
             force=args.force,
+            keep_workspaces=args.keep_workspaces,
         )
     )
 

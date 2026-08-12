@@ -145,6 +145,23 @@ async def test_export_import_round_trip(engine: AsyncEngine, tmp_path: Path) -> 
         assert tag.created_by == TARGET_USER  # user column rewritten
         assert tag.key == "stage" and tag.value == "hit"
 
+    # --keep-workspaces: same-Sentinel mirror, ids imported verbatim.
+    await import_data(
+        archive,
+        workspace=None,
+        user=None,
+        truncate=True,
+        skip_sentinel_check=True,
+        force=False,
+        keep_workspaces=True,
+    )
+    async with engine.connect() as conn:
+        tag = (
+            await conn.execute(select(TagModel.__table__).where(TagModel.__table__.c.id == TAG_ID))
+        ).one()
+        assert tag.workspace_id == SOURCE_WS
+        assert tag.created_by == SOURCE_USER
+
     async with engine.begin() as conn:
         await conn.execute(delete(TagModel.__table__))
         await conn.execute(
