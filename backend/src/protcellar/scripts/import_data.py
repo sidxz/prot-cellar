@@ -113,6 +113,10 @@ async def _check_sentinel() -> None:
     """
     settings = SentinelSettings()
     sentinel = create_sentinel(settings)
+    # Mirror the app's boot order (see sentinel.lifespan): whoami discovers
+    # realm membership and re-points the roles client at the realm scope —
+    # without it, registering under the bare app name 403s for realm members.
+    await sentinel.fetch_whoami()
     ok = await register_service_actions(sentinel)
     with contextlib.suppress(Exception):
         await sentinel.roles.close()
