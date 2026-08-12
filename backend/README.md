@@ -83,6 +83,31 @@ curl -s localhost:8001/api/v1/imports
 | `proteome`         | `proteome_id: str` (e.g. `"UP000001584"`)         | `force`, `dry_run`, `limit`           |
 | `gene_enrichment`  | `organism_id: UUID` or `tax_id: int`              | `gff_url`, `essentiality_upload_ref`  |
 
+## Replicating another developer's data
+
+Code comes from `main`; data (with identical UUIDs) comes from an archive a
+teammate exports:
+
+```bash
+# On the source machine
+uv run python -m protcellar.scripts.export_data -o protcellar-data.tar.gz
+
+# On your machine, after `alembic upgrade head`
+uv run python -m protcellar.scripts.import_data protcellar-data.tar.gz \
+    --workspace <your-workspace-uuid> [--user <your-user-uuid>] [--truncate]
+```
+
+Shared reference data (owned by the fixed `SHARED_WORKSPACE_ID`) imports
+unchanged. Rows from the exporter's private workspace(s) are adopted by
+`--workspace` — a workspace UUID from **your** Sentinel, since workspaces and
+users live in Sentinel and differ per developer. Your `SENTINEL_SERVICE_NAME`
+does not have to match the exporter's (`prot-cellar-dev` vs `prot-cellar-dev1`
+is fine): the importer registers the `protcellar:*` actions under *your* app
+name and fails fast if your `SENTINEL_*` env vars aren't valid for your
+Sentinel (`--skip-sentinel-check` to bypass). The import is atomic and refuses
+non-empty tables unless you pass `--truncate`. Operational history
+(`import_runs`, `import_uploads`, audit tables) is never exported.
+
 ## Development
 
 ```bash
