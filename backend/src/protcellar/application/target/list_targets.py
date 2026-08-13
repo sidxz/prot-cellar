@@ -24,6 +24,7 @@ class ListTargetsQuery(Query):
     limit: int | None = None
     target_type: TargetType | None = None
     chembl_id: str | None = None
+    component_protein_id: uuid.UUID | None = None
     tag_ids: tuple[uuid.UUID, ...] = ()
     match_all: bool = False
 
@@ -47,6 +48,7 @@ class ListTargets:
                 limit=fetch_limit,
                 target_type=input.target_type,
                 chembl_id=input.chembl_id,
+                component_protein_id=input.component_protein_id,
                 tag_ids=list(input.tag_ids),
                 match_all=input.match_all,
             )

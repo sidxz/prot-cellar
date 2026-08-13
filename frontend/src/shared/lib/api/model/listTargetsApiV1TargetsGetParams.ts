@@ -10,6 +10,7 @@ import type { ListTargetsApiV1TargetsGetTagLogic } from './listTargetsApiV1Targe
 export type ListTargetsApiV1TargetsGetParams = {
 target_type?: TargetType | null;
 chembl_id?: string | null;
+component_protein_id?: string | null;
 tags?: string[] | null;
 tag_logic?: ListTargetsApiV1TargetsGetTagLogic;
 cursor?: string | null;

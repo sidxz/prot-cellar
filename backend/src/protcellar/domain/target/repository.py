@@ -23,6 +23,7 @@ class TargetRepository(Protocol):
         limit: int | None = None,
         target_type: TargetType | None = None,
         chembl_id: str | None = None,
+        component_protein_id: uuid.UUID | None = None,
         tag_ids: list[uuid.UUID] | None = None,
         match_all: bool = False,
     ) -> list[Target]: ...

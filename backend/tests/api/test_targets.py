@@ -2,13 +2,17 @@ import pytest
 from httpx import AsyncClient
 
 
-async def _organism(client: AsyncClient) -> str:
+async def _organism(client: AsyncClient, tax_id: int = 9606) -> str:
     resp = await client.post(
         "/api/v1/organisms",
-        json={"ncbi_tax_id": 9606, "rank": "species", "scientific_name": "Homo sapiens"},
+        json={
+            "ncbi_tax_id": tax_id,
+            "rank": "species",
+            "scientific_name": f"Testus organismus {tax_id}",
+        },
     )
     if resp.status_code == 409:
-        return (await client.get("/api/v1/organisms/resolve/9606")).json()["id"]
+        return (await client.get(f"/api/v1/organisms/resolve/{tax_id}")).json()["id"]
     return resp.json()["id"]
 
 
@@ -141,3 +145,35 @@ async def test_patch_clearing_components_rejected(client: AsyncClient) -> None:
     # Clearing all components on a complex violates the cardinality invariant (>=2).
     cleared = await client.patch(f"/api/v1/targets/{tid}", json={"components": []})
     assert cleared.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_list_filters_by_component_protein_id(client: AsyncClient) -> None:
+    organism_id = await _organism(client, 993201)
+    p1 = await _protein(client, organism_id, "P93001")
+    p2 = await _protein(client, organism_id, "P93002")
+
+    t1 = await client.post(
+        "/api/v1/targets",
+        json={
+            "pref_name": "Filter target one",
+            "target_type": "single_protein",
+            "components": [{"protein_id": p1, "relationship": "single_protein"}],
+        },
+    )
+    assert t1.status_code == 201
+    t2 = await client.post(
+        "/api/v1/targets",
+        json={
+            "pref_name": "Filter target two",
+            "target_type": "single_protein",
+            "components": [{"protein_id": p2, "relationship": "single_protein"}],
+        },
+    )
+    assert t2.status_code == 201
+
+    resp = await client.get("/api/v1/targets", params={"component_protein_id": p1})
+    assert resp.status_code == 200
+    ids = {t["id"] for t in resp.json()["items"]}
+    assert t1.json()["id"] in ids
+    assert t2.json()["id"] not in ids
