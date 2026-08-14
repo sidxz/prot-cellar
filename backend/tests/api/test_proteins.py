@@ -143,6 +143,15 @@ async def test_create_get_fasta_and_resolve_protein(client: AsyncClient) -> None
     assert resolved.status_code == 200
     assert resolved.json()["primary_accession"] == "P12345"
 
+    # Resolve via UUID — what cross-service callers hold (daikon nominations)
+    by_id = await client.get(f"/api/v1/proteins/resolve/{body['id']}")
+    assert by_id.status_code == 200
+    assert by_id.json()["primary_accession"] == "P12345"
+
+    # An unknown UUID is a 404, never a fall-through to the accession pivots
+    missing = await client.get("/api/v1/proteins/resolve/00000000-0000-0000-0000-000000000009")
+    assert missing.status_code == 404
+
 
 @pytest.mark.asyncio
 async def test_list_item_projects_gene_names_structure_and_chem(client: AsyncClient) -> None:
