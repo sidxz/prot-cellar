@@ -177,3 +177,38 @@ async def test_list_filters_by_component_protein_id(client: AsyncClient) -> None
     ids = {t["id"] for t in resp.json()["items"]}
     assert t1.json()["id"] in ids
     assert t2.json()["id"] not in ids
+
+
+@pytest.mark.asyncio
+async def test_list_filters_by_organism_id(client: AsyncClient) -> None:
+    org_a = await _organism(client, 993301)
+    org_b = await _organism(client, 993302)
+    pa = await _protein(client, org_a, "P93301")
+    pb = await _protein(client, org_b, "P93302")
+
+    ta = await client.post(
+        "/api/v1/targets",
+        json={
+            "pref_name": "Organism-scoped target A",
+            "target_type": "single_protein",
+            "organism_id": org_a,
+            "components": [{"protein_id": pa, "relationship": "single_protein"}],
+        },
+    )
+    assert ta.status_code == 201
+    tb = await client.post(
+        "/api/v1/targets",
+        json={
+            "pref_name": "Organism-scoped target B",
+            "target_type": "single_protein",
+            "organism_id": org_b,
+            "components": [{"protein_id": pb, "relationship": "single_protein"}],
+        },
+    )
+    assert tb.status_code == 201
+
+    resp = await client.get("/api/v1/targets", params={"organism_id": org_a})
+    assert resp.status_code == 200
+    ids = {t["id"] for t in resp.json()["items"]}
+    assert ta.json()["id"] in ids
+    assert tb.json()["id"] not in ids

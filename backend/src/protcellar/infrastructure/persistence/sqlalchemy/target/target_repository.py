@@ -95,6 +95,7 @@ class SQLAlchemyTargetRepository(SQLAlchemyRepository[Target, TargetModel], Targ
         target_type: TargetType | None = None,
         chembl_id: str | None = None,
         component_protein_id: uuid.UUID | None = None,
+        organism_id: uuid.UUID | None = None,
         tag_ids: list[uuid.UUID] | None = None,
         match_all: bool = False,
     ) -> list[Target]:
@@ -111,6 +112,8 @@ class SQLAlchemyTargetRepository(SQLAlchemyRepository[Target, TargetModel], Targ
                     )
                 )
             )
+        if organism_id is not None:
+            stmt = stmt.where(TargetModel.organism_id == organism_id)
         if tag_ids:
             stmt = stmt.where(
                 TargetModel.id.in_(

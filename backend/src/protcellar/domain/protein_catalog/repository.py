@@ -78,6 +78,8 @@ class GeneRepository(Protocol):
 
 @runtime_checkable
 class ProteinRepository(Protocol):
+    async def find_readable(self, workspace_id: uuid.UUID, id: uuid.UUID) -> Protein | None: ...
+
     async def find_by_accession(
         self, accession: str, *, workspace_id: uuid.UUID = SHARED_WORKSPACE_ID
     ) -> Protein | None: ...

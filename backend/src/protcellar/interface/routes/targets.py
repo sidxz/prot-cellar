@@ -121,6 +121,7 @@ async def list_targets(
     target_type: TargetType | None = None,
     chembl_id: str | None = None,
     component_protein_id: uuid.UUID | None = None,
+    organism_id: uuid.UUID | None = None,
     tags: list[uuid.UUID] | None = Query(default=None),
     tag_logic: Literal["any", "all"] = "any",
     cursor: str | None = None,
@@ -133,6 +134,7 @@ async def list_targets(
         target_type=target_type,
         chembl_id=chembl_id,
         component_protein_id=component_protein_id,
+        organism_id=organism_id,
         tag_ids=tuple(tags) if tags else (),
         match_all=tag_logic == "all",
     )
