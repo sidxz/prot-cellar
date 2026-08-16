@@ -18,7 +18,7 @@ from protcellar.application.shared.unit_of_work import (
 from protcellar.infrastructure.logging import bind_user_context
 from protcellar.infrastructure.messaging.event_dispatcher import EventDispatcher
 from protcellar.infrastructure.persistence.unit_of_work import AsyncUnitOfWork
-from protcellar.infrastructure.sentinel.auth import get_sentinel
+from protcellar.infrastructure.duar.auth import get_duar
 
 __all__ = [
     "AuthDep",
@@ -51,41 +51,41 @@ def get_event_dispatcher(
     return container[EventDispatcher]
 
 
-# Sentinel auth dependency — stable wrapper so dependency_overrides work in tests.
-# Lazy init: don't crash at import time if Sentinel env vars aren't set.
-# Uses a reject-all stub when Sentinel is unavailable so auth is never bypassed.
+# Duar auth dependency — stable wrapper so dependency_overrides work in tests.
+# Lazy init: don't crash at import time if Duar env vars aren't set.
+# Uses a reject-all stub when Duar is unavailable so auth is never bypassed.
 
 
-async def _sentinel_not_configured() -> None:
-    """Stub dependency that rejects all requests when Sentinel is not configured."""
+async def _duar_not_configured() -> None:
+    """Stub dependency that rejects all requests when Duar is not configured."""
     from fastapi import HTTPException
 
     raise HTTPException(
         status_code=503,
-        detail="Sentinel auth not configured. Set SENTINEL_URL and SENTINEL_SERVICE_KEY.",
+        detail="Duar auth not configured. Set DUAR_URL and DUAR_SERVICE_KEY.",
     )
 
 
-# Sentinel is "configured" only when SENTINEL_SERVICE_KEY is explicitly set —
+# Duar is "configured" only when DUAR_SERVICE_KEY is explicitly set —
 # the pydantic-settings default ("") is a missing-config signal, not a usable
 # service key. The URL has a localhost default so dev still works; if you want
 # prod fail-fast on missing URL too, set it explicitly in the deployment env.
-_sentinel: object | None = None
-if not os.environ.get("SENTINEL_SERVICE_KEY"):
-    _sentinel_get_auth = _sentinel_not_configured
+_duar: object | None = None
+if not os.environ.get("DUAR_SERVICE_KEY"):
+    _duar_get_auth = _duar_not_configured
 else:
     try:
-        _sentinel = get_sentinel()
-        _sentinel_get_auth = _sentinel.get_auth  # type: ignore[union-attr]
+        _duar = get_duar()
+        _duar_get_auth = _duar.get_auth  # type: ignore[union-attr]
     except (ValueError, ValidationError):
-        # Sentinel env vars malformed — fall back to a reject-all stub.
-        _sentinel = None
-        _sentinel_get_auth = _sentinel_not_configured
+        # Duar env vars malformed — fall back to a reject-all stub.
+        _duar = None
+        _duar_get_auth = _duar_not_configured
 
 
 async def get_auth(
     request: Request,
-    auth: Annotated[Any, Depends(_sentinel_get_auth)],
+    auth: Annotated[Any, Depends(_duar_get_auth)],
 ) -> Any:
     """Stable auth dependency wrapper — overridable via dependency_overrides.
 

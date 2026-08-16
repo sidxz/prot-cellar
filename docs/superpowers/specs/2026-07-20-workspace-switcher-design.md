@@ -26,7 +26,7 @@ every interactive login.
 **Out of scope: an in-place switcher** — same reasons as the origin spec (short-lived
 memory-only IdP token; mid-session re-mint swaps the authz token under other open tabs).
 
-**Refresh continuity needs no work** — same SDK (`@sentinel-auth/*` 0.17), silent reauth
+**Refresh continuity needs no work** — same SDK (`@duar-auth/*` 0.17), silent reauth
 re-mints the persisted workspace.
 
 ## ProtCellar deltas vs the origin design

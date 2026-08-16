@@ -38,7 +38,7 @@ Next.js + TanStack Query + shadcn on the frontend.
   `mypy src` reports 52 errors across 12 files. `make test-api` has 2 pre-existing order-dependent
   failures (`test_organisms.py`, `test_plugin_run.py`) that pass in isolation. `make test` is clean
   at 363. `make test-fe` 297, `tsc --noEmit` clean, `make lint-fe` 8 pre-existing warnings in
-  `data-grid.tsx`. `alembic/` is outside the lint path. Unstaged `sentinel-auth-sdk` bumps in
+  `data-grid.tsx`. `alembic/` is outside the lint path. Unstaged `duar-auth` bumps in
   `backend/pyproject.toml`, `uv.lock`, `frontend/package.json`, `frontend/pnpm-lock.yaml` predate
   this branch — leave them unstaged.
 - **`interface/routes/target_biology.py` carries concurrent history** from another session (commit

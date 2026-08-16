@@ -6,8 +6,8 @@ identical. Code comes from `main`; data comes from an archive.
 ## 0. Prerequisites
 
 - Repo cloned, `make install` done, stack running (`make up`).
-- `backend/.env` filled in with **your own** Sentinel app registration
-  (`SENTINEL_URL`, `SENTINEL_SERVICE_NAME`, `SENTINEL_SERVICE_KEY`). Your app
+- `backend/.env` filled in with **your own** Duar app registration
+  (`DUAR_URL`, `DUAR_SERVICE_NAME`, `DUAR_SERVICE_KEY`). Your app
   name does not need to match the exporter's.
 
 ## 1. Exporter: create the archive
@@ -41,9 +41,9 @@ import refuses to touch a non-empty database.
 | Flag | When to use |
 |------|-------------|
 | `--truncate` | Your DB already has data you want replaced. |
-| `--workspace <uuid>` | Only if your Sentinel is a **different install** than the exporter's: adopts their private-workspace rows into a workspace of yours. Same shared Sentinel → omit. |
+| `--workspace <uuid>` | Only if your Duar is a **different install** than the exporter's: adopts their private-workspace rows into a workspace of yours. Same shared Duar → omit. |
 | `--user <uuid>` | With `--workspace`, also take ownership of tag/user columns. |
-| `--skip-sentinel-check` | Import without contacting Sentinel at all. |
+| `--skip-duar-check` | Import without contacting Duar at all. |
 | `--force` | Import despite a schema-revision mismatch (know what you're doing). |
 
 ## Troubleshooting
@@ -52,9 +52,9 @@ import refuses to touch a non-empty database.
 - **"Schema mismatch"** → `git pull` + `make migrate` on whichever side is
   behind, then re-export/re-import.
 - **"Target tables not empty"** → add `--truncate`.
-- **"Sentinel check failed" (403/401)** → your `SENTINEL_*` values in
-  `backend/.env` don't match a service app registered in your Sentinel; check
+- **"Duar check failed" (403/401)** → your `DUAR_*` values in
+  `backend/.env` don't match a service app registered in your Duar; check
   the admin panel that the key belongs to that app name. To proceed without
-  Sentinel, add `--skip-sentinel-check`.
+  Duar, add `--skip-duar-check`.
 
 The import is atomic — if anything fails, nothing is written.

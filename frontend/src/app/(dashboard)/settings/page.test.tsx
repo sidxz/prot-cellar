@@ -28,7 +28,7 @@ function renderPage() {
   const config = {
     apiBaseUrl: "",
     appUrl: "",
-    sentinelUrl: "",
+    duarUrl: "",
     serviceName: "protcellar",
     idp: {
       googleClientId: "",

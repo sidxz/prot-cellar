@@ -45,7 +45,7 @@ new tables are covered automatically):
   native JSON.
 - `manifest.json` records: `schema_rev` (from `alembic_version`), per-table row
   counts, the distinct **non-shared** `workspace_id` values found, the source
-  `SENTINEL_SERVICE_NAME` (informational), and the excluded table names.
+  `DUAR_SERVICE_NAME` (informational), and the excluded table names.
 
 ## Import
 
@@ -54,13 +54,13 @@ Preflight, in order:
 1. **Schema**: target `alembic_version` must equal the manifest's
    `schema_rev`; otherwise exit telling the dev to `git pull && alembic
    upgrade head` (`--force` overrides). Missing tables → same message.
-2. **Sentinel** (skip with `--skip-sentinel-check`): build the SDK client from
-   the dev's *own* `.env` (`SENTINEL_URL`, `SENTINEL_SERVICE_NAME`,
-   `SENTINEL_SERVICE_KEY`) and call the existing
+2. **Sentinel** (skip with `--skip-duar-check`): build the SDK client from
+   the dev's *own* `.env` (`DUAR_URL`, `DUAR_SERVICE_NAME`,
+   `DUAR_SERVICE_KEY`) and call the existing
    `register_service_actions()`. Success proves their app registration
    (whatever its name) is valid *and* registers the `protcellar:*` RBAC
    actions under it — the only thing prot-cellar ever registers in Sentinel.
-   Failure exits with a pointer to the `SENTINEL_*` variables and the admin
+   Failure exits with a pointer to the `DUAR_*` variables and the admin
    panel.
 3. **Workspace remap**: rows owned by `SHARED_WORKSPACE_ID` (a `uuid5`
    constant, identical in every install) import unchanged. Any other

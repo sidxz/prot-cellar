@@ -117,7 +117,7 @@ async def test_export_import_round_trip(engine: AsyncEngine, tmp_path: Path) -> 
             workspace=TARGET_WS,
             user=TARGET_USER,
             truncate=False,
-            skip_sentinel_check=True,
+            skip_duar_check=True,
             force=False,
         )
 
@@ -126,7 +126,7 @@ async def test_export_import_round_trip(engine: AsyncEngine, tmp_path: Path) -> 
         workspace=TARGET_WS,
         user=TARGET_USER,
         truncate=True,
-        skip_sentinel_check=True,
+        skip_duar_check=True,
         force=False,
     )
 
@@ -145,13 +145,13 @@ async def test_export_import_round_trip(engine: AsyncEngine, tmp_path: Path) -> 
         assert tag.created_by == TARGET_USER  # user column rewritten
         assert tag.key == "stage" and tag.value == "hit"
 
-    # Default (no --workspace/--user): same-Sentinel mirror, ids imported verbatim.
+    # Default (no --workspace/--user): same-Duar mirror, ids imported verbatim.
     await import_data(
         archive,
         workspace=None,
         user=None,
         truncate=True,
-        skip_sentinel_check=True,
+        skip_duar_check=True,
         force=False,
     )
     async with engine.connect() as conn:

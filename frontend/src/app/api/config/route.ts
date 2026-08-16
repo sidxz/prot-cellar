@@ -14,21 +14,21 @@
  *
  * Env var mapping (ProtCellar → ChemCellar equivalent):
  *   APP_API_BASE_URL          ← chem: APP_API_URL
- *   APP_SENTINEL_GOOGLE_CLIENT_ID  ← chem: APP_GOOGLE_CLIENT_ID
- *   APP_SENTINEL_ENTRA_CLIENT_ID   ← chem: APP_ENTRA_ID_CLIENT_ID
- *   APP_SENTINEL_ENTRA_TENANT_ID   ← chem: APP_ENTRA_ID_TENANT_ID
- *   APP_SENTINEL_SERVICE_NAME      ← chem: (no equivalent, new)
+ *   APP_DUAR_GOOGLE_CLIENT_ID  ← chem: APP_GOOGLE_CLIENT_ID
+ *   APP_DUAR_ENTRA_CLIENT_ID   ← chem: APP_ENTRA_ID_CLIENT_ID
+ *   APP_DUAR_ENTRA_TENANT_ID   ← chem: APP_ENTRA_ID_TENANT_ID
+ *   APP_DUAR_SERVICE_NAME      ← chem: (no equivalent, new)
  */
 export function GET() {
   return Response.json({
     apiBaseUrl: process.env.APP_API_BASE_URL ?? "http://localhost:8001",
     appUrl: process.env.APP_URL ?? "http://localhost:3001",
-    sentinelUrl: process.env.APP_SENTINEL_URL ?? "http://localhost:9003",
-    serviceName: process.env.APP_SENTINEL_SERVICE_NAME ?? "protcellar",
+    duarUrl: process.env.APP_DUAR_URL ?? "http://localhost:9003",
+    serviceName: process.env.APP_DUAR_SERVICE_NAME ?? "protcellar",
     idp: {
-      googleClientId: process.env.APP_SENTINEL_GOOGLE_CLIENT_ID ?? "",
-      entraClientId: process.env.APP_SENTINEL_ENTRA_CLIENT_ID ?? "",
-      entraTenantId: process.env.APP_SENTINEL_ENTRA_TENANT_ID ?? "",
+      googleClientId: process.env.APP_DUAR_GOOGLE_CLIENT_ID ?? "",
+      entraClientId: process.env.APP_DUAR_ENTRA_CLIENT_ID ?? "",
+      entraTenantId: process.env.APP_DUAR_ENTRA_TENANT_ID ?? "",
     },
     // Build identity (image-specific) + runtime environment (env-specific).
     uiVersion: process.env.APP_VERSION || "0.0.0+dev",

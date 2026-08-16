@@ -5,7 +5,7 @@ const replace = vi.fn();
 vi.mock("next/navigation", () => ({ useRouter: () => ({ replace }) }));
 
 const useAuthzMock = vi.fn();
-vi.mock("@sentinel-auth/nextjs", () => ({ useAuthz: () => useAuthzMock() }));
+vi.mock("@duar-auth/nextjs", () => ({ useAuthz: () => useAuthzMock() }));
 
 // Stub the heavy chrome so the test only exercises the auth gate.
 vi.mock("@/shared/components/layout/app-sidebar", () => ({

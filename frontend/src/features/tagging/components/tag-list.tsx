@@ -6,7 +6,7 @@ import { useState } from "react";
 import { TagChip } from "@/shared/components/tag-chip";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
-import { useAuthzHasRole } from "@sentinel-auth/nextjs";
+import { useAuthzHasRole } from "@duar-auth/nextjs";
 
 import { useDeleteTag, useTags } from "../hooks/use-tags";
 import type { Tag } from "../types";

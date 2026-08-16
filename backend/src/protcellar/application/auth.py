@@ -10,7 +10,7 @@ from protcellar.domain.shared.errors import AuthorizationError, NotFoundError
 
 @runtime_checkable
 class AuthContext(Protocol):
-    """Auth context available to use cases. Satisfied by Sentinel's RequestAuth."""
+    """Auth context available to use cases. Satisfied by Duar's RequestAuth."""
 
     @property
     def user_id(self) -> uuid.UUID: ...

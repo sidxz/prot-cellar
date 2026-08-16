@@ -1,9 +1,9 @@
-"""register_service_actions is best-effort: a slow/locked Sentinel must not
+"""register_service_actions is best-effort: a slow/locked Duar must not
 block application boot (the failure mode that caused startup ReadTimeout)."""
 
 import httpx
 
-from protcellar.infrastructure.sentinel import auth
+from protcellar.infrastructure.duar import auth
 
 
 class _Roles:
@@ -18,25 +18,25 @@ class _Roles:
         return list(actions)
 
 
-class _Sentinel:
+class _Duar:
     def __init__(self, exc: Exception | None = None) -> None:
         self.roles = _Roles(exc)
 
 
 async def test_successful_registration_returns_true():
-    sentinel = _Sentinel()
-    assert await auth.register_service_actions(sentinel) is True
-    assert sentinel.roles.calls == 1
+    duar = _Duar()
+    assert await auth.register_service_actions(duar) is True
+    assert duar.roles.calls == 1
 
 
 async def test_readtimeout_is_swallowed_so_boot_continues():
-    # The exact production failure: Sentinel accepts the connection but the
+    # The exact production failure: Duar accepts the connection but the
     # registration POST never returns within the SDK timeout.
-    sentinel = _Sentinel(exc=httpx.ReadTimeout("sentinel hung"))
-    assert await auth.register_service_actions(sentinel) is False
-    assert sentinel.roles.calls == 1
+    duar = _Duar(exc=httpx.ReadTimeout("duar hung"))
+    assert await auth.register_service_actions(duar) is False
+    assert duar.roles.calls == 1
 
 
 async def test_arbitrary_error_is_swallowed():
-    sentinel = _Sentinel(exc=RuntimeError("unexpected"))
-    assert await auth.register_service_actions(sentinel) is False
+    duar = _Duar(exc=RuntimeError("unexpected"))
+    assert await auth.register_service_actions(duar) is False

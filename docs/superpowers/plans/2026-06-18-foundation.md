@@ -6,7 +6,7 @@
 
 **Architecture:** Copy chem-cellar's (`~/workspace/chem-vault2`) layered architecture verbatim, renaming the Python package `cellar` → `protcellar` and dropping all chemistry-specific dependencies (RDKit, ChEMBL pipeline, Temporal, lmfit, weasyprint, umap, etc.). Layers: `domain → application → infrastructure → interface`, enforced by import-linter. Use cases return `Result[T, DomainError]` (dry-python `returns`); persistence uses SQLAlchemy 2.0 async with optimistic concurrency; DI via Lagom; sync domain events dispatched post-commit; auth delegated to Sentinel.
 
-**Tech Stack:** Python 3.13+, FastAPI, SQLAlchemy 2.0 async (asyncpg), PostgreSQL 16, Pydantic v2 + pydantic-settings, Alembic, Lagom, dry-python `returns`, sentinel-auth-sdk, structlog, Valkey (redis-py), `uv` package manager, pytest + pytest-asyncio + testcontainers, ruff, mypy (strict + returns plugin), import-linter.
+**Tech Stack:** Python 3.13+, FastAPI, SQLAlchemy 2.0 async (asyncpg), PostgreSQL 16, Pydantic v2 + pydantic-settings, Alembic, Lagom, dry-python `returns`, duar-auth, structlog, Valkey (redis-py), `uv` package manager, pytest + pytest-asyncio + testcontainers, ruff, mypy (strict + returns plugin), import-linter.
 
 ## Global Constraints
 
@@ -95,7 +95,7 @@ dependencies = [
     "pydantic-settings>=2.7.0",
     "lagom>=2.7.0",
     "returns>=0.23.0",
-    "sentinel-auth-sdk>=0.11.0",
+    "duar-auth>=0.11.0",
     "pyjwt[crypto]>=2.10.0",
     "httpx>=0.28.0",
     "redis>=5.2.0",
@@ -211,7 +211,7 @@ ignore_missing_imports = true
 [mypy-lagom.*]
 ignore_missing_imports = true
 
-[mypy-sentinel_auth.*]
+[mypy-duar_auth.*]
 ignore_missing_imports = true
 ```
 
@@ -814,13 +814,13 @@ git commit -m "feat(shared): CrossReference VO, identifier registry, sync event 
 ### Task 6: Sentinel auth integration + DI container scaffold
 
 **Files:**
-- Create: `backend/src/protcellar/infrastructure/sentinel/settings.py`, `auth.py`
+- Create: `backend/src/protcellar/infrastructure/duar/settings.py`, `auth.py`
 - Create: `backend/src/protcellar/infrastructure/di/container.py`
 - Create: `backend/src/protcellar/infrastructure/logging/{__init__.py,settings.py,config.py}`
 
 **Interfaces:**
 - Consumes: `DatabaseSettings`, `create_engine_and_sessionmaker`, `EventDispatcher`.
-- Produces: `SentinelSettings`; `get_sentinel() -> Sentinel` (authz mode, registers `SERVICE_ACTIONS`); `create_container() -> lagom.Container` binding `DatabaseSettings`, `AsyncEngine`, `async_sessionmaker`, `EventDispatcher` (singleton), `IdentifierRegistry` (singleton); `configure_logging()`.
+- Produces: `DuarSettings`; `get_duar() -> Sentinel` (authz mode, registers `SERVICE_ACTIONS`); `create_container() -> lagom.Container` binding `DatabaseSettings`, `AsyncEngine`, `async_sessionmaker`, `EventDispatcher` (singleton), `IdentifierRegistry` (singleton); `configure_logging()`.
 
 - [ ] **Step 1: Port `sentinel/settings.py`** verbatim with `service_name = "protcellar"`:
 
@@ -832,8 +832,8 @@ from __future__ import annotations
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
-class SentinelSettings(BaseSettings):
-    model_config = SettingsConfigDict(env_prefix="SENTINEL_", env_file=".env")
+class DuarSettings(BaseSettings):
+    model_config = SettingsConfigDict(env_prefix="DUAR_", env_file=".env")
 
     url: str = "http://localhost:9003"
     service_name: str = "protcellar"
@@ -844,7 +844,7 @@ class SentinelSettings(BaseSettings):
     cache_ttl: float = 120
 ```
 
-- [ ] **Step 2: Write `sentinel/auth.py`** — port chem-cellar's pattern (`create_sentinel` + a module-level `get_sentinel()` singleton accessor + `SERVICE_ACTIONS`), with bio-appropriate actions. Read `/Users/sidx/workspace/chem-vault2/backend/src/cellar/infrastructure/sentinel/auth.py` for the exact `Sentinel(...)` constructor call and `get_sentinel` shape. Define:
+- [ ] **Step 2: Write `sentinel/auth.py`** — port chem-cellar's pattern (`create_duar` + a module-level `get_duar()` singleton accessor + `SERVICE_ACTIONS`), with bio-appropriate actions. Read `/Users/sidx/workspace/chem-vault2/backend/src/cellar/infrastructure/duar/auth.py` for the exact `Sentinel(...)` constructor call and `get_duar` shape. Define:
 
 ```python
 SERVICE_ACTIONS = [
@@ -862,12 +862,12 @@ SERVICE_ACTIONS = [
 - [ ] **Step 5: Verify import + type-check**
 
 Run: `uv run python -c "from protcellar.infrastructure.di.container import create_container"` (will require env or defaults — if it constructs the engine eagerly, guard construction so import alone doesn't need `DATABASE_URL`; bind via factory lambdas as chem-cellar does).
-Run: `uv run mypy src/protcellar/infrastructure/sentinel src/protcellar/infrastructure/di` → no errors.
+Run: `uv run mypy src/protcellar/infrastructure/duar src/protcellar/infrastructure/di` → no errors.
 
 - [ ] **Step 6: Commit**
 
 ```bash
-git add backend/src/protcellar/infrastructure/sentinel \
+git add backend/src/protcellar/infrastructure/duar \
         backend/src/protcellar/infrastructure/di \
         backend/src/protcellar/infrastructure/logging
 git commit -m "feat(infra): Sentinel auth integration, logging, Lagom DI container scaffold"
@@ -882,7 +882,7 @@ git commit -m "feat(infra): Sentinel auth integration, logging, Lagom DI contain
 - Test: `backend/tests/api/test_health.py`
 
 **Interfaces:**
-- Consumes: `create_container`, `get_sentinel`, `configure_logging`, `EventDispatcher`, `AuditEventHandler` (added in Task 9 — bootstrap wires it conditionally/after Task 9), `register_error_handlers`, `build_info`.
+- Consumes: `create_container`, `get_duar`, `configure_logging`, `EventDispatcher`, `AuditEventHandler` (added in Task 9 — bootstrap wires it conditionally/after Task 9), `register_error_handlers`, `build_info`.
 - Produces: `create_app() -> FastAPI` and module-level `app`; `register_error_handlers(app)`; `result_to_response(result)`; `GET /health`, `GET /version`.
 
 - [ ] **Step 1: Port `interface/error_handlers.py`** verbatim with rename (the `register_error_handlers` + `result_to_response` + `result_value_or_error` shown in chem-cellar's `interface/error_handlers.py`). Drop nothing — all error types map cleanly.
@@ -941,14 +941,14 @@ from protcellar.infrastructure.di.container import create_container
 from protcellar.infrastructure.logging import configure_logging
 from protcellar.infrastructure.messaging.audit_event_handler import AuditEventHandler
 from protcellar.infrastructure.messaging.event_dispatcher import EventDispatcher
-from protcellar.infrastructure.sentinel.auth import get_sentinel
+from protcellar.infrastructure.duar.auth import get_duar
 from protcellar.interface.error_handlers import register_error_handlers
 from protcellar.interface.middleware.request_context import RequestContextMiddleware
 from protcellar.version import build_info
 
 
 def create_app() -> FastAPI:
-    sentinel = get_sentinel()
+    sentinel = get_duar()
 
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
@@ -1271,10 +1271,10 @@ DATABASE_URL=postgresql+asyncpg://protcellar:protcellar@localhost:5433/protcella
 CORS_ORIGINS=http://localhost:3000
 APP_ENV=development
 # Sentinel (point at the same identity-service as chem-cellar)
-SENTINEL_URL=http://localhost:9003
-SENTINEL_SERVICE_NAME=protcellar
-SENTINEL_SERVICE_KEY=
-SENTINEL_IDP_AUDIENCE=
+DUAR_URL=http://localhost:9003
+DUAR_SERVICE_NAME=protcellar
+DUAR_SERVICE_KEY=
+DUAR_IDP_AUDIENCE=
 ```
 
 - [ ] **Step 5: Write the `Makefile`** (trimmed from chem-cellar):

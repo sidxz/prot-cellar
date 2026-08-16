@@ -6,7 +6,7 @@
 
 **Architecture:** Frontend-only. Spec: `docs/superpowers/specs/2026-07-20-workspace-switcher-design.md`. The code below is the final, review-hardened chem-vault2 implementation (StrictMode guard included) with one delta: the localStorage key is `pc-last-workspace-id`. ProtCellar's `header.tsx`, `header.test.tsx`, and the callback picker markup are byte-identical to chem-vault2's pre-change versions, so the ported code applies verbatim.
 
-**Tech Stack:** Next.js App Router, React 19, `@sentinel-auth/nextjs` 0.17 (authz mode), shadcn/ui, Vitest + @testing-library/react, Biome.
+**Tech Stack:** Next.js App Router, React 19, `@duar-auth/nextjs` 0.17 (authz mode), shadcn/ui, Vitest + @testing-library/react, Biome.
 
 ## Global Constraints
 
@@ -30,7 +30,7 @@
 - Modify: `frontend/src/app/auth/callback/page.tsx` (import block lines 3–8; render prop lines 62–82)
 
 **Interfaces:**
-- Consumes: `AuthzWorkspaceSelectorProps` from `@sentinel-auth/nextjs` — `{ workspaces: {id,name,slug,role}[]; onSelect: (workspaceId: string) => void; isLoading: boolean }`.
+- Consumes: `AuthzWorkspaceSelectorProps` from `@duar-auth/nextjs` — `{ workspaces: {id,name,slug,role}[]; onSelect: (workspaceId: string) => void; isLoading: boolean }`.
 - Produces (Task 2 relies on these exact names): `rememberedWorkspace(): string | null`, `rememberWorkspace(id: string): void`, `forgetWorkspace(): void` from `@/shared/lib/auth/workspace-memory`; `WorkspaceSelector` from `./workspace-selector`.
 
 - [ ] **Step 1: Write the failing test**
@@ -39,7 +39,7 @@ Create `frontend/src/app/auth/callback/workspace-selector.test.tsx`:
 
 ```tsx
 import { fireEvent, render, screen } from "@testing-library/react";
-import type { AuthzWorkspaceSelectorProps } from "@sentinel-auth/nextjs";
+import type { AuthzWorkspaceSelectorProps } from "@duar-auth/nextjs";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { WorkspaceSelector } from "./workspace-selector";
@@ -140,7 +140,7 @@ Create `frontend/src/app/auth/callback/workspace-selector.tsx`. The picker marku
 ```tsx
 "use client";
 
-import type { AuthzWorkspaceSelectorProps } from "@sentinel-auth/nextjs";
+import type { AuthzWorkspaceSelectorProps } from "@duar-auth/nextjs";
 import { useEffect, useRef, useState } from "react";
 
 import { Button } from "@/shared/components/ui/button";
@@ -220,7 +220,7 @@ In `frontend/src/app/auth/callback/page.tsx`, replace the import block (lines 3�
 import { ProteinFold } from "@/shared/components/backgrounds/protein-fold";
 import { LogoMark } from "@/shared/components/ui/logo-mark";
 import { Skeleton } from "@/shared/components/ui/skeleton";
-import { AuthzCallback } from "@sentinel-auth/nextjs";
+import { AuthzCallback } from "@duar-auth/nextjs";
 import { useRouter } from "next/navigation";
 import { WorkspaceSelector } from "./workspace-selector";
 ```
@@ -277,7 +277,7 @@ import { Header } from "./header";
 
 const logoutMock = vi.fn();
 
-vi.mock("@sentinel-auth/nextjs", () => ({
+vi.mock("@duar-auth/nextjs", () => ({
   useAuthz: () => ({
     user: { name: "Ada Lovelace", email: "ada@example.com" },
     logout: logoutMock,
@@ -340,7 +340,7 @@ Replace the entire contents of `frontend/src/shared/components/layout/header.tsx
 ```tsx
 "use client";
 
-import { useAuthz } from "@sentinel-auth/nextjs";
+import { useAuthz } from "@duar-auth/nextjs";
 import { Building2, ChevronDown, LogOut, Search } from "lucide-react";
 
 import { Avatar, AvatarFallback } from "@/shared/components/ui/avatar";

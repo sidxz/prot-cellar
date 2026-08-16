@@ -1,4 +1,4 @@
-"""FastAPI application factory: Sentinel auth, DI container, error handlers."""
+"""FastAPI application factory: Duar auth, DI container, error handlers."""
 
 from __future__ import annotations
 
@@ -16,8 +16,8 @@ from protcellar.infrastructure.di.container import create_container
 from protcellar.infrastructure.logging import configure_logging
 from protcellar.infrastructure.messaging.audit_event_handler import AuditEventHandler
 from protcellar.infrastructure.messaging.event_dispatcher import EventDispatcher
-from protcellar.infrastructure.sentinel.auth import (
-    get_sentinel,
+from protcellar.infrastructure.duar.auth import (
+    get_duar,
     register_service_actions,
 )
 from protcellar.interface.error_handlers import register_error_handlers
@@ -26,7 +26,7 @@ from protcellar.version import build_info
 
 
 def create_app() -> FastAPI:
-    sentinel = get_sentinel()
+    duar = get_duar()
 
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
@@ -44,11 +44,11 @@ def create_app() -> FastAPI:
         # (infrastructure/ingestion/worker.py) — register in BOTH or bulk imports won't
         # publish. See docs/superpowers/specs/2026-07-21-cross-service-event-notifications-decision.md
 
-        # sentinel.lifespan fetches the JWKS signing key (fatal if it fails —
+        # duar.lifespan fetches the JWKS signing key (fatal if it fails —
         # auth can't work without it). Action registration is best-effort and
         # must not block boot, so it lives here rather than in the SDK lifespan.
-        async with sentinel.lifespan(app):
-            await register_service_actions(sentinel)
+        async with duar.lifespan(app):
+            await register_service_actions(duar)
             yield
 
         enq = container[JobEnqueuer]  # type: ignore[type-abstract]
@@ -67,7 +67,7 @@ def create_app() -> FastAPI:
         lifespan=lifespan,
     )
 
-    sentinel.protect(app, exclude_paths=["/health", "/version", "/docs", "/openapi.json"])
+    duar.protect(app, exclude_paths=["/health", "/version", "/docs", "/openapi.json"])
 
     import os
 

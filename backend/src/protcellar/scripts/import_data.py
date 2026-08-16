@@ -1,20 +1,20 @@
 """CLI: restore an archive produced by ``export_data.py`` into this developer's database.
 
 Every entity keeps its original UUID, and by default workspace/user ids import
-verbatim — right whenever both installs talk to the same Sentinel. If your
-Sentinel is a different install (its workspace and user UUIDs differ), pass
-``--workspace``/``--user`` with ids from *your* Sentinel: non-shared rows are
+verbatim — right whenever both installs talk to the same Duar. If your
+Duar is a different install (its workspace and user UUIDs differ), pass
+``--workspace``/``--user`` with ids from *your* Duar: non-shared rows are
 reassigned to them, while rows of the shared reference workspace always import
 unchanged (that id is the same deterministic constant everywhere).
 
 Before touching the database the importer registers the ``protcellar:*`` RBAC
-actions in your Sentinel under *your* app name (``SENTINEL_SERVICE_NAME``) —
-the one piece of prot-cellar state that lives in Sentinel — which doubles as
+actions in your Duar under *your* app name (``DUAR_SERVICE_NAME``) —
+the one piece of prot-cellar state that lives in Duar — which doubles as
 proof that your service name/key are actually registered there.
 
 Usage:
     uv run python -m protcellar.scripts.import_data archive.tar.gz \
-        [--workspace UUID] [--user UUID] [--truncate] [--skip-sentinel-check] [--force]
+        [--workspace UUID] [--user UUID] [--truncate] [--skip-duar-check] [--force]
 """
 
 from __future__ import annotations
@@ -35,12 +35,12 @@ from sqlalchemy.ext.asyncio import AsyncConnection, create_async_engine
 
 from protcellar.domain.shared.global_workspace import SHARED_WORKSPACE_ID
 from protcellar.infrastructure.persistence.settings import DatabaseSettings
-from protcellar.infrastructure.sentinel.auth import create_sentinel, register_service_actions
-from protcellar.infrastructure.sentinel.settings import SentinelSettings
+from protcellar.infrastructure.duar.auth import create_duar, register_service_actions
+from protcellar.infrastructure.duar.settings import DuarSettings
 from protcellar.scripts.export_data import MANIFEST_NAME, replicated_tables
 
 _BATCH_SIZE = 1000
-# Sentinel user-UUID columns present in replicated tables (audit tables, which
+# Duar user-UUID columns present in replicated tables (audit tables, which
 # hold user_id, are never exported).
 _USER_COLUMNS = {"created_by", "assigned_by", "enabled_by"}
 
@@ -105,28 +105,28 @@ async def _check_schema(conn: AsyncConnection, manifest: dict[str, Any], force: 
         )
 
 
-async def _check_sentinel() -> None:
-    """Register our RBAC actions under this developer's own Sentinel app.
+async def _check_duar() -> None:
+    """Register our RBAC actions under this developer's own Duar app.
 
-    Failure means their SENTINEL_* env vars don't match a registered service
-    app in their Sentinel — the exact misconfiguration this catches early.
+    Failure means their DUAR_* env vars don't match a registered service
+    app in their Duar — the exact misconfiguration this catches early.
     """
-    settings = SentinelSettings()
-    sentinel = create_sentinel(settings)
-    # Mirror the app's boot order (see sentinel.lifespan): whoami discovers
+    settings = DuarSettings()
+    duar = create_duar(settings)
+    # Mirror the app's boot order (see duar.lifespan): whoami discovers
     # realm membership and re-points the roles client at the realm scope —
     # without it, registering under the bare app name 403s for realm members.
-    await sentinel.fetch_whoami()
-    ok = await register_service_actions(sentinel)
+    await duar.fetch_whoami()
+    ok = await register_service_actions(duar)
     with contextlib.suppress(Exception):
-        await sentinel.roles.close()
+        await duar.roles.close()
     if not ok:
         raise SystemExit(
-            f"Sentinel check failed: could not register service actions at "
+            f"Duar check failed: could not register service actions at "
             f"{settings.url} as '{settings.service_name}'.\n"
-            "Verify SENTINEL_URL / SENTINEL_SERVICE_NAME / SENTINEL_SERVICE_KEY in "
-            "backend/.env match your own Sentinel app registration (your app name "
-            "need not match the exporter's). Or pass --skip-sentinel-check."
+            "Verify DUAR_URL / DUAR_SERVICE_NAME / DUAR_SERVICE_KEY in "
+            "backend/.env match your own Duar app registration (your app name "
+            "need not match the exporter's). Or pass --skip-duar-check."
         )
 
 
@@ -135,7 +135,7 @@ async def import_data(
     workspace: uuid.UUID | None,
     user: uuid.UUID | None,
     truncate: bool,
-    skip_sentinel_check: bool,
+    skip_duar_check: bool,
     force: bool,
 ) -> None:
     with tarfile.open(archive) as tar:
@@ -144,9 +144,9 @@ async def import_data(
         if manifest["foreign_workspace_ids"] and workspace is None:
             print(
                 "NOTE: importing non-shared workspace id(s) "
-                f"{manifest['foreign_workspace_ids']} verbatim. If your Sentinel is not "
+                f"{manifest['foreign_workspace_ids']} verbatim. If your Duar is not "
                 "the exporter's, those rows will be invisible until you re-import with "
-                "--workspace <uuid> from YOUR Sentinel."
+                "--workspace <uuid> from YOUR Duar."
             )
         if workspace is not None and len(manifest["foreign_workspace_ids"]) > 1:
             print(
@@ -158,9 +158,9 @@ async def import_data(
         if unknown:
             print(f"WARNING: archive tables unknown to this code, skipped: {sorted(unknown)}")
 
-        if not skip_sentinel_check:
-            await _check_sentinel()
-            print("Sentinel: service actions registered OK")
+        if not skip_duar_check:
+            await _check_duar()
+            print("Duar: service actions registered OK")
 
         engine = create_async_engine(DatabaseSettings().database_url)  # type: ignore[call-arg]
         try:
@@ -234,13 +234,13 @@ def main() -> None:
     parser.add_argument(
         "--workspace",
         type=uuid.UUID,
-        help="Remap all non-shared rows to this workspace UUID from YOUR Sentinel "
+        help="Remap all non-shared rows to this workspace UUID from YOUR Duar "
         "(default: keep workspace ids verbatim)",
     )
     parser.add_argument(
         "--user",
         type=uuid.UUID,
-        help="User UUID from YOUR Sentinel; rewrites created_by/assigned_by/enabled_by",
+        help="User UUID from YOUR Duar; rewrites created_by/assigned_by/enabled_by",
     )
     parser.add_argument(
         "--truncate",
@@ -248,9 +248,9 @@ def main() -> None:
         help="Delete existing rows from replicated tables before importing",
     )
     parser.add_argument(
-        "--skip-sentinel-check",
+        "--skip-duar-check",
         action="store_true",
-        help="Skip verifying/registering this app against your Sentinel",
+        help="Skip verifying/registering this app against your Duar",
     )
     parser.add_argument(
         "--force",
@@ -264,7 +264,7 @@ def main() -> None:
             workspace=args.workspace,
             user=args.user,
             truncate=args.truncate,
-            skip_sentinel_check=args.skip_sentinel_check,
+            skip_duar_check=args.skip_duar_check,
             force=args.force,
         )
     )

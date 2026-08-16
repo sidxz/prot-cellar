@@ -6,7 +6,7 @@
 
 **Architecture:** Fresh Next 16 / React 19 app under `frontend/`, feature-sliced (`app/`, `features/`, `shared/`), mirroring chem-cellar's frontend (`~/workspace/chem-vault2/frontend`). Port chem-cellar's shared plumbing verbatim where it is domain-neutral; write novel code (design tokens, bio components, navigation) fresh. Server state via TanStack Query + orval-generated hooks; auth via Sentinel with a runtime-config BFF.
 
-**Tech Stack:** Next 16 (App Router, `output: "standalone"`), React 19, TypeScript strict, Tailwind 4 (OKLch tokens), shadcn (new-york/zinc), radix-ui, TanStack Query v5, orval, `@sentinel-auth/*` 0.11, ag-grid, react-hook-form + zod, zustand, sonner, biome, vitest. Package manager: **pnpm**.
+**Tech Stack:** Next 16 (App Router, `output: "standalone"`), React 19, TypeScript strict, Tailwind 4 (OKLch tokens), shadcn (new-york/zinc), radix-ui, TanStack Query v5, orval, `@duar-auth/*` 0.11, ag-grid, react-hook-form + zod, zustand, sonner, biome, vitest. Package manager: **pnpm**.
 
 ## Global Constraints
 
@@ -15,7 +15,7 @@
 - **Frontend location:** `/Users/sidx/workspace/prot-cellar/frontend/` (monorepo, sibling of `backend/`). Branch: `feat/frontend`.
 - **Backend dev server:** prot-cellar runs on **port 8001** (`make up` then `make dev`), serves `/openapi.json`, API prefix `/api/v1`. chem-cellar uses 8000 — never point at 8000.
 - **Dropped chem-only deps (must NOT appear in package.json):** `@rdkit/rdkit`, `ketcher-*`, `plotly.js`, `react-plotly.js`, `exceljs`, `papaparse`, `@types/papaparse`, `@types/react-plotly.js`, `react-dropzone`, `react-resizable-panels`, `gsap`.
-- **Sentinel:** same identity-service as chem-cellar. `SENTINEL_URL=http://localhost:9003`, `SENTINEL_SERVICE_NAME=protcellar`.
+- **Sentinel:** same identity-service as chem-cellar. `DUAR_URL=http://localhost:9003`, `DUAR_SERVICE_NAME=protcellar`.
 - **Lint/format:** biome (2-space, 100 cols). `biome.json` ignores `src/shared/lib/api/` (generated) and `src/shared/components/ui/` (shadcn).
 - **Path alias:** `@/*` → `./src/*`.
 - **TDD policy:** Tasks producing pure logic (string/number/data transforms, validators) follow strict red→green TDD with the test code inlined. Tasks that scaffold/configure/port files (no testable pure logic) use a **verification gate** instead — an exact command plus expected output — clearly labeled "Verify".
@@ -53,7 +53,7 @@ frontend/
         api/custom-instance.ts          # T5  mutator + setApiBaseUrl + ApiError + API_V1
         api/endpoints.ts api/model/     # T6  GENERATED (orval)
         api/crud-hooks.ts               # T7  createCrudHooks + unwrapList
-        auth/config.ts                  # T9  getSentinelClient()
+        auth/config.ts                  # T9  getDuarClient()
         toast.ts                        # T8  showSuccess/showError/showInfo
         navigation.ts                   # T10 sidebar/breadcrumb config (bio)
       providers/
@@ -101,9 +101,9 @@ frontend/
   },
   "dependencies": {
     "@hookform/resolvers": "^5.0.0",
-    "@sentinel-auth/js": "^0.11.0",
-    "@sentinel-auth/nextjs": "^0.11.0",
-    "@sentinel-auth/react": "^0.11.0",
+    "@duar-auth/js": "^0.11.0",
+    "@duar-auth/nextjs": "^0.11.0",
+    "@duar-auth/react": "^0.11.0",
     "@tabler/icons-react": "^3.41.1",
     "@tanstack/react-query": "^5.80.0",
     "@tanstack/react-virtual": "^3.13.24",
@@ -195,12 +195,12 @@ tests
 ```
 APP_URL=http://localhost:3000
 APP_API_BASE_URL=http://localhost:8001
-APP_SENTINEL_URL=http://localhost:9003
-APP_SENTINEL_SERVICE_NAME=protcellar
-APP_SENTINEL_SERVICE_KEY=
-APP_SENTINEL_GOOGLE_CLIENT_ID=
-APP_SENTINEL_ENTRA_CLIENT_ID=
-APP_SENTINEL_ENTRA_TENANT_ID=
+APP_DUAR_URL=http://localhost:9003
+APP_DUAR_SERVICE_NAME=protcellar
+APP_DUAR_SERVICE_KEY=
+APP_DUAR_GOOGLE_CLIENT_ID=
+APP_DUAR_ENTRA_CLIENT_ID=
+APP_DUAR_ENTRA_TENANT_ID=
 ```
 
 `frontend/.env.local` — copy `.env.example` (dev values; service key left blank for now). `frontend/public/.gitkeep` — empty.
@@ -614,13 +614,13 @@ git add frontend/src/shared/lib/toast.ts && git commit -m "feat(frontend): toast
 
 **Interfaces:**
 - Produces:
-  - `getSentinelClient()` singleton; `getAuthHeaders(): Record<string,string>` (consumed by Task 5).
+  - `getDuarClient()` singleton; `getAuthHeaders(): Record<string,string>` (consumed by Task 5).
   - `<AuthProvider>` — fetches `/api/config`, calls `setApiBaseUrl()`, mounts `AppConfigProvider` + Sentinel `AuthzProvider`.
-  - `GET /api/config` — returns `{ apiBaseUrl, sentinelUrl, serviceName, idp:{...}, appUrl, build:{...} }` from `APP_*` env at request time.
-  - `POST /api/auth/mint` — BFF that exchanges the IdP token with Sentinel using `APP_SENTINEL_SERVICE_KEY` (server-only).
+  - `GET /api/config` — returns `{ apiBaseUrl, duarUrl, serviceName, idp:{...}, appUrl, build:{...} }` from `APP_*` env at request time.
+  - `POST /api/auth/mint` — BFF that exchanges the IdP token with Sentinel using `APP_DUAR_SERVICE_KEY` (server-only).
 
 - [ ] **Step 1: Port the four files** from chem-cellar, changing only:
-  - service name → `protcellar` (read from `APP_SENTINEL_SERVICE_NAME`).
+  - service name → `protcellar` (read from `APP_DUAR_SERVICE_NAME`).
   - default API base URL fallback → `http://localhost:8001`.
   - `redirectUri` → `${appUrl}/auth/callback`, `mintEndpoint: "/api/auth/mint"` (unchanged).
   - Keep `getAuthHeaders` wired so Task 5's mock contract (`{ Authorization }`) holds at runtime.
@@ -707,7 +707,7 @@ git add frontend/src/shared/lib/navigation.ts frontend/src/shared/components/lay
 
 - [ ] **Step 2: `(dashboard)/layout.tsx`** — `"use client"`; `useAuthz()` guard (skeleton while loading; redirect to `/login` when unauthenticated); render `SidebarProvider → AppSidebar + SidebarInset → Header + <main className="flex-1 overflow-auto p-4">{children}</main>`.
 
-- [ ] **Step 3: `(dashboard)/page.tsx`** — minimal dashboard placeholder: a heading "prot-cellar" + a few `Card`s linking to Proteins/Targets/Organisms (full dashboard is Plan 5). `login/page.tsx` — Sentinel IdP buttons (Google/Entra) on a clean split layout with a CSS-gradient background (NO gsap/GridMotion). `auth/callback/page.tsx` — `AuthzCallback` from `@sentinel-auth/nextjs`.
+- [ ] **Step 3: `(dashboard)/page.tsx`** — minimal dashboard placeholder: a heading "prot-cellar" + a few `Card`s linking to Proteins/Targets/Organisms (full dashboard is Plan 5). `login/page.tsx` — Sentinel IdP buttons (Google/Entra) on a clean split layout with a CSS-gradient background (NO gsap/GridMotion). `auth/callback/page.tsx` — `AuthzCallback` from `@duar-auth/nextjs`.
 
 - [ ] **Step 4 (Verify): app boots, unauth redirect, /api/config works**
 Run:

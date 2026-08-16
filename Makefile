@@ -8,14 +8,14 @@
 #
 # Day to day:  make logs (tail)  ·  make stop (stop servers)  ·  make down (stop containers)
 #
-# Auth uses the shared Sentinel identity-service (configured in backend/.env + frontend/.env.local).
-# No local Sentinel is needed when SENTINEL_URL points at the remote service.
+# Auth uses the shared Duar identity-service (configured in backend/.env + frontend/.env.local).
+# No local Duar is needed when DUAR_URL points at the remote service.
 
 COMPOSE  := docker compose
 BACKEND  := cd backend
 FRONTEND := cd frontend
 LOGDIR   := .logs
-# Load backend/.env (DATABASE_URL, SENTINEL_*) into the recipe shell.
+# Load backend/.env (DATABASE_URL, DUAR_*) into the recipe shell.
 BE_ENV   := set -a && . ./.env && set +a
 # arq import worker entrypoint (processes FE-enqueued import jobs).
 WORKER   := uv run arq protcellar.infrastructure.ingestion.worker.WorkerSettings

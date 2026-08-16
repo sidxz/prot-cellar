@@ -3,7 +3,7 @@
 import { ProteinFold } from "@/shared/components/backgrounds/protein-fold";
 import { LogoMark } from "@/shared/components/ui/logo-mark";
 import { useAppConfig } from "@/shared/lib/app-config";
-import { useAuthz } from "@sentinel-auth/nextjs";
+import { useAuthz } from "@duar-auth/nextjs";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 

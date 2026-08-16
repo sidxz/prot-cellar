@@ -4,7 +4,7 @@ import { ProteinFold } from "@/shared/components/backgrounds/protein-fold";
 import { LogoMark } from "@/shared/components/ui/logo-mark";
 import { Skeleton } from "@/shared/components/ui/skeleton";
 import { forgetWorkspace } from "@/shared/lib/auth/workspace-memory";
-import { AuthzCallback } from "@sentinel-auth/nextjs";
+import { AuthzCallback } from "@duar-auth/nextjs";
 import { useRouter } from "next/navigation";
 import { WorkspaceSelector } from "./workspace-selector";
 

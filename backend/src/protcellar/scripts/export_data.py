@@ -27,7 +27,7 @@ import protcellar.infrastructure.persistence.sqlalchemy.metadata  # noqa: F401
 from protcellar.domain.shared.global_workspace import SHARED_WORKSPACE_ID
 from protcellar.infrastructure.persistence.settings import DatabaseSettings
 from protcellar.infrastructure.persistence.sqlalchemy.base import Base
-from protcellar.infrastructure.sentinel.settings import SentinelSettings
+from protcellar.infrastructure.duar.settings import DuarSettings
 
 MANIFEST_NAME = "manifest.json"
 
@@ -90,11 +90,11 @@ async def export_data(output: Path) -> None:
             manifest = {
                 "schema_rev": schema_rev,
                 "exported_at": dt.datetime.now(dt.UTC).isoformat(),
-                "source_service_name": SentinelSettings().service_name,
+                "source_service_name": DuarSettings().service_name,
                 "tables": counts,
                 "excluded_tables": sorted(EXCLUDED_TABLES),
-                # Sentinel workspace ids from the source install; the importer
-                # must remap these to a workspace in the target's Sentinel.
+                # Duar workspace ids from the source install; the importer
+                # must remap these to a workspace in the target's Duar.
                 "foreign_workspace_ids": sorted(foreign_workspace_ids),
             }
             (Path(tmp) / MANIFEST_NAME).write_text(json.dumps(manifest, indent=2))

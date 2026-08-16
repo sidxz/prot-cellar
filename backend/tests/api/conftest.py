@@ -6,13 +6,13 @@ import os
 import uuid
 from collections.abc import AsyncIterator
 
-# Set sentinel env before any protcellar imports — allows module-level get_sentinel() to succeed.
-# Must NOT use .env files (cross-contamination between DatabaseSettings and SentinelSettings).
-os.environ["SENTINEL_SERVICE_KEY"] = "test-key-for-api-tests"
-os.environ["SENTINEL_URL"] = "https://sentinel.example.com"
-os.environ["SENTINEL_SERVICE_NAME"] = "protcellar"
-# Required since Sentinel 0.11.0 (authz mode) — get_sentinel() raises ValueError without it.
-os.environ["SENTINEL_IDP_AUDIENCE"] = "test-audience.apps.googleusercontent.com"
+# Set duar env before any protcellar imports — allows module-level get_duar() to succeed.
+# Must NOT use .env files (cross-contamination between DatabaseSettings and DuarSettings).
+os.environ["DUAR_SERVICE_KEY"] = "test-key-for-api-tests"
+os.environ["DUAR_URL"] = "https://duar.example.com"
+os.environ["DUAR_SERVICE_NAME"] = "protcellar"
+# Required since Duar 0.11.0 (authz mode) — get_duar() raises ValueError without it.
+os.environ["DUAR_IDP_AUDIENCE"] = "test-audience.apps.googleusercontent.com"
 
 import pytest
 from fastapi import FastAPI
@@ -30,7 +30,7 @@ from tests.fakes.fake_auth import FakeAuth
 
 
 def _create_test_app(database_url: str, fake_auth: FakeAuth) -> FastAPI:
-    """Build a FastAPI app for testing — no Sentinel middleware, FakeAuth for routes."""
+    """Build a FastAPI app for testing — no Duar middleware, FakeAuth for routes."""
     app = FastAPI()
 
     # DI container pointed at test DB — _env_file=None avoids loading .env

@@ -4,7 +4,7 @@ Usage::
 
     python -m protcellar.scripts.export_openapi [output_path]
 
-Defaults to writing ``<repo>/frontend/openapi.json``. Sets dummy Sentinel env vars
+Defaults to writing ``<repo>/frontend/openapi.json``. Sets dummy Duar env vars
 so ``create_app()`` constructs without real auth config (the schema is route-only;
 no DB or network is touched).
 """
@@ -16,10 +16,10 @@ import os
 import sys
 from pathlib import Path
 
-os.environ.setdefault("SENTINEL_SERVICE_KEY", "openapi-export")
-os.environ.setdefault("SENTINEL_URL", "https://sentinel.example.com")
-os.environ.setdefault("SENTINEL_SERVICE_NAME", "protcellar")
-os.environ.setdefault("SENTINEL_IDP_AUDIENCE", "openapi-export.example.com")
+os.environ.setdefault("DUAR_SERVICE_KEY", "openapi-export")
+os.environ.setdefault("DUAR_URL", "https://duar.example.com")
+os.environ.setdefault("DUAR_SERVICE_NAME", "protcellar")
+os.environ.setdefault("DUAR_IDP_AUDIENCE", "openapi-export.example.com")
 
 
 def main() -> None:

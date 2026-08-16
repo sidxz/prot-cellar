@@ -98,15 +98,15 @@ uv run python -m protcellar.scripts.import_data protcellar-data.tar.gz \
 ```
 
 By default all ids import verbatim — right whenever both installs use the
-**same** Sentinel. If your Sentinel is a separate install (workspace and user
-UUIDs live in Sentinel and differ per install), pass `--workspace`/`--user`
-with ids from **your** Sentinel to adopt the exporter's non-shared rows;
+**same** Duar. If your Duar is a separate install (workspace and user
+UUIDs live in Duar and differ per install), pass `--workspace`/`--user`
+with ids from **your** Duar to adopt the exporter's non-shared rows;
 shared reference data (owned by the fixed `SHARED_WORKSPACE_ID`) always
-imports unchanged. Your `SENTINEL_SERVICE_NAME`
+imports unchanged. Your `DUAR_SERVICE_NAME`
 does not have to match the exporter's (`prot-cellar-dev` vs `prot-cellar-dev1`
 is fine): the importer registers the `protcellar:*` actions under *your* app
-name and fails fast if your `SENTINEL_*` env vars aren't valid for your
-Sentinel (`--skip-sentinel-check` to bypass). The import is atomic and refuses
+name and fails fast if your `DUAR_*` env vars aren't valid for your
+Duar (`--skip-duar-check` to bypass). The import is atomic and refuses
 non-empty tables unless you pass `--truncate`. Operational history
 (`import_runs`, `import_uploads`, audit tables) is never exported.
 
@@ -121,11 +121,11 @@ make migrate     # run pending Alembic migrations
 
 ## Environment
 
-Copy `.env.example` → `backend/.env` and fill in `SENTINEL_SERVICE_KEY`:
+Copy `.env.example` → `backend/.env` and fill in `DUAR_SERVICE_KEY`:
 
 ```
 DATABASE_URL=postgresql+asyncpg://protcellar:protcellar@localhost:5433/protcellar
 REDIS_URL=redis://localhost:6380
-SENTINEL_URL=https://sentinel.orca-03.biobio.tamu.edu
-SENTINEL_SERVICE_KEY=sk_...
+DUAR_URL=https://duar.orca-03.biobio.tamu.edu
+DUAR_SERVICE_KEY=sk_...
 ```

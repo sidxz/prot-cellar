@@ -29,7 +29,7 @@ vi.mock("../hooks/use-tags", () => ({
 }));
 
 const hasRole = vi.fn(() => true);
-vi.mock("@sentinel-auth/nextjs", () => ({
+vi.mock("@duar-auth/nextjs", () => ({
   useAuthzHasRole: () => hasRole(),
 }));
 

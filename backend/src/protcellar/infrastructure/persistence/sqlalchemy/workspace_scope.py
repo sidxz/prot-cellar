@@ -4,7 +4,7 @@ Keeping these apart is the security core of the tenancy model. `readable_by`
 admits shared reference data so every tenant can see it; `owned_by` does not, so
 no tenant can mutate reference data for the others. Collapsing them into one
 predicate would hand every workspace admin write access to every other tenant's
-reference data — Sentinel exposes only per-workspace roles, so there is no
+reference data — Duar exposes only per-workspace roles, so there is no
 realm-admin concept that could make that safe.
 """
 

@@ -99,7 +99,7 @@ Identical to chem-cellar unless noted.
 | Framework | Next 16 (App Router, `output: "standalone"`), React 19, TypeScript strict |
 | Styling | Tailwind 4 + OKLch CSS variables; shadcn (new-york, base zinc) + radix-ui |
 | Data | TanStack Query v5; **orval** generates hooks+types from OpenAPI |
-| Auth | `@sentinel-auth/{js,react,nextjs}` 0.11; runtime `/api/config` + BFF `/api/auth/mint` |
+| Auth | `@duar-auth/{js,react,nextjs}` 0.11; runtime `/api/config` + BFF `/api/auth/mint` |
 | Tables | ag-grid via a `DataGrid` wrapper; `@tanstack/react-virtual` where needed |
 | Forms | react-hook-form + zod (`@hookform/resolvers`) |
 | State | zustand (UI/view prefs); server state is TanStack Query |
@@ -204,10 +204,10 @@ re-narrowed into domain types in each feature's `types/index.ts` (alias, never d
 - `(dashboard)/layout.tsx` guards with `useAuthz()`: skeleton while loading, redirect to
   `/login` when unauthenticated.
 - `/api/auth/mint` is a server route (BFF) that exchanges the IdP token with Sentinel using the
-  service key, which is never sent to the browser. `/api/config` reads `APP_*`/`SENTINEL_*` env
+  service key, which is never sent to the browser. `/api/config` reads `APP_*`/`DUAR_*` env
   at request time so one Docker image serves all environments.
 - Workspace identity rides in the Sentinel token; `WorkspaceSwitcher` uses `AuthzCallback`.
-- Point at the **same identity-service** as chem-cellar (`SENTINEL_URL=http://localhost:9003`).
+- Point at the **same identity-service** as chem-cellar (`DUAR_URL=http://localhost:9003`).
 
 ---
 
