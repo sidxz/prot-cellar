@@ -19,29 +19,28 @@ import uuid
 from collections import Counter
 from pathlib import Path
 
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from protcellar.application.target.create_target import (
     ComponentInput,
-    CreateTarget,
     CreateTargetCommand,
 )
 from protcellar.application.target.update_target import UpdateTarget, UpdateTargetCommand
 from protcellar.domain.target.enums import ComponentRelationship, TargetType
 from protcellar.infrastructure.persistence.settings import DatabaseSettings
-from protcellar.infrastructure.persistence.sqlalchemy.protein_catalog.gene_repository import (
-    SQLAlchemyGeneRepository,
-)
 from protcellar.infrastructure.persistence.sqlalchemy.protein_catalog.protein_repository import (
     SQLAlchemyProteinRepository,
 )
-from protcellar.infrastructure.persistence.sqlalchemy.target.models import TargetModel
 from protcellar.infrastructure.persistence.sqlalchemy.target.target_repository import (
     SQLAlchemyTargetRepository,
 )
 from protcellar.infrastructure.persistence.unit_of_work import AsyncUnitOfWork
-from protcellar.scripts.import_proteome import _NoopDispatcher
+from protcellar.scripts._target_import import (
+    NoopDispatcher,
+    WorkspaceAuth,
+    create_target,
+    sole_workspace_with_targets,
+)
 
 # PARSNIP records one accession per target, but several of its names are multi-subunit
 # complexes. The missing H37Rv subunit accessions, so those land as real complexes:
@@ -56,39 +55,16 @@ EXTRA_SUBUNITS: dict[str, tuple[str, ...]] = {
 }
 
 
-class _WorkspaceAuth:
-    """Admin auth pinned to the workspace being seeded."""
-
-    workspace_role = "admin"
-    is_admin = True
-
-    def __init__(self, workspace_id: uuid.UUID) -> None:
-        self.workspace_id = workspace_id
-        self.user_id = workspace_id
-
-    def has_role(self, minimum_role: str) -> bool:
-        return True
-
-
-async def _sole_workspace_with_targets(uow: AsyncUnitOfWork) -> uuid.UUID:
-    rows = (await uow.session.execute(select(TargetModel.workspace_id).distinct())).scalars().all()
-    if len(rows) != 1:
-        raise SystemExit(
-            f"--workspace-id is required (found {len(rows)} workspaces owning targets)."
-        )
-    return rows[0]
-
-
 async def _promote_to_complex(
     factory: async_sessionmaker[AsyncSession],
     workspace_id: uuid.UUID,
     target_id: uuid.UUID,
     protein_ids: list[uuid.UUID],
-    auth: _WorkspaceAuth,
+    auth: WorkspaceAuth,
 ) -> None:
     """Re-point a single_protein target at all of its subunits."""
     uow = AsyncUnitOfWork(factory)
-    use_case = UpdateTarget(uow, SQLAlchemyTargetRepository(uow), _NoopDispatcher())
+    use_case = UpdateTarget(uow, SQLAlchemyTargetRepository(uow), NoopDispatcher())
     command = UpdateTargetCommand(
         workspace_id=workspace_id,
         target_id=target_id,
@@ -111,7 +87,7 @@ async def run(*, file: Path, workspace_id: uuid.UUID | None, dry_run: bool) -> C
         # --- Pass 1: read-only. Existing names + every accession we might need. ---
         async with AsyncUnitOfWork(factory) as uow:
             if workspace_id is None:
-                workspace_id = await _sole_workspace_with_targets(uow)
+                workspace_id = await sole_workspace_with_targets(uow)
                 print(f"workspace: {workspace_id} (auto-detected)")
             targets = SQLAlchemyTargetRepository(uow)
             existing = {
@@ -129,7 +105,7 @@ async def run(*, file: Path, workspace_id: uuid.UUID | None, dry_run: bool) -> C
                     found[accession] = (protein.id, protein.organism_id)
 
         # --- Pass 2: one transaction per target. ---
-        auth = _WorkspaceAuth(workspace_id)
+        auth = WorkspaceAuth(workspace_id)
         for entry in entries:
             name = entry["name"]
             accessions = [a for a in (entry["uniprot"], *EXTRA_SUBUNITS.get(name, ())) if a]
@@ -174,15 +150,7 @@ async def run(*, file: Path, workspace_id: uuid.UUID | None, dry_run: bool) -> C
             if dry_run:
                 counts["would create"] += 1
                 continue
-            uow = AsyncUnitOfWork(factory)
-            use_case = CreateTarget(
-                uow,
-                SQLAlchemyTargetRepository(uow),
-                SQLAlchemyProteinRepository(uow),
-                SQLAlchemyGeneRepository(uow),
-                _NoopDispatcher(),
-            )
-            (await use_case(command, auth=auth)).unwrap()
+            await create_target(factory, command, auth)
             counts["created"] += 1
         return counts
     finally:
