@@ -20,13 +20,14 @@ from collections import Counter
 from pathlib import Path
 
 from sqlalchemy import select
-from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from protcellar.application.target.create_target import (
     ComponentInput,
     CreateTarget,
     CreateTargetCommand,
 )
+from protcellar.application.target.update_target import UpdateTarget, UpdateTargetCommand
 from protcellar.domain.target.enums import ComponentRelationship, TargetType
 from protcellar.infrastructure.persistence.settings import DatabaseSettings
 from protcellar.infrastructure.persistence.sqlalchemy.protein_catalog.gene_repository import (
@@ -42,11 +43,17 @@ from protcellar.infrastructure.persistence.sqlalchemy.target.target_repository i
 from protcellar.infrastructure.persistence.unit_of_work import AsyncUnitOfWork
 from protcellar.scripts.import_proteome import _NoopDispatcher
 
-# PARSNIP records one accession per target. parsnip-data's TBDA reference file gives
-# GyrAB two loci (Rv0005 + Rv0006), so it is the one entry we promote to a real complex.
-# Other multi-subunit names (ClpP1P2, TrpAB, CydAB, PrcBA) land as single_protein and are
-# reported at the end — promote them by editing the target once the subunits are agreed.
-EXTRA_SUBUNITS: dict[str, tuple[str, ...]] = {"GyrAB": ("P9WG45",)}
+# PARSNIP records one accession per target, but several of its names are multi-subunit
+# complexes. The missing H37Rv subunit accessions, so those land as real complexes:
+EXTRA_SUBUNITS: dict[str, tuple[str, ...]] = {
+    "GyrAB": ("P9WG45",),  # + gyrB   Rv0005 (gyrA Rv0006 is PARSNIP's own accession)
+    "ClpP1P2": ("P9WPC3",),  # + clpP2  Rv2460c
+    "TrpAB": ("P9WFX9",),  # + trpB   Rv1612
+    "CydAB": ("O06139",),  # + cydB   Rv1622c
+    "PrcBA": ("P9WHU1",),  # + prcA   Rv2109c
+    "pheST": ("P9WFU1",),  # + pheT   Rv1650
+    "HsaA/B": ("P9WND9",),  # + hsaB   Rv3567c
+}
 
 
 class _WorkspaceAuth:
@@ -72,6 +79,28 @@ async def _sole_workspace_with_targets(uow: AsyncUnitOfWork) -> uuid.UUID:
     return rows[0]
 
 
+async def _promote_to_complex(
+    factory: async_sessionmaker[AsyncSession],
+    workspace_id: uuid.UUID,
+    target_id: uuid.UUID,
+    protein_ids: list[uuid.UUID],
+    auth: _WorkspaceAuth,
+) -> None:
+    """Re-point a single_protein target at all of its subunits."""
+    uow = AsyncUnitOfWork(factory)
+    use_case = UpdateTarget(uow, SQLAlchemyTargetRepository(uow), _NoopDispatcher())
+    command = UpdateTargetCommand(
+        workspace_id=workspace_id,
+        target_id=target_id,
+        target_type=TargetType.PROTEIN_COMPLEX,
+        components=tuple(
+            ComponentInput(protein_id=pid, relationship=ComponentRelationship.PROTEIN_SUBUNIT)
+            for pid in protein_ids
+        ),
+    )
+    (await use_case(command, auth=auth)).unwrap()
+
+
 async def run(*, file: Path, workspace_id: uuid.UUID | None, dry_run: bool) -> Counter[str]:
     settings = DatabaseSettings()  # type: ignore[call-arg]
     engine = create_async_engine(settings.database_url)
@@ -86,7 +115,8 @@ async def run(*, file: Path, workspace_id: uuid.UUID | None, dry_run: bool) -> C
                 print(f"workspace: {workspace_id} (auto-detected)")
             targets = SQLAlchemyTargetRepository(uow)
             existing = {
-                t.pref_name for t in await targets.find_by_workspace(workspace_id, limit=100_000)
+                t.pref_name: t
+                for t in await targets.find_by_workspace(workspace_id, limit=100_000)
             }
             proteins = SQLAlchemyProteinRepository(uow)
             wanted = {
@@ -102,9 +132,6 @@ async def run(*, file: Path, workspace_id: uuid.UUID | None, dry_run: bool) -> C
         auth = _WorkspaceAuth(workspace_id)
         for entry in entries:
             name = entry["name"]
-            if name in existing:
-                counts["skipped (exists)"] += 1
-                continue
             accessions = [a for a in (entry["uniprot"], *EXTRA_SUBUNITS.get(name, ())) if a]
             missing = [a for a in accessions if a not in found]
             if not accessions or missing:
@@ -113,6 +140,19 @@ async def run(*, file: Path, workspace_id: uuid.UUID | None, dry_run: bool) -> C
                 continue
 
             is_complex = len(accessions) > 1
+            current = existing.get(name)
+            if current is not None:
+                # Only ever *promote*: a target curators already built out is left alone.
+                if not (is_complex and len(current.components) == 1):
+                    counts["skipped (exists)"] += 1
+                    continue
+                if not dry_run:
+                    await _promote_to_complex(
+                        factory, workspace_id, current.id, [found[a][0] for a in accessions], auth
+                    )
+                counts["promoted to complex"] += 1
+                continue
+
             relationship = (
                 ComponentRelationship.PROTEIN_SUBUNIT
                 if is_complex
