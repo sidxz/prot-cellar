@@ -7,6 +7,11 @@ describe("cardinality", () => {
     expect(componentCountValid("single_protein", 0)).toBe(false);
     expect(componentCountValid("single_protein", 2)).toBe(false);
   });
+  it("domain requires exactly 1", () => {
+    expect(componentCountValid("domain", 1)).toBe(true);
+    expect(componentCountValid("domain", 0)).toBe(false);
+    expect(componentCountValid("domain", 2)).toBe(false);
+  });
   it("complex/family/ppi require >= 2", () => {
     for (const t of ["protein_complex", "protein_family", "protein_protein_interaction"] as const) {
       expect(componentCountValid(t, 1)).toBe(false);

@@ -11,6 +11,7 @@ export type TargetType = typeof TargetType[keyof typeof TargetType];
 // eslint-disable-next-line @typescript-eslint/no-redeclare
 export const TargetType = {
   single_protein: 'single_protein',
+  domain: 'domain',
   protein_complex: 'protein_complex',
   protein_family: 'protein_family',
   protein_protein_interaction: 'protein_protein_interaction',

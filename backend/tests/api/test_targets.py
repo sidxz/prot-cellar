@@ -212,3 +212,50 @@ async def test_list_filters_by_organism_id(client: AsyncClient) -> None:
     ids = {t["id"] for t in resp.json()["items"]}
     assert ta.json()["id"] in ids
     assert tb.json()["id"] not in ids
+
+
+@pytest.mark.asyncio
+async def test_pref_name_defaults_from_components(client: AsyncClient) -> None:
+    """Blank pref_name is derived; `domain` targets get a " domain" suffix."""
+    organism_id = await _organism(client)
+    p1 = await _protein(client, organism_id, "P44441")
+    single = await client.post(
+        "/api/v1/targets",
+        json={
+            "target_type": "single_protein",
+            "components": [{"protein_id": p1, "relationship": "single_protein"}],
+        },
+    )
+    assert single.status_code == 201
+    # No gene and no recommended name on this fixture -> falls back to the accession.
+    assert single.json()["pref_name"] == "P44441"
+
+    domain = await client.post(
+        "/api/v1/targets",
+        json={
+            "pref_name": "   ",
+            "target_type": "domain",
+            "components": [{"protein_id": p1, "relationship": "single_protein"}],
+        },
+    )
+    assert domain.status_code == 201
+    assert domain.json()["pref_name"] == "P44441 domain"
+
+
+@pytest.mark.asyncio
+async def test_domain_target_takes_exactly_one_component(client: AsyncClient) -> None:
+    organism_id = await _organism(client)
+    p1 = await _protein(client, organism_id, "P44442")
+    p2 = await _protein(client, organism_id, "P44443")
+    resp = await client.post(
+        "/api/v1/targets",
+        json={
+            "pref_name": "Bad domain",
+            "target_type": "domain",
+            "components": [
+                {"protein_id": p1, "relationship": "single_protein"},
+                {"protein_id": p2, "relationship": "single_protein"},
+            ],
+        },
+    )
+    assert resp.status_code == 422

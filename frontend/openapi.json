@@ -5733,7 +5733,14 @@
       "CreateTargetBody": {
         "properties": {
           "pref_name": {
-            "type": "string",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Pref Name"
           },
           "target_type": {
@@ -5792,7 +5799,6 @@
         },
         "type": "object",
         "required": [
-          "pref_name",
           "target_type"
         ],
         "title": "CreateTargetBody"
@@ -10921,6 +10927,7 @@
         "type": "string",
         "enum": [
           "single_protein",
+          "domain",
           "protein_complex",
           "protein_family",
           "protein_protein_interaction",

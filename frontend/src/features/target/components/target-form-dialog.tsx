@@ -38,6 +38,7 @@ import type { Target, TargetComponentInput } from "@/features/target";
 
 const TARGET_TYPE_VALUES = [
   "single_protein",
+  "domain",
   "protein_complex",
   "protein_family",
   "protein_protein_interaction",
@@ -66,7 +67,8 @@ const componentRowSchema = z.object({
 
 const formSchema = z
   .object({
-    pref_name: z.string().min(1, "Preferred name is required"),
+    // Blank -> the API derives it from the component proteins.
+    pref_name: z.string(),
     target_type: z.enum(TARGET_TYPE_VALUES),
     components: z.array(componentRowSchema),
     organism_id: z.string().optional(),
@@ -157,7 +159,7 @@ export function TargetFormDialog({ open, onOpenChange, target }: TargetFormDialo
         await updateMutation.mutateAsync({
           targetId: target.id,
           data: {
-            pref_name: values.pref_name,
+            pref_name: values.pref_name || undefined,
             target_type: values.target_type,
             components,
             organism_id: values.organism_id || undefined,
@@ -168,7 +170,7 @@ export function TargetFormDialog({ open, onOpenChange, target }: TargetFormDialo
       } else {
         await createMutation.mutateAsync({
           data: {
-            pref_name: values.pref_name,
+            pref_name: values.pref_name || undefined,
             target_type: values.target_type,
             components,
             organism_id: values.organism_id || undefined,
@@ -194,10 +196,13 @@ export function TargetFormDialog({ open, onOpenChange, target }: TargetFormDialo
           <div className="grid gap-5 py-4">
             {/* Preferred name */}
             <div className="grid gap-2">
-              <Label htmlFor="pref_name">Preferred name</Label>
+              <Label htmlFor="pref_name">
+                Preferred name
+                {!isEdit && <span className="text-muted-foreground"> (optional)</span>}
+              </Label>
               <Input
                 id="pref_name"
-                placeholder="e.g. EGFR"
+                placeholder={isEdit ? "e.g. EGFR" : "Defaults to the component protein name"}
                 aria-label="Preferred name"
                 {...form.register("pref_name")}
               />

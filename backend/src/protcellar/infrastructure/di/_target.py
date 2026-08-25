@@ -12,6 +12,12 @@ from protcellar.application.target.get_target import GetTarget
 from protcellar.application.target.list_targets import ListTargets
 from protcellar.application.target.update_target import UpdateTarget
 from protcellar.infrastructure.messaging.event_dispatcher import EventDispatcher
+from protcellar.infrastructure.persistence.sqlalchemy.protein_catalog.gene_repository import (
+    SQLAlchemyGeneRepository,
+)
+from protcellar.infrastructure.persistence.sqlalchemy.protein_catalog.protein_repository import (
+    SQLAlchemyProteinRepository,
+)
 from protcellar.infrastructure.persistence.sqlalchemy.target.target_repository import (
     SQLAlchemyTargetRepository,
 )
@@ -37,7 +43,21 @@ def register_target(container: Container) -> None:
 
         return _f
 
-    container.define(CreateTarget, _target_cmd(CreateTarget))
+    # CreateTarget also reads proteins/genes to default a blank pref_name.
+    def _create_target() -> Any:
+        def _f(c: Container) -> Any:
+            uow = AsyncUnitOfWork(c[async_sessionmaker])
+            return CreateTarget(
+                uow,
+                SQLAlchemyTargetRepository(uow),
+                SQLAlchemyProteinRepository(uow),
+                SQLAlchemyGeneRepository(uow),
+                c[EventDispatcher],
+            )
+
+        return _f
+
+    container.define(CreateTarget, _create_target())
     container.define(UpdateTarget, _target_cmd(UpdateTarget))
     container.define(GetTarget, _target_query(GetTarget))
     container.define(ListTargets, _target_query(ListTargets))

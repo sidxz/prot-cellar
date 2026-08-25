@@ -18,7 +18,7 @@ from protcellar.domain.target.enums import ComponentRelationship, TargetType
 from protcellar.domain.target.events import TargetCreated, TargetUpdated
 
 # target_types whose component cardinality is constrained by the invariant.
-_EXACTLY_ONE = {TargetType.SINGLE_PROTEIN}
+_EXACTLY_ONE = {TargetType.SINGLE_PROTEIN, TargetType.DOMAIN}
 _AT_LEAST_TWO = {
     TargetType.PROTEIN_COMPLEX,
     TargetType.PROTEIN_FAMILY,

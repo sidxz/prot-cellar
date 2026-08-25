@@ -7,6 +7,7 @@ from enum import StrEnum
 
 class TargetType(StrEnum):
     SINGLE_PROTEIN = "single_protein"
+    DOMAIN = "domain"
     PROTEIN_COMPLEX = "protein_complex"
     PROTEIN_FAMILY = "protein_family"
     PROTEIN_PROTEIN_INTERACTION = "protein_protein_interaction"

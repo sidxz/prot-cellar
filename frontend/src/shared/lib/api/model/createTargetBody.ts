@@ -4,6 +4,7 @@
  * prot-cellar
  * OpenAPI spec version: 0.1.0
  */
+import type { CreateTargetBodyPrefName } from './createTargetBodyPrefName';
 import type { TargetType } from './targetType';
 import type { ComponentBody } from './componentBody';
 import type { CreateTargetBodyOrganismId } from './createTargetBodyOrganismId';
@@ -12,7 +13,7 @@ import type { CreateTargetBodyPharmacologicalClass } from './createTargetBodyPha
 import type { CrossReferenceBody } from './crossReferenceBody';
 
 export interface CreateTargetBody {
-  pref_name: string;
+  pref_name?: CreateTargetBodyPrefName;
   target_type: TargetType;
   components?: ComponentBody[];
   organism_id?: CreateTargetBodyOrganismId;

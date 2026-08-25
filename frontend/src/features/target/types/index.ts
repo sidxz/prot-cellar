@@ -30,6 +30,7 @@ export interface TargetComponentInput {
 /** Human-readable labels for each TargetType value. */
 export const TARGET_TYPE_LABELS: Record<TargetType, string> = {
   single_protein: "Single Protein",
+  domain: "Domain",
   protein_complex: "Protein Complex",
   protein_family: "Protein Family",
   protein_protein_interaction: "Protein-Protein Interaction",

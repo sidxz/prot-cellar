@@ -93,7 +93,8 @@ class TargetResponse(BaseModel):
 
 
 class CreateTargetBody(BaseModel):
-    pref_name: str
+    pref_name: str | None = None
+    """Omitted or blank -> derived from the component proteins."""
     target_type: TargetType
     components: list[ComponentBody] = []
     organism_id: uuid.UUID | None = None
@@ -164,7 +165,7 @@ async def create_target(
 ) -> TargetResponse:
     command = CreateTargetCommand(
         workspace_id=auth.workspace_id,
-        pref_name=body.pref_name,
+        pref_name=(body.pref_name or "").strip() or None,
         target_type=body.target_type,
         components=tuple(
             ComponentInput(protein_id=c.protein_id, relationship=c.relationship)

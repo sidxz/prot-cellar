@@ -2,12 +2,12 @@ import type { TargetType } from "@/shared/lib/api/model";
 
 /**
  * Returns the component count bounds for a given target type.
- * - single_protein: exactly 1
+ * - single_protein / domain: exactly 1
  * - protein_complex / protein_family / protein_protein_interaction: at least 2
  * - everything else: 0..∞ (optional)
  */
 export function cardinalityRule(t: TargetType): { min: number; max: number } {
-  if (t === "single_protein") {
+  if (t === "single_protein" || t === "domain") {
     return { min: 1, max: 1 };
   }
   if (t === "protein_complex" || t === "protein_family" || t === "protein_protein_interaction") {

@@ -107,6 +107,7 @@ export * from './createTargetBody';
 export * from './createTargetBodyChemblId';
 export * from './createTargetBodyOrganismId';
 export * from './createTargetBodyPharmacologicalClass';
+export * from './createTargetBodyPrefName';
 export * from './crispriStrainPatchBody';
 export * from './crispriStrainPatchBodyExtensions';
 export * from './crispriStrainPatchBodyExtensionsAnyOf';
