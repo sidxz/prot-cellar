@@ -6,7 +6,9 @@
 Input is PARSNIP's ``targets.json``: a list of
 ``{name, gene, locus, uniprot, chembl_id, chembl_type, protein_name, n_pdbs}``.
 ``name`` is PARSNIP's curated short form (``PptT``, ``Pks13``) and wins over the
-derived default. Idempotent: an existing target with the same pref_name in the
+derived default -- but it is normalized to protein case first, because the field is
+hand-written and skipping ``default_pref_name`` also skips its casing rule.
+Idempotent: an existing target with the same pref_name (case-insensitively) in the
 workspace is skipped, never overwritten.
 """
 
@@ -25,6 +27,7 @@ from protcellar.application.target.create_target import (
     ComponentInput,
     CreateTargetCommand,
 )
+from protcellar.application.target.default_pref_name import protein_case
 from protcellar.application.target.update_target import UpdateTarget, UpdateTargetCommand
 from protcellar.domain.target.enums import ComponentRelationship, TargetType
 from protcellar.infrastructure.persistence.settings import DatabaseSettings
@@ -50,7 +53,7 @@ EXTRA_SUBUNITS: dict[str, tuple[str, ...]] = {
     "TrpAB": ("P9WFX9",),  # + trpB   Rv1612
     "CydAB": ("O06139",),  # + cydB   Rv1622c
     "PrcBA": ("P9WHU1",),  # + prcA   Rv2109c
-    "pheST": ("P9WFU1",),  # + pheT   Rv1650
+    "PheST": ("P9WFU1",),  # + pheT   Rv1650
     "HsaA/B": ("P9WND9",),  # + hsaB   Rv3567c
 }
 
@@ -83,6 +86,13 @@ async def run(*, file: Path, workspace_id: uuid.UUID | None, dry_run: bool) -> C
     factory = async_sessionmaker(engine, expire_on_commit=False)
     counts: Counter[str] = Counter()
     entries = json.loads(file.read_text())
+    # PARSNIP's `name` is hand-written, and 14 of 82 were left in gene casing (`rho`,
+    # `dnaA`) while the other 68 followed the convention — which is how the catalog ended
+    # up with lowercase target names. Applying the same rule default_pref_name uses for
+    # DERIVED names means an explicit name can no longer skip it. Normalize before pass 1:
+    # EXTRA_SUBUNITS and the existing-name lookup are both keyed on this string.
+    for entry in entries:
+        entry["name"] = protein_case(entry["name"])
     try:
         # --- Pass 1: read-only. Existing names + every accession we might need. ---
         async with AsyncUnitOfWork(factory) as uow:
@@ -90,8 +100,11 @@ async def run(*, file: Path, workspace_id: uuid.UUID | None, dry_run: bool) -> C
                 workspace_id = await sole_workspace_with_targets(uow)
                 print(f"workspace: {workspace_id} (auto-detected)")
             targets = SQLAlchemyTargetRepository(uow)
+            # Case-insensitive, matching import_daikon_targets: a workspace seeded before
+            # names were normalized still holds `rho`, and an exact-match lookup would call
+            # that a miss and create a second `Rho` beside it.
             existing = {
-                t.pref_name: t
+                t.pref_name.lower(): t
                 for t in await targets.find_by_workspace(workspace_id, limit=100_000)
             }
             proteins = SQLAlchemyProteinRepository(uow)
@@ -116,7 +129,7 @@ async def run(*, file: Path, workspace_id: uuid.UUID | None, dry_run: bool) -> C
                 continue
 
             is_complex = len(accessions) > 1
-            current = existing.get(name)
+            current = existing.get(name.lower())
             if current is not None:
                 # Only ever *promote*: a target curators already built out is left alone.
                 if not (is_complex and len(current.components) == 1):

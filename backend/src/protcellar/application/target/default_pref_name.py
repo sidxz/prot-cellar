@@ -13,11 +13,24 @@ from protcellar.domain.shared.errors import ValidationError
 from protcellar.domain.target.enums import TargetType
 
 
+def protein_case(name: str) -> str:
+    """Bacterial protein-name casing: the gene symbol ``pptT`` names the protein ``PptT``.
+
+    Only the initial is touched. The internal capitals carry meaning (``mmpL3`` -> ``MmpL3``,
+    ``glfT2`` -> ``GlfT2``), so a blanket ``.title()`` or ``.capitalize()`` would destroy them.
+
+    Exported because the curated importers need the same rule: they pass an explicit
+    pref_name, which by design skips ``default_pref_name`` entirely, and a hand-written
+    source that misses the convention is exactly how the catalog acquired 14 gene-cased
+    target names (``rho``, ``dnaA``) sitting beside 112 correct ones.
+    """
+    return name[:1].upper() + name[1:]
+
+
 def component_label(protein: Protein, gene: Gene | None) -> str:
     """Short display name for one component: ``pptT`` -> ``PptT``."""
     if gene is not None and gene.primary_name:
-        name = gene.primary_name
-        return name[:1].upper() + name[1:]
+        return protein_case(gene.primary_name)
     return protein.protein_names.recommended or protein.primary_accession
 
 
