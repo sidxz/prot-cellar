@@ -121,7 +121,7 @@ make migrate     # run pending Alembic migrations
 
 ## Environment
 
-Copy `.env.example` → `backend/.env` and fill in `DUAR_SERVICE_KEY`:
+Copy `backend/.env.example` → `backend/.env` and fill in `DUAR_SERVICE_KEY`:
 
 ```
 DATABASE_URL=postgresql+asyncpg://protcellar:protcellar@localhost:5433/protcellar
