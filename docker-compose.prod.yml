@@ -1,0 +1,78 @@
+# Production app stack — pulls images from GHCR. Always combined with infra:
+#   docker compose -f docker-compose.infra.yml -f docker-compose.prod.yml up -d
+# Pin a release with PROT_CELLAR_TAG (defaults to latest = main HEAD):
+#   PROT_CELLAR_TAG=0.1.0 docker compose -f docker-compose.infra.yml -f docker-compose.prod.yml up -d
+# Settings come from ./.env — copy .env.example and fill in the Duar values.
+
+x-backend-env: &backend-env
+  DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-protcellar}:${POSTGRES_PASSWORD:-protcellar}@postgres:5432/${POSTGRES_DB:-protcellar}
+  REDIS_URL: redis://valkey:6379
+  CORS_ORIGINS: ${APP_URL:-http://localhost:3001}
+  APP_ENV: production
+  LOG_LEVEL: ${LOG_LEVEL:-INFO}
+  DUAR_URL: ${DUAR_URL:-}
+  DUAR_SERVICE_NAME: ${DUAR_SERVICE_NAME:-prot-cellar}
+  DUAR_SERVICE_KEY: ${DUAR_SERVICE_KEY:-}
+  DUAR_IDP_AUDIENCE: ${DUAR_IDP_AUDIENCE:-}
+  DUAR_IDP_ISSUER: ${DUAR_IDP_ISSUER:-https://accounts.google.com}
+
+services:
+  migrate:
+    image: ghcr.io/sidxz/prot-cellar-backend:${PROT_CELLAR_TAG:-latest}
+    command: [".venv/bin/alembic", "upgrade", "head"]
+    restart: "no"
+    healthcheck:
+      disable: true
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      <<: *backend-env
+      # Only needed when upgrading a pre-tenancy database (see migration d2b5f9c8e314).
+      MIGRATION_TARGET_WORKSPACE_ID: ${MIGRATION_TARGET_WORKSPACE_ID:-}
+
+  backend:
+    image: ghcr.io/sidxz/prot-cellar-backend:${PROT_CELLAR_TAG:-latest}
+    restart: unless-stopped
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      postgres:
+        condition: service_healthy
+      valkey:
+        condition: service_healthy
+    environment: *backend-env
+    ports:
+      - "8001:8001"
+
+  # arq worker for FE-started imports (Import Hub / plugins).
+  worker:
+    image: ghcr.io/sidxz/prot-cellar-backend:${PROT_CELLAR_TAG:-latest}
+    command: [".venv/bin/arq", "protcellar.infrastructure.ingestion.worker.WorkerSettings"]
+    restart: unless-stopped
+    healthcheck:
+      disable: true
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      valkey:
+        condition: service_healthy
+    environment: *backend-env
+
+  frontend:
+    image: ghcr.io/sidxz/prot-cellar-frontend:${PROT_CELLAR_TAG:-latest}
+    restart: unless-stopped
+    depends_on:
+      - backend
+    environment:
+      APP_URL: ${APP_URL:-http://localhost:3001}
+      APP_API_BASE_URL: ${APP_API_BASE_URL:-http://localhost:8001}
+      APP_ENV: ${APP_ENV:-production}
+      APP_DUAR_URL: ${DUAR_URL:-}
+      APP_DUAR_SERVICE_NAME: ${DUAR_SERVICE_NAME:-prot-cellar}
+      APP_DUAR_SERVICE_KEY: ${DUAR_SERVICE_KEY:-}
+      APP_DUAR_GOOGLE_CLIENT_ID: ${APP_DUAR_GOOGLE_CLIENT_ID:-}
+      APP_DUAR_ENTRA_CLIENT_ID: ${APP_DUAR_ENTRA_CLIENT_ID:-}
+      APP_DUAR_ENTRA_TENANT_ID: ${APP_DUAR_ENTRA_TENANT_ID:-}
+    ports:
+      - "3001:3000"

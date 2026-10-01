@@ -1,18 +1,41 @@
+# Backing services for prot-cellar — the single source of truth for infra.
+# Combined at runtime with an app file:
+#   dev infra only:  docker compose -f docker-compose.infra.yml up -d          (make up)
+#   prod stack:      docker compose -f docker-compose.infra.yml -f docker-compose.prod.yml up -d   (make prod-up)
+#   from source:     ... -f docker-compose.prod.yml -f docker-compose.yml up -d --build
+#
+# Credentials default to dev values when unset, so `make up` works with zero
+# config. For ANY real deployment set POSTGRES_PASSWORD in .env (see .env.example).
+# Ports bind to loopback only and sit off the defaults (5433/6380) so the stack
+# runs beside chem-cellar on one host.
 services:
   postgres:
     image: postgres:16-alpine
+    restart: unless-stopped
     environment:
-      POSTGRES_USER: protcellar
-      POSTGRES_PASSWORD: protcellar
-      POSTGRES_DB: protcellar
+      POSTGRES_USER: ${POSTGRES_USER:-protcellar}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-protcellar}
+      POSTGRES_DB: ${POSTGRES_DB:-protcellar}
     ports:
-      # Loopback-only: reachable from the host (uv/tests) but not the LAN.
       - "127.0.0.1:5433:5432"
     volumes:
       - protcellar_pg:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-protcellar}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   valkey:
     image: valkey/valkey:8-alpine
+    restart: unless-stopped
     ports:
       - "127.0.0.1:6380:6379"
+    healthcheck:
+      test: ["CMD", "valkey-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
 volumes:
   protcellar_pg:

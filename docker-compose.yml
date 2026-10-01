@@ -1,0 +1,17 @@
+# Build-from-source override of the prod stack: same services, local images.
+#   docker compose -f docker-compose.infra.yml -f docker-compose.prod.yml -f docker-compose.yml up -d --build
+# CI build verification + `make security-scan`:
+#   docker compose -f docker-compose.infra.yml -f docker-compose.prod.yml -f docker-compose.yml build
+services:
+  migrate:
+    image: prot-cellar-backend:local
+    build: ./backend
+  backend:
+    image: prot-cellar-backend:local
+    build: ./backend
+  worker:
+    image: prot-cellar-backend:local
+    build: ./backend
+  frontend:
+    image: prot-cellar-frontend:local
+    build: ./frontend
