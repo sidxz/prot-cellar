@@ -50,7 +50,23 @@ def _target_workspace() -> str:
     return value
 
 
+def _anything_to_move() -> bool:
+    # A fresh install has no rows under SHARED in these tables, so there is no
+    # one to hand them to — don't demand MIGRATION_TARGET_WORKSPACE_ID.
+    bind = op.get_bind()
+    return any(
+        bind.execute(
+            sa.text(
+                f"SELECT 1 FROM {table} WHERE workspace_id = CAST(:shared AS uuid) LIMIT 1"
+            ).bindparams(shared=_SHARED)
+        ).first()
+        for table in _OBSERVATION_TABLES + _WORKSPACE_TABLES
+    )
+
+
 def upgrade() -> None:
+    if not _anything_to_move():
+        return
     target = _target_workspace()
     for table in _OBSERVATION_TABLES:
         # Bare bind params compared against a uuid column trip the same asyncpg
