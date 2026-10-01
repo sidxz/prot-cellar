@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from duar_auth import Duar
 
-from protcellar.infrastructure.logging import get_logger
 from protcellar.infrastructure.duar.settings import DuarSettings
+from protcellar.infrastructure.logging import get_logger
 
 logger = get_logger(__name__)
 
@@ -30,9 +30,7 @@ async def register_service_actions(duar: Duar) -> bool:
     try:
         await duar.roles.register_actions(SERVICE_ACTIONS)
     except Exception:
-        logger.exception(
-            "duar.actions_register_failed", action_count=len(SERVICE_ACTIONS)
-        )
+        logger.exception("duar.actions_register_failed", action_count=len(SERVICE_ACTIONS))
         return False
     logger.info("duar.actions_registered", action_count=len(SERVICE_ACTIONS))
     return True

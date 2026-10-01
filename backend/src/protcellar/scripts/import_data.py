@@ -34,9 +34,9 @@ from sqlalchemy.exc import NoResultFound, ProgrammingError
 from sqlalchemy.ext.asyncio import AsyncConnection, create_async_engine
 
 from protcellar.domain.shared.global_workspace import SHARED_WORKSPACE_ID
-from protcellar.infrastructure.persistence.settings import DatabaseSettings
 from protcellar.infrastructure.duar.auth import create_duar, register_service_actions
 from protcellar.infrastructure.duar.settings import DuarSettings
+from protcellar.infrastructure.persistence.settings import DatabaseSettings
 from protcellar.scripts.export_data import MANIFEST_NAME, replicated_tables
 
 _BATCH_SIZE = 1000
@@ -58,11 +58,7 @@ async def _insert_self_referencing(
     inserted: set[Any] = set()
     pending = records
     while pending:
-        ready = [
-            r
-            for r in pending
-            if all(r[c] is None or r[c] in inserted for c in self_cols)
-        ]
+        ready = [r for r in pending if all(r[c] is None or r[c] in inserted for c in self_cols)]
         if not ready:
             raise SystemExit(
                 f"Cannot order rows of '{table.name}': self-referencing cycle or "
@@ -90,9 +86,7 @@ def _coercers(table: Table) -> dict[str, Any]:
 
 async def _check_schema(conn: AsyncConnection, manifest: dict[str, Any], force: bool) -> None:
     try:
-        rev = (
-            await conn.execute(text("SELECT version_num FROM alembic_version"))
-        ).scalar_one()
+        rev = (await conn.execute(text("SELECT version_num FROM alembic_version"))).scalar_one()
     except (ProgrammingError, NoResultFound):
         raise SystemExit(
             "Target database has no schema. Run: uv run alembic upgrade head"
@@ -200,9 +194,9 @@ async def import_data(
                         for name, fn in coerce.items():
                             if record.get(name) is not None:
                                 record[name] = fn(record[name])
-                        if (
-                            workspace is not None
-                            and record.get("workspace_id") not in (None, SHARED_WORKSPACE_ID)
+                        if workspace is not None and record.get("workspace_id") not in (
+                            None,
+                            SHARED_WORKSPACE_ID,
                         ):
                             record["workspace_id"] = workspace
                         if user is not None:

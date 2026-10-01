@@ -13,13 +13,13 @@ from sqlalchemy.ext.asyncio import AsyncEngine, async_sessionmaker
 from protcellar.application.imports.job_enqueuer import JobEnqueuer
 from protcellar.domain.shared.events import DomainEvent
 from protcellar.infrastructure.di.container import create_container
-from protcellar.infrastructure.logging import configure_logging
-from protcellar.infrastructure.messaging.audit_event_handler import AuditEventHandler
-from protcellar.infrastructure.messaging.event_dispatcher import EventDispatcher
 from protcellar.infrastructure.duar.auth import (
     get_duar,
     register_service_actions,
 )
+from protcellar.infrastructure.logging import configure_logging
+from protcellar.infrastructure.messaging.audit_event_handler import AuditEventHandler
+from protcellar.infrastructure.messaging.event_dispatcher import EventDispatcher
 from protcellar.interface.error_handlers import register_error_handlers
 from protcellar.interface.middleware.request_context import RequestContextMiddleware
 from protcellar.version import build_info
@@ -42,7 +42,8 @@ def create_app() -> FastAPI:
         # An external publisher registers here as one more subscriber (Redis Streams on
         # valkey, not Kafka). NOTE: events also dispatch in the arq worker
         # (infrastructure/ingestion/worker.py) — register in BOTH or bulk imports won't
-        # publish. See docs/superpowers/specs/2026-07-21-cross-service-event-notifications-decision.md
+        # publish. See
+        # docs/superpowers/specs/2026-07-21-cross-service-event-notifications-decision.md
 
         # duar.lifespan fetches the JWKS signing key (fatal if it fails —
         # auth can't work without it). Action registration is best-effort and

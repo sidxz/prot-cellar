@@ -126,9 +126,7 @@ async def test_browse_does_not_surface_a_foreign_workspaces_tag(uow: AsyncUnitOf
 
     async with uow:
         uow.session.add(organism)
-        tag = await SQLAlchemyTagRepository(uow).get_or_create(
-            ws_a, TagName(key="scope"), user
-        )
+        tag = await SQLAlchemyTagRepository(uow).get_or_create(ws_a, TagName(key="scope"), user)
         await uow.commit()
 
     async with uow:

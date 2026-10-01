@@ -15,10 +15,10 @@ from pydantic import ValidationError
 from protcellar.application.shared.unit_of_work import (
     UnitOfWork,  # noqa: F401  (re-exported for compat)
 )
+from protcellar.infrastructure.duar.auth import get_duar
 from protcellar.infrastructure.logging import bind_user_context
 from protcellar.infrastructure.messaging.event_dispatcher import EventDispatcher
 from protcellar.infrastructure.persistence.unit_of_work import AsyncUnitOfWork
-from protcellar.infrastructure.duar.auth import get_duar
 
 __all__ = [
     "AuthDep",
