@@ -19,6 +19,7 @@ from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import AsyncEngine, async_sessionmaker
 
+from protcellar.application.imports.job_enqueuer import JobEnqueuer
 from protcellar.domain.shared.events import DomainEvent
 from protcellar.infrastructure.di.container import create_container
 from protcellar.infrastructure.messaging.audit_event_handler import AuditEventHandler
@@ -29,13 +30,23 @@ from protcellar.interface.error_handlers import register_error_handlers
 from tests.fakes.fake_auth import FakeAuth
 
 
+class _NoopEnqueuer:
+    """No arq worker consumes the queue in tests (they drive the worker directly),
+    so POST /imports must not need a live Redis."""
+
+    async def enqueue_import(self, import_run_id: uuid.UUID, workspace_id: uuid.UUID) -> None:
+        return None
+
+
 def _create_test_app(database_url: str, fake_auth: FakeAuth) -> FastAPI:
     """Build a FastAPI app for testing — no Duar middleware, FakeAuth for routes."""
     app = FastAPI()
 
     # DI container pointed at test DB — _env_file=None avoids loading .env
     db_settings = DatabaseSettings(database_url=database_url, _env_file=None)  # type: ignore[call-arg]
-    container = create_container(db_settings)
+    # clone(): lagom refuses to redefine a type on the container that defined it.
+    container = create_container(db_settings).clone()
+    container.define(JobEnqueuer, lambda c: _NoopEnqueuer())
     app.state.container = container
 
     # Wire the audit handler so domain events (e.g. OrganizationCreated) are persisted.
