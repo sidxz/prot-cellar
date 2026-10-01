@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import random
 import uuid
 
 import pytest
@@ -49,7 +50,8 @@ async def test_dejesus_plugin_run_creates_essentiality(
         # locus matches the TSV.
         organism = Organism.create(
             workspace_id=SHARED_WORKSPACE_ID,
-            ncbi_tax_id=83332,
+            # Random tax_id: 83332 is also created by test_genes.py in this DB.
+            ncbi_tax_id=random.randint(200_000, 999_999),
             rank="strain",
             scientific_name="M. tuberculosis H37Rv (test)",
         )
