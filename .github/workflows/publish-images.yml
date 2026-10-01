@@ -154,10 +154,12 @@ jobs:
           NS="${GITHUB_REF_NAME%%-v*}"                       # backend | frontend
           # Previous same-namespace tag by creation date (assumes tags are created in version order).
           PREV="$(git tag --list "${NS}-v*" --sort=-creatordate | sed -n '2p')"
+          # git-cliff takes a range, not a bare tag; with no previous tag, no
+          # range = all history up to this (checked-out) tag.
           if [ -n "$PREV" ]; then
             echo "range=${PREV}..${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
           else
-            echo "range=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
+            echo "range=" >> "$GITHUB_OUTPUT"
           fi
           echo "path=${NS}/**" >> "$GITHUB_OUTPUT"
           case "${GITHUB_REF_NAME#"${NS}"-v}" in
