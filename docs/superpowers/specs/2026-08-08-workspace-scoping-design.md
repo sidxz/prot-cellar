@@ -41,16 +41,16 @@ Two smaller defects travel with this:
 | Tenancy model | **Uniform check, shared reference workspace.** Every row has a real `workspace_id` and every read filters. Reference data is owned by a designated shared workspace; reads resolve `workspace_id IN (caller, shared)`. No duplication of reference data, gene UUIDs stay stable, and a workspace *can* own a private gene from day one. |
 | Shared writes | **Imports only.** Ingestion paths write shared; every API write lands in the caller's workspace. No promotion endpoint. |
 | Delivery | **One spec, three phases**, tenancy backbone first. |
-| Existing private data | Goes to the `saclab-dev` workspace, not shared. |
+| Existing private data | Goes to the dev workspace, not shared. |
 
 ## 0. The premise, now confirmed
 
 This design rests on one property: **`AuthContext.workspace_id` carries a real, stable workspace id**,
 not a placeholder. Sentinel issues it in the authz token, every service in the realm
 (`daikon-siblings`) validates the same token, and the same workspace therefore presents the same id
-everywhere it is used. Confirmed against real data in this realm: `saclab-dev` — the workspace this
+everywhere it is used. Confirmed against real data in this realm: the dev workspace — the workspace this
 deployment runs as, and the name the UI header displays — is
-`442df0cf-e618-4938-a089-80ae2f1e43e7`.
+`<workspace-uuid>`.
 
 That value has never reached this database. Every row here carries the sentinel instead, which is
 why the property has not been exercised. **Re-confirm it from a live token as the first act of Phase
@@ -59,7 +59,7 @@ or unstable, stop: the design needs a mapping layer and this document is wrong.
 
 ## 0b. Deployment reality: this is dev
 
-The only deployment is `saclab-dev`, and its data is reproducible — the catalog comes from UniProt,
+The only deployment is the dev workspace, and its data is reproducible — the catalog comes from UniProt,
 NCBI and Mycobrowser imports, and the target-biology records from the DeJesus dataset plus a handful
 of manual rows. **A botched migration is recoverable by re-importing.**
 
@@ -224,7 +224,7 @@ previously-readable row must still be readable, and that one must not be readabl
 The destination workspace is read from a required `MIGRATION_TARGET_WORKSPACE_ID` environment
 variable **with no default** — so the migration fails loudly in a deployment where the operator has
 not said which workspace inherits the existing data, rather than silently assigning it to the wrong
-one. Here that is `442df0cf-e618-4938-a089-80ae2f1e43e7` (`saclab-dev`).
+one. Here that is `<workspace-uuid>` (the dev workspace).
 
 ## 2. Bulk target-biology read
 
@@ -265,7 +265,7 @@ Deliberately a 404 rather than a 403 for the not-visible case — a 403 confirms
   shape.
 - **Child-row invariant** — loading a protein's features for a protein that is not visible returns
   nothing, exercised through the API rather than the repository.
-- **Migration** — after upgrade, every row readable before is still readable by `saclab-dev`, and the
+- **Migration** — after upgrade, every row readable before is still readable by the dev workspace, and the
   single `private_comm` row is not readable by any other workspace. Assert on counts per table so a
   missed table fails loudly. `downgrade()` restores the sentinel.
 - **Bulk read** — workspace filter applied; cursor walks the full set; an unknown `kind` is a 422
@@ -273,7 +273,7 @@ Deliberately a 404 rather than a 403 for the not-visible case — a 403 confirms
 - **Parent validation** — 404 for a nonexistent gene, and 404 (not 403) for another workspace's
   private gene.
 - **Live QA** — sign in as a real user, confirm `AuthContext.workspace_id` is
-  `442df0cf-e618-4938-a089-80ae2f1e43e7`, and confirm the gene list and a gene detail page still
+  `<workspace-uuid>`, and confirm the gene list and a gene detail page still
   render every record they rendered before.
 
 ## 5. Build order

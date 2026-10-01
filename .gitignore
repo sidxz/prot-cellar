@@ -9,3 +9,9 @@ __pycache__/
 
 .logs/
 backup-data/
+
+# Agent workflow artifacts (kept local, not published)
+.superpowers/
+**/docs/superpowers/plans/
+**/docs/superpowers/**/*handoff*.md
+**/docs/superpowers/HANDOFF.md

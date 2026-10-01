@@ -126,6 +126,6 @@ Copy `backend/.env.example` → `backend/.env` and fill in `DUAR_SERVICE_KEY`:
 ```
 DATABASE_URL=postgresql+asyncpg://protcellar:protcellar@localhost:5433/protcellar
 REDIS_URL=redis://localhost:6380
-DUAR_URL=https://duar.orca-03.biobio.tamu.edu
+DUAR_URL=https://duar.example.org
 DUAR_SERVICE_KEY=sk_...
 ```

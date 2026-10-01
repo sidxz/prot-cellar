@@ -4,7 +4,7 @@
         --workspace-id <uuid>
 
 Input is a JSON array flattened from DAIKON's ``Target.Targets`` collection
-(mongodump archive of the Azure prod cluster)::
+(exported from a DAIKON deployment)::
 
     [{"name": "MenG", "target_type": "protein", "associated_genes": ["Rv0558"],
       "bucket": "2b", "is_deleted": false, "is_archived": false}]
