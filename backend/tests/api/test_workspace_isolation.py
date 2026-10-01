@@ -38,6 +38,7 @@ import importlib.util
 import uuid
 from pathlib import Path
 
+import pytest
 from alembic.operations import Operations
 from alembic.runtime.migration import MigrationContext
 from fastapi import FastAPI
@@ -599,7 +600,7 @@ def _load_reclassify_migration() -> object:
 
 
 async def test_migration_reclassifies_private_provenance_but_not_published(
-    database_url: str, _run_migrations: None
+    database_url: str, _run_migrations: None, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """The property Migration B exists for: once it runs, a private-provenance
     record is no longer readable by a workspace that isn't its new owner,
@@ -617,6 +618,8 @@ async def test_migration_reclassifies_private_provenance_but_not_published(
     ordering.
     """
     migration = _load_reclassify_migration()
+    # Rows exist under SHARED here, so the migration needs a destination.
+    monkeypatch.setenv("MIGRATION_TARGET_WORKSPACE_ID", str(uuid.uuid4()))
     other_workspace = uuid.uuid4()
     published_id, published_gene = uuid.uuid4(), uuid.uuid4()
     private_id, private_gene = uuid.uuid4(), uuid.uuid4()

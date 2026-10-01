@@ -46,9 +46,7 @@ def parse_unpublished_structure_csv(text: str) -> list[UnpublishedStructureImpor
                 resolution=float(res) if res else None,
                 ligand_ids=_uuids(t.cell(row, i_lig)),
                 is_published=t.as_bool(t.cell(row, i_pub)),
-                is_experimental=(
-                    t.as_bool(t.cell(row, i_exp)) if i_exp is not None else True
-                ),
+                is_experimental=(t.as_bool(t.cell(row, i_exp)) if i_exp is not None else True),
                 pmid=t.cell(row, i_pmid),
                 dataset=t.cell(row, i_ds),
             )

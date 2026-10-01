@@ -2,6 +2,15 @@ FROM python:3.13-slim
 
 WORKDIR /app
 
+RUN apt-get update \
+  && apt-get upgrade -y --no-install-recommends \
+  && rm -rf /var/lib/apt/lists/*
+
+# uv owns the venv; the base image's pip (and the wheels ensurepip carries)
+# only add a dependency tree that scanners flag and nothing at runtime uses.
+RUN python -m pip uninstall -y pip \
+  && rm -rf /usr/local/lib/python3.13/ensurepip /root/.cache/pip
+
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
 # Install dependencies first (layer caching) — project itself not yet installed
@@ -20,11 +29,11 @@ USER protcellar
 # Build identity — injected by CI from the git tag (see publish-images.yml).
 # Defaults keep local `docker build` runs honest about being unversioned.
 ARG APP_VERSION=0.0.0+dev
-ARG GIT_SHA=unknown
-ARG BUILD_DATE=unknown
-ENV PROTCELLAR_VERSION=$APP_VERSION \
-    PROTCELLAR_GIT_SHA=$GIT_SHA \
-    PROTCELLAR_BUILD_DATE=$BUILD_DATE
+ARG APP_GIT_SHA=unknown
+ARG APP_BUILD_DATE=unknown
+ENV APP_VERSION=$APP_VERSION \
+    APP_GIT_SHA=$APP_GIT_SHA \
+    APP_BUILD_DATE=$APP_BUILD_DATE
 
 EXPOSE 8001
 

@@ -25,9 +25,9 @@ from sqlalchemy.ext.asyncio import create_async_engine
 # The metadata module imports every model module, so Base.metadata is complete.
 import protcellar.infrastructure.persistence.sqlalchemy.metadata  # noqa: F401
 from protcellar.domain.shared.global_workspace import SHARED_WORKSPACE_ID
+from protcellar.infrastructure.duar.settings import DuarSettings
 from protcellar.infrastructure.persistence.settings import DatabaseSettings
 from protcellar.infrastructure.persistence.sqlalchemy.base import Base
-from protcellar.infrastructure.duar.settings import DuarSettings
 
 MANIFEST_NAME = "manifest.json"
 
