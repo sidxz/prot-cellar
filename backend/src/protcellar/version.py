@@ -15,9 +15,11 @@ class BuildInfo:
 
 
 def build_info() -> BuildInfo:
+    # Baked into the image by CI (backend/Dockerfile); exported by `make dev`
+    # from scripts/build-info.sh. Same names the frontend uses.
     return BuildInfo(
-        version=os.getenv("APP_VERSION", "0.1.0"),
-        git_sha=os.getenv("GIT_SHA", "dev"),
-        build_date=os.getenv("BUILD_DATE", "unknown"),
+        version=os.getenv("APP_VERSION", "0.0.0+dev"),
+        git_sha=os.getenv("APP_GIT_SHA", "unknown"),
+        build_date=os.getenv("APP_BUILD_DATE", "unknown"),
         environment=os.getenv("APP_ENV", "development"),
     )

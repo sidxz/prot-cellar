@@ -34,12 +34,23 @@ COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
 COPY --from=builder /app/public ./public
 
-RUN adduser -D -u 1001 cellar
-USER cellar
+# The runtime needs node only. npm, corepack and pnpm come with the base image
+# and carry their own dependency trees, which is where most image CVEs land.
+RUN rm -rf /usr/local/lib/node_modules /usr/local/bin/npm /usr/local/bin/npx \
+  /usr/local/bin/corepack /usr/local/bin/pnpm /usr/local/bin/pnpx
+
+RUN adduser -D -u 1001 protcellar
+USER protcellar
+
+# Docker sets HOSTNAME to the container id; Next's standalone server binds to
+# it, which would leave loopback (the healthcheck) unanswered.
+ENV HOSTNAME=0.0.0.0
 
 EXPOSE 3000
 
+# 127.0.0.1, not localhost: alpine resolves localhost to ::1 first, and the
+# server listens on IPv4 only.
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-  CMD wget -qO- http://localhost:3000/ || exit 1
+  CMD wget -qO- http://127.0.0.1:3000/api/config || exit 1
 
 CMD ["node", "server.js"]
