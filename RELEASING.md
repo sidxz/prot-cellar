@@ -59,9 +59,9 @@ frontend is compatible.
    - generates a `git-cliff` changelog scoped to that component since its
      previous tag and publishes a **GitHub Release** ("Backend v1.4.0").
 
-The first push of each image creates a **private** GHCR package. To let others
-pull without logging in, set each package's visibility to *Public* once
-(GitHub → Packages → the package → Package settings).
+If a newly published image can't be pulled without logging in, set the
+package's visibility to *Public* (GitHub → Packages → the package → Package
+settings). prot-cellar's two packages came out public on their first push.
 
 ## Deploying
 
