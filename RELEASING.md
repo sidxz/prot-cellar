@@ -15,9 +15,9 @@ Pushing a tag in one namespace builds, tags, and releases **only** that
 component. Pushes to `main` still publish `:latest` and `:sha-<sha>` images for
 whichever component changed.
 
-**Pre-releases** (`backend-v0.1.0-beta.1`) get only their exact image tag
-(`0.1.0-beta.1`) and a GitHub Release marked *pre-release*; the floating `X.Y`
-and `X` tags move on stable releases only.
+Releases are plain `X.Y.Z` — no `-beta`/`-rc` tags (the `0.1.0-beta.*` tags
+predate this). Each release's changelog covers everything since the previous
+`X.Y.Z` tag of that component.
 
 ## Choosing the bump (Conventional Commits)
 
@@ -49,7 +49,7 @@ frontend is compatible.
    ```
 4. Tag and push:
    ```bash
-   git tag backend-v1.4.0      # or frontend-v2.1.0, or backend-v0.1.0-beta.1
+   git tag backend-v1.4.0      # or frontend-v2.1.0
    git push origin backend-v1.4.0
    ```
 5. CI (`.github/workflows/publish-images.yml`) then:
