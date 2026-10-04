@@ -14,9 +14,9 @@
     "generate:api": "orval"
   },
   "dependencies": {
-    "@duar-auth/js": "^1.0.0",
-    "@duar-auth/nextjs": "^1.0.0",
-    "@duar-auth/react": "^1.0.0",
+    "@duar-auth/js": "^1.4.1",
+    "@duar-auth/nextjs": "^1.4.1",
+    "@duar-auth/react": "^1.4.1",
     "@hookform/resolvers": "^5.0.0",
     "@structflo/components": "^0.2.0",
     "@structflo/daikon-design-tokens": "^1.0.0",
